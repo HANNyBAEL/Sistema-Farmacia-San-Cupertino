@@ -5,6 +5,7 @@ import sequelize from './config/database.js';
 import authRoutes from './routes/auth.js';
 import productoRoutes from './routes/productos.js';
 import ventaRoutes from './routes/ventas.js';
+import dashboardRoutes from './routes/dashboard.js';
 
 dotenv.config();
 const app = express();
@@ -16,7 +17,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/productos', productoRoutes);
 app.use('/api/ventas', ventaRoutes);
-
+app.use('/api/dashboard', dashboardRoutes);
 // Probar conexión a BD
 try {
   await sequelize.authenticate();
