@@ -1,34 +1,16 @@
-import { defineConfig } from 'vite'
-import path from 'path'
-import tailwindcss from '@tailwindcss/vite'
-import react from '@vitejs/plugin-react'
-
-function figmaAssetResolver() {
-  return {
-    name: 'figma-asset-resolver',
-    resolveId(id) {
-      if (id.startsWith('figma:asset/')) {
-        const filename = id.replace('figma:asset/', '')
-        return path.resolve(__dirname, 'src/assets', filename)
-      }
-    },
-  }
-}
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';   // ← Importa el plugin
+import path from 'path';
 
 export default defineConfig({
-  plugins: [
-    figmaAssetResolver(),
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [react(), tailwindcss()],   // ← Agrégalo aquí
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
-  assetsInclude: ['**/*.svg', '**/*.csv'],
-
-  // ✅ AÑADE ESTO (el proxy para conectar con el backend)
+  
   server: {
     port: 3000,
     proxy: {
@@ -38,4 +20,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

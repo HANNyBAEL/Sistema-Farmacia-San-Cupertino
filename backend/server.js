@@ -7,6 +7,7 @@ import productoRoutes from './routes/productos.js';
 import ventaRoutes from './routes/ventas.js';
 import dashboardRoutes from './routes/dashboard.js';
 
+
 dotenv.config();
 const app = express();
 
