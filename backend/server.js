@@ -31,3 +31,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
+app.use(cors({
+    origin: 'http://localhost:3000', // o el puerto donde corra el frontend
+    credentials: true
+}));

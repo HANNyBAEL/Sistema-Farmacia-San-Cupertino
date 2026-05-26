@@ -12,7 +12,14 @@ import {
 //const logoImg = "https://placehold.co/200x200?text=Farmacia";
 //import ImageWithFallback from "./components/ImageWithFallback";
 //import logoImg from "@/imports/logo.png";
+import { login } from "../services/auth";
+import { fetchKPIs, fetchVentasUltimos7Dias } from "../services/dashboard";
+import { createVenta } from "../services/ventas";
+// Si tienes endpoint para clientes:
+// import { getClientes } from "../services/clientes";
+//import { getProductos, createProducto, updateProducto, deleteProducto } from './services/productos';
 import axios from 'axios';
+import { createProducto, deleteProducto, getProductos, updateProducto } from '../services/productos';
 const LogoPlaceholder = () => <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500">Logo</div>;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -217,7 +224,7 @@ function Select({ children, value, onChange, className = "" }: {
   );
 }
 
-// ── Login ──────────────────────────────────────────────────────────────────────
+// ── const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role)); ──────────────────────────────────────────────────────────────────────
 
 function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
   const [email, setEmail] = useState("");
@@ -229,14 +236,15 @@ function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
     e.preventDefault();
     setError("");
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
-      const { token, rol, nombre } = response.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('rol', rol);
-      localStorage.setItem('nombre', nombre);
-      onLogin({ name: nombre, role: rol });
+      const data = await login(email, password);
+      console.log("Respuesta login:", data);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('rol', data.rol.toLowerCase());
+      localStorage.setItem('nombre', data.nombre);
+      onLogin({ name: data.nombre, role: data.rol.toLowerCase() });
     } catch (err) {
-      setError('Credenciales incorrectas');
+      console.error("Error en login:", err);
+      setError("Credenciales incorrectas");
     }
   };
 
@@ -374,7 +382,7 @@ function Sidebar({ user, current, onNav, onLogout, collapsed, onToggle }: {
   user: User; current: Screen; onNav: (s: Screen) => void; onLogout: () => void;
   collapsed: boolean; onToggle: () => void;
 }) {
-  const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role));
+  const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role.toLowerCase()));
   return (
     <aside className={`flex flex-col h-full bg-[#0a2a44] transition-all duration-200 ${collapsed ? "w-16" : "w-60"}`}>
       {/* Header */}
@@ -458,22 +466,19 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchKPIs = async () => {
+    const cargarDatos = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('/api/dashboard/kpis', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const data = await fetchKPIs(); // usa el servicio
         setDashboardData({
-          ventasHoy: res.data.ventasHoy || 0,
-          ingresosHoy: res.data.ingresosHoy || 0,
-          stockBajo: res.data.stockBajo || 0,
-          stockCritico: res.data.stockCritico || 0,
-          agotados: res.data.agotados || 0,
-          porVencer: res.data.porVencer || 0,
-          proveedoresActivos: res.data.proveedoresActivos || 0,
-          empleadosActivos: res.data.empleadosActivos || 0,
-          totalProductos: res.data.totalProductos || 0,
+          ventasHoy: data.ventasHoy || 0,
+          ingresosHoy: data.ingresosHoy || 0,
+          stockBajo: data.stockBajo || 0,
+          stockCritico: data.stockCritico || 0,
+          agotados: data.agotados || 0,
+          porVencer: data.porVencer || 0,
+          proveedoresActivos: data.proveedoresActivos || 0,
+          empleadosActivos: data.empleadosActivos || 0,
+          totalProductos: data.totalProductos || 0,
         });
       } catch (error) {
         console.error('Error cargando KPIs:', error);
@@ -481,7 +486,7 @@ function Dashboard() {
         setLoading(false);
       }
     };
-    fetchKPIs();
+    cargarDatos();
   }, []);
 
   if (loading) {
@@ -579,6 +584,8 @@ function Dashboard() {
 // ── POS / Ventas ───────────────────────────────────────────────────────────────
 
 function Ventas() {
+  const [productos, setProductos] = useState<Product[]>([]);
+  const [clientes, setClientes] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [clientSearch, setClientSearch] = useState("");
@@ -633,7 +640,27 @@ function Ventas() {
     setClientSearch("");
     setTimeout(() => setSaleDone(false), 3000);
   }
-
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const productosData = await getProductos();
+        setProductos(productosData.map(p => ({
+          id: p.id_producto || p.id,
+          name: p.nombre_producto,
+          description: p.descripcion || "",
+          price: parseFloat(p.precio),
+          stock: p.stock,
+          lot: p.lote,
+          expiry: p.fecha_vencimiento,
+          controlled: p.controlled || false,
+        })));
+        setClientes(CLIENTS.filter(c => !c.deleted)); // Temporal, hasta tener endpoint
+      } catch (error) {
+        console.error("Error cargando datos para ventas:", error);
+      }
+    };
+    cargarDatos();
+  }, []);
   return (
     <div className="flex h-full" style={{ minHeight: 0 }}>
       {/* Left: search */}
@@ -853,22 +880,22 @@ function Productos() {
     fetchProducts();
   }, []);
 
-  const fetchProducts = async () => {
+  
+    const fetchProducts = async () => {
     try {
-      const res = await axios.get('/api/productos');
-      // Ajusta los campos según lo que devuelve tu endpoint
-      const data = res.data.map((p: any) => ({
-        id: p.id_producto,
+      const res = await getProductos();
+      // Mapea los campos que devuelve el backend a la interfaz Product
+      const data = res.map((p: any) => ({
+        id: p.id_producto,         // o p.id, según tu backend
         name: p.nombre_producto,
         description: p.descripcion || "",
         price: parseFloat(p.precio),
         stock: p.stock,
         lot: p.lote,
         expiry: p.fecha_vencimiento,
-        supplier: p.id_proveedor, // temporal, después se puede obtener el nombre del proveedor
-        categories: [], // pendiente cargar categorías desde otra tabla
-        controlled: false, // pendiente cargar flag desde categoría
-        deleted: p.deleted || false,
+        supplier: p.id_proveedor,  // más adelante podremos mostrar el nombre del proveedor
+        categories: p.categorias ? p.categorias.split(',') : [], // si recibes las categorías como string
+        controlled: p.controlled ? true : false,
       }));
       setProducts(data);
     } catch (error) {
@@ -877,7 +904,6 @@ function Productos() {
       setLoading(false);
     }
   };
-
   const CATEGORIES = [
     "Analgésico",
     "Antibiótico",
@@ -939,8 +965,8 @@ function Productos() {
   const deleteProduct = async (id: number) => {
     if (!confirm("¿Eliminar este producto?")) return;
     try {
-      await axios.delete(`/api/productos/${id}`);
-      fetchProducts(); // recargar lista
+      await deleteProducto(id);
+      fetchProducts();
     } catch (error) {
       console.error("Error al eliminar:", error);
       alert("No se pudo eliminar el producto");
@@ -987,20 +1013,17 @@ function Productos() {
       lote: form.lot,
       fecha_vencimiento: form.expiry,
       id_proveedor: parseInt(form.supplier),
-      categorias: form.categories.map(
-        (cat) => CATEGORIES.indexOf(cat) + 1 // asumiendo que el id de categoría es el índice+1
-      ),
-      controlled: form.controlled,
+      // categorías: si tu backend espera un array de ids o nombres
     };
 
     try {
       if (editProduct) {
-        await axios.put(`/api/productos/${editProduct.id}`, payload);
+        await updateProducto(editProduct.id, payload);
       } else {
-        await axios.post(`/api/productos`, payload);
+        await createProducto(payload);
       }
       setShowForm(false);
-      fetchProducts(); // refrescar tabla
+      fetchProducts(); // recargar lista
     } catch (error) {
       console.error("Error al guardar:", error);
       setFormError("Error al guardar el producto. Verifique los datos.");
