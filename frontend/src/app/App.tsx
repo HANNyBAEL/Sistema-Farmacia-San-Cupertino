@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard, ShoppingCart, Package, Users, UserCog, Truck,
   Bell, BarChart2, History, Trash2, Settings, LogOut, Search,
   Plus, Edit2, X, Check, ChevronDown, AlertTriangle, FileSpreadsheet,
   Eye, EyeOff, Filter, Download, RefreshCw, Shield,
-  TrendingUp, TrendingDown, Clock, ChevronRight, Menu
+  TrendingUp, TrendingDown, Clock, ChevronRight
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -22,6 +22,10 @@ import axios from 'axios';
 import { createProducto, deleteProducto, getProductos, updateProducto } from '../services/productos';
 const LogoPlaceholder = () => <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500">Logo</div>;
 
+//import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+//import logoImg from "@/imports/logo.png";
+import api from "../services/api";
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Role = "administrador" | "farmaceutico" | "cajero";
@@ -30,7 +34,16 @@ type Screen =
   | "empleados" | "proveedores" | "alertas" | "reportes"
   | "historial" | "eliminados" | "configuracion";
 
-interface User { name: string; role: Role; }
+interface User {
+  cargo: any; name: string; role: Role; 
+}
+
+interface AuthUser {
+  id_empleado: number;
+  nombre: string;
+  apellido: string;
+  cargo: 'Administrador' | 'Farmacéutica' | 'Cajero';
+}
 
 interface Product {
   id: number; name: string; description: string; price: number;
@@ -95,10 +108,6 @@ const LOGS: ChangeLog[] = [
   { id: 5, date: "19/05/2026 08:22", user: "Admin Sistema", field: "precio", before: "$3.50", after: "$3.80", product: "Ibuprofeno 400mg" },
 ];
 
-const SALES_DATA = [
-  { day: "Lun", ventas: 420 }, { day: "Mar", ventas: 310 }, { day: "Mié", ventas: 580 },
-  { day: "Jue", ventas: 490 }, { day: "Vie", ventas: 720 }, { day: "Sáb", ventas: 850 }, { day: "Hoy", ventas: 340 },
-];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -168,48 +177,14 @@ function Card({ children, className = "", accent }: { children: React.ReactNode;
   );
 }
 
-function Input({ 
-  placeholder, 
-  value, 
-  onChange, 
-  type = "text", 
-  className = "", 
-  id,
-  required = false,
-  disabled = false,
-  min,
-  max,
-  step,
-  readOnly = false
-}: {
-  placeholder?: string; 
-  value: string; 
-  onChange: (v: string) => void;
-  type?: string; 
-  className?: string; 
-  id?: string;
-  required?: boolean;
-  disabled?: boolean;
-  min?: number | string;
-  max?: number | string;
-  step?: number | string;
-  readOnly?: boolean;
+function Input({ placeholder, value, onChange, type = "text", className = "", id }: {
+  placeholder?: string; value: string; onChange: (v: string) => void;
+  type?: string; className?: string; id?: string;
 }) {
   return (
-    <input 
-      id={id} 
-      type={type} 
-      placeholder={placeholder} 
-      value={value}
+    <input id={id} type={type} placeholder={placeholder} value={value}
       onChange={e => onChange(e.target.value)}
-      required={required}
-      disabled={disabled}
-      min={min}
-      max={max}
-      step={step}
-      readOnly={readOnly}
-      className={`w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-[#1e1e1e] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] transition-all text-sm ${className}`} 
-    />
+      className={`w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-[#1e1e1e] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] transition-all text-sm ${className}`} />
   );
 }
 
@@ -227,142 +202,97 @@ function Select({ children, value, onChange, className = "" }: {
 // ── const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role)); ──────────────────────────────────────────────────────────────────────
 
 function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    try {
-      const data = await login(email, password);
-      console.log("Respuesta login:", data);
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('rol', data.rol.toLowerCase());
-      localStorage.setItem('nombre', data.nombre);
-      onLogin({ name: data.nombre, role: data.rol.toLowerCase() });
-    } catch (err) {
-      console.error("Error en login:", err);
-      setError("Credenciales incorrectas");
+  const USERS: Record<string, { name: string; role: Role; pass: string }> = {
+    admin: { name: "Admin Sistema", role: "administrador", pass: "admin123" },
+    farmaceutico: { name: "Dr. Roberto Medina", role: "farmaceutico", pass: "farm123" },
+    cajero: { name: "Lucía Pérez", role: "cajero", pass: "cajero123" },
+  };
+
+  const handleLogin = () => {
+    if (!username || !password) {
+      setError("Complete todos los campos.");
+      return;
     }
+    const u = USERS[username.toLowerCase()];
+    if (!u || u.pass !== password) {
+      setError("Usuario o contraseña incorrectos.");
+      return;
+    }
+    setError("");
+    onLogin({ name: u.name, role: u.role });
   };
 
   return (
-    <div className="min-h-screen flex" style={{ fontFamily: "Inter, sans-serif" }}>
-      {/* Left panel (se mantiene igual) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#0a2a44] flex-col justify-between p-12">
-        <div>
-          <div className="flex items-center gap-4 mb-12">
-            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 p-1">
-              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 p-1">
-                <span className="text-xs font-bold text-gray-600">Logo</span>
-              </div>
-            </div>
-            <div>
-              <span className="text-white font-bold text-xl tracking-tight block leading-tight">Farmacias San Cupertino</span>
-              <span className="text-blue-300 text-xs font-normal tracking-wide">Gestión Farmacéutica</span>
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: "Inter, sans-serif" }}>
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-4">
+            <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center text-xs">Logo</div>
           </div>
-          <h1 className="text-4xl font-bold text-white leading-tight mb-4">
-            Gestión farmacéutica<br />
-            <span className="text-[#42a5f5]">inteligente y segura</span>
-          </h1>
-          <p className="text-blue-200 text-base leading-relaxed max-w-sm">
-            Control total de inventario, ventas, alertas de stock y reportes para su farmacia.
-          </p>
+          <h1 className="text-lg font-bold text-[#0a2a44] text-center leading-tight">Farmacias San Cupertino</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Sistema de gestión</p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: "Productos", value: "847", icon: <Package size={16} /> },
-            { label: "Ventas hoy", value: "$2,340", icon: <TrendingUp size={16} /> },
-            { label: "Alertas", value: "4", icon: <Bell size={16} /> },
-            { label: "Clientes", value: "312", icon: <Users size={16} /> },
-          ].map(item => (
-            <div key={item.label} className="bg-white/10 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-blue-300 mb-1">{item.icon}<span className="text-xs">{item.label}</span></div>
-              <div className="text-white font-bold text-xl">{item.value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Right panel - formulario modificado para usar handleSubmit */}
-      <div className="flex-1 flex items-center justify-center bg-white px-8">
-        <form onSubmit={handleSubmit} className="w-full max-w-sm">
-          <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/15 p-1.5 flex-shrink-0">
-                            <img 
-                src="https://placehold.co/200x200?text=Farmacia" 
-                alt="Farmacias San Cupertino logo" 
-                className="w-full h-full object-contain" 
-              />
-            </div>
-            <div>
-              <span className="text-[#0a4b7a] font-bold text-base block leading-tight">Farmacias San Cupertino</span>
-              <span className="text-gray-400 text-xs">Gestión Farmacéutica</span>
-            </div>
+        <h2 className="text-xl font-bold text-[#1e1e1e] mb-1">Iniciar sesión</h2>
+        <p className="text-gray-500 text-sm mb-6">Ingrese sus credenciales para continuar</p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Usuario</label>
+            <Input placeholder="Usuario" value={username} onChange={setUsername} />
           </div>
-          <h2 className="text-2xl font-bold text-[#1e1e1e] mb-1">Iniciar sesión</h2>
-          <p className="text-gray-500 text-sm mb-8">Ingrese sus credenciales para continuar</p>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Correo electrónico</label>
+          <div>
+            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Contraseña</label>
+            <div className="relative">
               <Input
-                type="email"
-                placeholder="correo@ejemplo.com"
-                value={email}
-                onChange={setEmail}   // ← directamente la función setter
-                required
+                placeholder="Contraseña"
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={setPassword}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Contraseña</label>
-              <div className="relative">
-                <Input
-                  type={showPw ? "text" : "password"}
-                  placeholder="Contraseña"
-                  value={password}
-                  onChange={setPassword}   // ← directamente
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowPw(!showPw)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
+        </div>
 
-          {error && (
-            <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
-              <AlertTriangle size={14} />
-              {error}
-            </div>
-          )}
-
-          <button type="submit" className="w-full mt-6 justify-center bg-[#0a4b7a] hover:bg-[#06355a] text-white font-medium py-2.5 rounded-lg transition">
-            Iniciar sesión
-          </button>
-
-          <button type="button" className="w-full text-center text-[#0a4b7a] text-sm mt-4 hover:underline">
-            ¿Olvidó su contraseña?
-          </button>
-
-          <div className="mt-8 p-4 bg-[#e3f2fd] rounded-lg text-xs text-[#0a4b7a] space-y-1">
-            <div className="font-semibold mb-2">Cuentas de prueba (conectadas a su BD):</div>
-            <div>admin@farmacia.com / admin123 → Administrador</div>
-            <div>(use los correos reales de su tabla empleados)</div>
+        {error && (
+          <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+            <AlertTriangle size={14} />
+            {error}
           </div>
-        </form>
+        )}
+
+        <Btn variant="primary" size="lg" className="w-full mt-6 justify-center" onClick={handleLogin}>
+          Iniciar sesión
+        </Btn>
+
+        <button className="w-full text-center text-[#0a4b7a] text-sm mt-4 hover:underline">
+          ¿Olvidó su contraseña?
+        </button>
+
+        <div className="mt-6 p-4 bg-[#e3f2fd] rounded-lg text-xs text-[#0a4b7a] space-y-1">
+          <div className="font-semibold mb-2">Cuentas de prueba:</div>
+          <div>admin / admin123 → Administrador</div>
+          <div>farmaceutico / farm123 → Farmacéutico</div>
+          <div>cajero / cajero123 → Cajero</div>
+        </div>
       </div>
     </div>
   );
-}// ── Sidebar ────────────────────────────────────────────────────────────────────
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: Role[] }[] = [
   { screen: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} />, roles: ["administrador"] },
@@ -378,131 +308,70 @@ const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: 
   { screen: "configuracion", label: "Configuración", icon: <Settings size={18} />, roles: ["administrador"] },
 ];
 
-function Sidebar({ user, current, onNav, onLogout, collapsed, onToggle }: {
+function Sidebar({ user, current, onNav, onLogout }: {
   user: User; current: Screen; onNav: (s: Screen) => void; onLogout: () => void;
-  collapsed: boolean; onToggle: () => void;
 }) {
-  const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role.toLowerCase()));
+  const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role));
   return (
-    <aside className={`flex flex-col h-full bg-[#0a2a44] transition-all duration-200 ${collapsed ? "w-16" : "w-60"}`}>
-      {/* Header */}
+    <aside className="flex flex-col h-full bg-[#0a2a44] w-60 flex-shrink-0">
       <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/10">
-        <div className={`flex-shrink-0 bg-white rounded-xl flex items-center justify-center transition-all duration-200 ${collapsed ? "w-8 h-8 p-1" : "w-9 h-9 p-1"}`}>
-          <img 
-            src="https://placehold.co/200x200?text=Farmacia" 
-            alt="Farmacias San Cupertino logo" 
-            className="w-full h-full object-contain" 
-          />
+        <div className="w-9 h-9 flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-1">
+          <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center text-xs">Logo</div>
         </div>
-        {!collapsed && (
-          <div className="flex-1 min-w-0">
-            <span className="text-white font-bold text-sm tracking-tight block leading-tight">Farmacias San Cupertino</span>
-            <span className="text-white/40 text-[10px] tracking-wide">Gestión Farmacéutica</span>
-          </div>
-        )}
-        <button onClick={onToggle} className={`text-white/40 hover:text-white transition-colors flex-shrink-0 ${collapsed ? "mx-auto" : ""}`}>
-          <Menu size={15} />
-        </button>
+        <div className="flex-1 min-w-0">
+          <span className="text-white font-bold text-sm tracking-tight block leading-tight">Farmacias San Cupertino</span>
+          <span className="text-white/40 text-[10px] tracking-wide">Gestión Farmacéutica</span>
+        </div>
       </div>
-
-      {/* Nav */}
       <nav className="flex-1 py-3 overflow-y-auto">
         {visible.map(item => {
           const active = current === item.screen;
           return (
             <button key={item.screen} onClick={() => onNav(item.screen)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all ${
-                active
-                  ? "bg-[#0a4b7a] text-white"
-                  : "text-white/70 hover:bg-white/10 hover:text-white"
+                active ? "bg-[#0a4b7a] text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
               }`}>
               <span className="flex-shrink-0">{item.icon}</span>
-              {!collapsed && <span className="truncate">{item.label}</span>}
-              {!collapsed && active && <ChevronRight size={14} className="ml-auto" />}
+              <span className="truncate">{item.label}</span>
+              {active && <ChevronRight size={14} className="ml-auto" />}
             </button>
           );
         })}
       </nav>
-
-      {/* User */}
       <div className="border-t border-white/10 p-4">
-        {!collapsed ? (
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {user.name.charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-white text-xs font-medium truncate">{user.name}</div>
-              <div className="text-white/50 text-xs capitalize">{user.role}</div>
-            </div>
-            <button onClick={onLogout} className="text-white/40 hover:text-[#d32f2f] transition-colors">
-              <LogOut size={15} />
-            </button>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {user.name.charAt(0)}
           </div>
-        ) : (
-          <button onClick={onLogout} className="w-full flex justify-center text-white/40 hover:text-[#d32f2f] transition-colors">
-            <LogOut size={16} />
+          <div className="flex-1 min-w-0">
+            <div className="text-white text-xs font-medium truncate">{user.name}</div>
+            <div className="text-white/50 text-xs capitalize">{user.role}</div>
+          </div>
+          <button onClick={onLogout} className="text-white/40 hover:text-[#d32f2f] transition-colors">
+            <LogOut size={15} />
           </button>
-        )}
+        </div>
       </div>
     </aside>
   );
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────────
+const SALES_DATA = [
+  { day: "Lun", ventas: 420 }, { day: "Mar", ventas: 310 }, { day: "Mié", ventas: 580 },
+  { day: "Jue", ventas: 490 }, { day: "Vie", ventas: 720 }, { day: "Sáb", ventas: 850 }, { day: "Hoy", ventas: 340 },
+];
+
 
 function Dashboard() {
-  const [dashboardData, setDashboardData] = useState({
-    ventasHoy: 0,
-    ingresosHoy: 0,
-    stockBajo: 0,
-    stockCritico: 0, 
-    agotados: 0,
-    porVencer: 0,
-    proveedoresActivos: 0,
-    empleadosActivos: 0,
-    totalProductos: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const data = await fetchKPIs(); // usa el servicio
-        setDashboardData({
-          ventasHoy: data.ventasHoy || 0,
-          ingresosHoy: data.ingresosHoy || 0,
-          stockBajo: data.stockBajo || 0,
-          stockCritico: data.stockCritico || 0,
-          agotados: data.agotados || 0,
-          porVencer: data.porVencer || 0,
-          proveedoresActivos: data.proveedoresActivos || 0,
-          empleadosActivos: data.empleadosActivos || 0,
-          totalProductos: data.totalProductos || 0,
-        });
-      } catch (error) {
-        console.error('Error cargando KPIs:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    cargarDatos();
-  }, []);
-
-  if (loading) {
-    return <div className="p-6 text-center">Cargando dashboard...</div>;
-  }
-
-  // Definimos las tarjetas con los valores reales - esta es la única declaración de 'kpis'
   const kpis = [
-    { label: "Ventas del día", value: `$${dashboardData.ingresosHoy.toFixed(2)}`, icon: <TrendingUp size={20} />, accent: "blue" as const },
-    { label: "Stock Bajo (≤20)", value: dashboardData.stockBajo.toString(), icon: <TrendingDown size={20} />, accent: "amber" as const },
-      { label: "Stock Crítico (≤10)", value: dashboardData.stockCritico.toString(), icon: <AlertTriangle size={20} />, accent: "red" as const },
-    { label: "Stock Crítico (≤10)", value: "0", icon: <AlertTriangle size={20} />, accent: "red" as const },
-    { label: "Agotados", value: dashboardData.agotados.toString(), icon: <X size={20} />, accent: "red" as const },
-    { label: "Próx. Vencer (30d)", value: dashboardData.porVencer.toString(), icon: <Clock size={20} />, accent: "amber" as const },
-    { label: "Proveedores Activos", value: dashboardData.proveedoresActivos.toString(), icon: <Truck size={20} />, accent: "blue" as const },
-    { label: "Empleados", value: dashboardData.empleadosActivos.toString(), icon: <UserCog size={20} />, accent: "blue" as const },
+    { label: "Ventas del día", value: "$2,340", icon: <TrendingUp size={20} />, accent: "blue" as const },
+    { label: "Stock Bajo (≤20)", value: "3", icon: <TrendingDown size={20} />, accent: "amber" as const },
+    { label: "Stock Crítico (≤10)", value: "3", icon: <AlertTriangle size={20} />, accent: "red" as const },
+    { label: "Agotados", value: "1", icon: <X size={20} />, accent: "red" as const },
+    { label: "Próx. Vencer (30d)", value: "2", icon: <Clock size={20} />, accent: "amber" as const },
+    { label: "Proveedores Activos", value: "4", icon: <Truck size={20} />, accent: "blue" as const },
+    { label: "Empleados", value: "3", icon: <UserCog size={20} />, accent: "blue" as const },
   ];
 
   return (
@@ -524,7 +393,6 @@ function Dashboard() {
         ))}
       </div>
 
-      {/* Gráfico de ventas (mock) */}
       <Card className="p-5">
         <h2 className="text-sm font-semibold text-[#1e1e1e] mb-4">Ventas últimos 7 días</h2>
         <ResponsiveContainer width="100%" height={200}>
@@ -538,7 +406,6 @@ function Dashboard() {
         </ResponsiveContainer>
       </Card>
 
-      {/* Alertas y productos por vencer (mock) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5">
           <h2 className="text-sm font-semibold text-[#1e1e1e] mb-3">Alertas recientes</h2>
@@ -567,20 +434,14 @@ function Dashboard() {
                 <span className="text-xs text-gray-400">{p.expiry}</span>
               </div>
             ))}
-            {PRODUCTS.filter(p => {
-              const d = new Date(p.expiry);
-              const now = new Date();
-              const diff = (d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-              return diff > 0 && diff <= 30;
-            }).length === 0 && (
-              <p className="text-sm text-gray-400">Ninguno en los próximos 30 días.</p>
-            )}
           </div>
         </Card>
       </div>
     </div>
   );
 }
+
+
 // ── POS / Ventas ───────────────────────────────────────────────────────────────
 
 function Ventas() {
@@ -643,20 +504,39 @@ function Ventas() {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const productosData = await getProductos();
-        setProductos(productosData.map(p => ({
-          id: p.id_producto || p.id,
+        // Cargar productos desde la API real
+        const prods = await api.getProductos();
+        // Convertir Producto[] al formato que usa el carrito (Product)
+        const productosFormateados = prods.map(p => ({
+          id: p.id_producto,
           name: p.nombre_producto,
-          description: p.descripcion || "",
-          price: parseFloat(p.precio),
+          description: p.nombre_categoria || "",
+          price: p.precio,
           stock: p.stock,
           lot: p.lote,
           expiry: p.fecha_vencimiento,
-          controlled: p.controlled || false,
-        })));
-        setClientes(CLIENTS.filter(c => !c.deleted)); // Temporal, hasta tener endpoint
+          supplier: "", // No tenemos proveedor en la BD aún
+          categories: [],
+          controlled: p.id_categoria === 8, // si 8 es "Controlado"
+          deleted: false,
+        }));
+        setProductos(productosFormateados);
+
+        // Cargar clientes desde la API real
+        const clis = await api.getClientes();
+        const clientesFormateados = clis.map(c => ({
+          id: c.id_cliente,
+          name: `${c.nombre} ${c.apellido}`,
+          phone: c.telefono,
+          email: c.correo,
+          address: c.direccion,
+          deleted: false,
+        }));
+        setClientes(clientesFormateados);
       } catch (error) {
         console.error("Error cargando datos para ventas:", error);
+      } finally {
+        setLoading(false);
       }
     };
     cargarDatos();
@@ -861,29 +741,15 @@ function Productos() {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [showControlled, setShowControlled] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({
-    name: "",
-    price: "",
-    stock: "",
-    lot: "",
-    expiry: "",
-    supplier: "",
-    description: "",
-    categories: [] as string[],
-    controlled: false,
-  });
+  const [form, setForm] = useState({ name: "", price: "", stock: "", lot: "", expiry: "", supplier: "", description: "", categories: [] as string[], controlled: false });
   const [formError, setFormError] = useState("");
 
-  // Cargar productos desde el backend
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  const CATEGORIES = ["Analgésico", "Antibiótico", "Antiinflamatorio", "Antidiabético", "Antihistamínico", "Ansiolítico", "Gastroprotector", "Controlado"];
 
-  
+
     const fetchProducts = async () => {
     try {
-      const res = await getProductos();
+      const res = await api.getProductos();
       // Mapea los campos que devuelve el backend a la interfaz Product
       const data = res.map((p: any) => ({
         id: p.id_producto,         // o p.id, según tu backend
@@ -904,18 +770,8 @@ function Productos() {
       setLoading(false);
     }
   };
-  const CATEGORIES = [
-    "Analgésico",
-    "Antibiótico",
-    "Antiinflamatorio",
-    "Antidiabético",
-    "Antihistamínico",
-    "Ansiolítico",
-    "Gastroprotector",
-    "Controlado",
-  ];
 
-  const filtered = products.filter(
+  const filtred = products.filter(
     (p) =>
       !p.deleted &&
       (!showControlled || p.controlled) &&
@@ -926,7 +782,7 @@ function Productos() {
         (filterStock === "critico" && p.stock > 0 && p.stock <= 10) ||
         (filterStock === "bajo" && p.stock > 10 && p.stock <= 20) ||
         (filterStock === "normal" && p.stock > 20))
-  );
+  )
 
   function openEdit(p: Product) {
     setEditProduct(p);
@@ -962,39 +818,32 @@ function Productos() {
     setFormError("");
   }
 
-  const deleteProduct = async (id: number) => {
-    if (!confirm("¿Eliminar este producto?")) return;
-    try {
-      await deleteProducto(id);
-      fetchProducts();
-    } catch (error) {
-      console.error("Error al eliminar:", error);
-      alert("No se pudo eliminar el producto");
-    }
-  };
+  const filtered = products.filter(p => !p.deleted
+    && (!showControlled || p.controlled)
+    && p.name.toLowerCase().includes(search.toLowerCase())
+    && (!filterCategory || p.categories.includes(filterCategory))
+    && (!filterStock || (filterStock === "agotado" && p.stock === 0) || (filterStock === "critico" && p.stock > 0 && p.stock <= 10) || (filterStock === "bajo" && p.stock > 10 && p.stock <= 20) || (filterStock === "normal" && p.stock > 20))
+  );
 
+  function deleteProduct(id: number) { setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: true } : p)); }
   function toggleCat(cat: string) {
-    setForm((prev) => {
+    setForm(prev => {
       const has = prev.categories.includes(cat);
-      const cats = has
-        ? prev.categories.filter((c) => c !== cat)
-        : [...prev.categories, cat];
+      const cats = has ? prev.categories.filter(c => c !== cat) : [...prev.categories, cat];
       const controlled = cats.includes("Controlado");
       return { ...prev, categories: cats, controlled };
     });
   }
-
-  const saveForm = async () => {
-    if (
-      !form.name ||
-      !form.price ||
-      !form.stock ||
-      !form.lot ||
-      !form.expiry ||
-      !form.supplier
-    ) {
-      setFormError("Complete todos los campos obligatorios.");
-      return;
+  async function saveForm() {
+    if (!form.name || !form.price || !form.stock || !form.lot || !form.expiry || !form.supplier) { setFormError("Complete todos los campos obligatorios."); return; }
+    if (parseFloat(form.price) <= 0) { setFormError("El precio debe ser mayor a 0."); return; }
+    if (new Date(form.expiry) < new Date()) { setFormError("La fecha de vencimiento debe ser futura."); return; }
+    if (!editProduct && products.find(p => p.lot === form.lot)) { setFormError("El número de lote ya existe."); return; }
+    setFormError("");
+    if (editProduct) {
+      setProducts(prev => prev.map(p => p.id === editProduct.id ? { ...p, ...form, price: parseFloat(form.price), stock: parseInt(form.stock) } : p));
+    } else {
+      setProducts(prev => [...prev, { id: Date.now(), ...form, price: parseFloat(form.price), stock: parseInt(form.stock) }]);
     }
     if (parseFloat(form.price) <= 0) {
       setFormError("El precio debe ser mayor a 0.");
@@ -1018,9 +867,9 @@ function Productos() {
 
     try {
       if (editProduct) {
-        await updateProducto(editProduct.id, payload);
+        await api.updateProducto(editProduct.id, payload);
       } else {
-        await createProducto(payload);
+        await api.createProducto(payload);
       }
       setShowForm(false);
       fetchProducts(); // recargar lista
@@ -1029,29 +878,21 @@ function Productos() {
       setFormError("Error al guardar el producto. Verifique los datos.");
     }
   };
+ // if (loading) {
+ //     return <div className="p-6 text-center">Cargando productos...</div>;
+ //   }
 
-  if (loading) {
-    return <div className="p-6 text-center">Cargando productos...</div>;
-  }
 
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Productos</h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <Btn
-            variant={showControlled ? "primary" : "secondary"}
-            size="sm"
-            onClick={() => setShowControlled(!showControlled)}
-          >
+          <Btn variant={showControlled ? "primary" : "secondary"} size="sm" onClick={() => setShowControlled(!showControlled)}>
             <Shield size={14} /> {showControlled ? "Todos" : "Solo Controlados"}
           </Btn>
-          <Btn variant="secondary" size="sm">
-            <Download size={14} /> Exportar Excel
-          </Btn>
-          <Btn variant="primary" size="sm" onClick={openNew}>
-            <Plus size={14} /> Nuevo producto
-          </Btn>
+          <Btn variant="secondary" size="sm"><Download size={14} /> Exportar Excel</Btn>
+          <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14} /> Nuevo producto</Btn>
         </div>
       </div>
 
@@ -1060,28 +901,14 @@ function Productos() {
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-48">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nombre o lote..."
-              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
-            />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre o lote..."
+              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
-          <Select
-            value={filterCategory}
-            onChange={setFilterCategory}
-            className="min-w-40"
-          >
+          <Select value={filterCategory} onChange={setFilterCategory} className="min-w-40">
             <option value="">Todas las categorías</option>
-            {CATEGORIES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
+            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
           </Select>
-          <Select
-            value={filterStock}
-            onChange={setFilterStock}
-            className="min-w-36"
-          >
+          <Select value={filterStock} onChange={setFilterStock} className="min-w-36">
             <option value="">Todo el stock</option>
             <option value="agotado">Agotado</option>
             <option value="critico">Crítico (1–10)</option>
@@ -1097,87 +924,38 @@ function Productos() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                {[
-                  "Nombre",
-                  "Precio",
-                  "Stock",
-                  "Lote",
-                  "Vencimiento",
-                  "Proveedor",
-                  "Categorías",
-                  "Ctrl",
-                  "Acciones",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left py-3 px-4 text-xs text-gray-500 font-semibold"
-                  >
-                    {h}
-                  </th>
+                {["Nombre", "Precio", "Stock", "Lote", "Vencimiento", "Proveedor", "Categorías", "Ctrl", "Acciones"].map(h => (
+                  <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors"
-                >
-                  <td className="py-3 px-4 font-medium text-[#1e1e1e]">
-                    {p.name}
-                  </td>
-                  <td className="py-3 px-4 font-mono text-[#0a4b7a] font-semibold">
-                    ${p.price.toFixed(2)}
-                  </td>
+              {filtered.map(p => (
+                <tr key={p.id} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
+                  <td className="py-3 px-4 font-medium text-[#1e1e1e]">{p.name}</td>
+                  <td className="py-3 px-4 font-mono text-[#0a4b7a] font-semibold">${p.price.toFixed(2)}</td>
                   <td className="py-3 px-4">
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${stockColor(
-                        p.stock
-                      )}`}
-                    >
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${stockColor(p.stock)}`}>
                       {p.stock} — {stockLabel(p.stock)}
                     </span>
                   </td>
-                  <td className="py-3 px-4 font-mono text-gray-500 text-xs">
-                    {p.lot}
-                  </td>
-                  <td className="py-3 px-4 text-gray-600 text-xs">
-                    {p.expiry}
-                  </td>
-                  <td className="py-3 px-4 text-gray-600 text-xs">
-                    {p.supplier}
-                  </td>
+                  <td className="py-3 px-4 font-mono text-gray-500 text-xs">{p.lot}</td>
+                  <td className="py-3 px-4 text-gray-600 text-xs">{p.expiry}</td>
+                  <td className="py-3 px-4 text-gray-600 text-xs">{p.supplier}</td>
                   <td className="py-3 px-4">
                     <div className="flex flex-wrap gap-1">
-                      {p.categories.map((c) => (
-                        <Badge
-                          key={c}
-                          className="bg-[#e3f2fd] text-[#0a4b7a]"
-                        >
-                          {c}
-                        </Badge>
-                      ))}
+                      {p.categories.map(c => <Badge key={c} className="bg-[#e3f2fd] text-[#0a4b7a]">{c}</Badge>)}
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    {p.controlled ? (
-                      <Badge className="bg-purple-100 text-purple-700">Sí</Badge>
-                    ) : (
-                      <span className="text-gray-400 text-xs">No</span>
-                    )}
+                    {p.controlled ? <Badge className="bg-purple-100 text-purple-700">Sí</Badge> : <span className="text-gray-400 text-xs">No</span>}
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => openEdit(p)}
-                        className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]"
-                      >
+                      <button onClick={() => openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]">
                         <Edit2 size={14} />
                       </button>
-                      <button
-                        onClick={() => deleteProduct(p.id)}
-                        className="text-[#d32f2f] hover:text-red-700 p-1 rounded hover:bg-red-50"
-                      >
+                      <button onClick={() => deleteProduct(p.id)} className="text-[#d32f2f] hover:text-red-700 p-1 rounded hover:bg-red-50">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -1185,14 +963,7 @@ function Productos() {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="py-12 text-center text-gray-400"
-                  >
-                    Sin productos que coincidan con los filtros.
-                  </td>
-                </tr>
+                <tr><td colSpan={9} className="py-12 text-center text-gray-400">Sin productos que coincidan con los filtros.</td></tr>
               )}
             </tbody>
           </table>
@@ -1207,23 +978,13 @@ function Productos() {
               <h2 className="text-lg font-bold text-[#1e1e1e]">
                 {editProduct ? "Editar Producto" : "Nuevo Producto"}
               </h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={20} />
-              </button>
+              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
 
             {editProduct && (
               <div className="mb-4 p-3 bg-[#e3f2fd] rounded-lg text-xs text-[#0a4b7a] grid grid-cols-2 gap-2">
-                <div>
-                  Precio anterior:{" "}
-                  <strong>${editProduct.price.toFixed(2)}</strong>
-                </div>
-                <div>
-                  Stock anterior: <strong>{editProduct.stock} uds.</strong>
-                </div>
+                <div>Precio anterior: <strong>${editProduct.price.toFixed(2)}</strong></div>
+                <div>Stock anterior: <strong>{editProduct.stock} uds.</strong></div>
               </div>
             )}
 
@@ -1235,124 +996,57 @@ function Productos() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Nombre *
-                </label>
-                <Input
-                  value={form.name}
-                  onChange={(v) => setForm((p) => ({ ...p, name: v }))}
-                  placeholder="Nombre del medicamento"
-                />
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                <Input value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} placeholder="Nombre del medicamento" />
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Descripción
-                </label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, description: e.target.value }))
-                  }
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Descripción</label>
+                <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                   placeholder="Descripción opcional"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] resize-none"
-                  rows={2}
-                />
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] resize-none" rows={2} />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Precio ($) *
-                </label>
-                <Input
-                  type="number"
-                  value={form.price}
-                  onChange={(v) => setForm((p) => ({ ...p, price: v }))}
-                  placeholder="0.00"
-                />
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Precio ($) *</label>
+                <Input type="number" value={form.price} onChange={v => setForm(p => ({ ...p, price: v }))} placeholder="0.00" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Stock inicial *
-                </label>
-                <Input
-                  type="number"
-                  value={form.stock}
-                  onChange={(v) => setForm((p) => ({ ...p, stock: v }))}
-                  placeholder="0"
-                />
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Stock inicial *</label>
+                <Input type="number" value={form.stock} onChange={v => setForm(p => ({ ...p, stock: v }))} placeholder="0" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Número de lote *
-                </label>
-                <Input
-                  value={form.lot}
-                  onChange={(v) => setForm((p) => ({ ...p, lot: v }))}
-                  placeholder="LOT-2024-XXX"
-                />
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Número de lote *</label>
+                <Input value={form.lot} onChange={v => setForm(p => ({ ...p, lot: v }))} placeholder="LOT-2024-XXX" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Fecha de vencimiento *
-                </label>
-                <Input
-                  type="date"
-                  value={form.expiry}
-                  onChange={(v) => setForm((p) => ({ ...p, expiry: v }))}
-                />
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha de vencimiento *</label>
+                <Input type="date" value={form.expiry} onChange={v => setForm(p => ({ ...p, expiry: v }))} />
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Proveedor *
-                </label>
-                <Select
-                  value={form.supplier}
-                  onChange={(v) => setForm((p) => ({ ...p, supplier: v }))}
-                  className="w-full"
-                >
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor *</label>
+                <Select value={form.supplier} onChange={v => setForm(p => ({ ...p, supplier: v }))} className="w-full">
                   <option value="">Seleccionar proveedor...</option>
-                  {SUPPLIERS.filter((s) => !s.deleted).map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
+                  {SUPPLIERS.filter(s => !s.deleted).map(s => <option key={s.id}>{s.name}</option>)}
                 </Select>
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-600 mb-2">
-                  Categorías
-                </label>
+                <label className="block text-xs font-semibold text-gray-600 mb-2">Categorías</label>
                 <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => toggleCat(cat)}
+                  {["Analgésico", "Antibiótico", "Antiinflamatorio", "Antidiabético", "Antihistamínico", "Ansiolítico", "Gastroprotector", "Controlado"].map(cat => (
+                    <button key={cat} type="button" onClick={() => toggleCat(cat)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                        form.categories.includes(cat)
-                          ? "bg-[#0a4b7a] text-white border-[#0a4b7a]"
-                          : "border-gray-200 text-gray-600 hover:border-[#0a4b7a] hover:text-[#0a4b7a]"
-                      }`}
-                    >
+                        form.categories.includes(cat) ? "bg-[#0a4b7a] text-white border-[#0a4b7a]" : "border-gray-200 text-gray-600 hover:border-[#0a4b7a] hover:text-[#0a4b7a]"
+                      }`}>
                       {cat}
                     </button>
                   ))}
                 </div>
-                {form.controlled && (
-                  <p className="text-xs text-purple-600 mt-2 flex items-center gap-1">
-                    <Shield size={12} /> Este producto requiere receta médica en
-                    ventas.
-                  </p>
-                )}
+                {form.controlled && <p className="text-xs text-purple-600 mt-2 flex items-center gap-1"><Shield size={12} /> Este producto requiere receta médica en ventas.</p>}
               </div>
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <Btn variant="secondary" onClick={() => setShowForm(false)}>
-                Cancelar
-              </Btn>
-              <Btn variant="primary" onClick={saveForm}>
-                <Check size={14} /> Guardar
-              </Btn>
+              <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
+              <Btn variant="primary" onClick={saveForm}><Check size={14} /> Guardar</Btn>
             </div>
           </Card>
         </div>
@@ -2137,8 +1831,6 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
     if (user.role === "farmaceutico") return "reportes";
     return "dashboard";
   });
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
   function navigate(s: Screen) { setScreen(s); }
 
   const unattendedAlerts = ALERTS.filter(a => !a.attended).length;
@@ -2152,22 +1844,11 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f5f7fa]" style={{ fontFamily: "Inter, sans-serif" }}>
-      <Sidebar user={user} current={screen} onNav={navigate} onLogout={onLogout}
-        collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      <Sidebar user={user} current={screen} onNav={navigate} onLogout={onLogout} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header */}
         <header className="h-14 bg-white border-b-2 border-[#0a4b7a]/10 flex items-center px-6 gap-4 flex-shrink-0">
           <h2 className="font-semibold text-[#1e1e1e] text-sm">{screenTitle[screen]}</h2>
-          <div className="hidden xl:flex items-center gap-1.5 ml-1 opacity-30">
-            <div className="w-5 h-5">
-              <img 
-                src="https://placehold.co/200x200?text=Farmacia" 
-                alt="Farmacias San Cupertino logo" 
-                className="w-full h-full object-contain" 
-              />
-            </div>
-          </div>
           <div className="ml-auto flex items-center gap-3">
             {unattendedAlerts > 0 && (
               <button onClick={() => navigate("alertas")} className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -2192,7 +1873,6 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
           </div>
         </header>
 
-        {/* Content */}
         <main className="flex-1 overflow-auto">
           {screen === "dashboard" && <Dashboard />}
           {screen === "ventas" && <Ventas />}
@@ -2214,8 +1894,8 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
 // ── Root ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   if (!user) return <LoginScreen onLogin={setUser} />;
   return <AppShell user={user} onLogout={() => setUser(null)} />;
-}
+  }
