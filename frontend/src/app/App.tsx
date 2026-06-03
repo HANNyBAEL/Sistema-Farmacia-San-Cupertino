@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LayoutDashboard, ShoppingCart, Package, Users, UserCog, Truck,
   Bell, BarChart2, History, Trash2, Settings, LogOut, Search,
@@ -9,22 +9,20 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
-//const logoImg = "https://placehold.co/200x200?text=Farmacia";
-//import ImageWithFallback from "./components/ImageWithFallback";
-//import logoImg from "@/imports/logo.png";
-import { login } from "../services/auth";
-import { fetchKPIs, fetchVentasUltimos7Dias } from "../services/dashboard";
-import { createVenta } from "../services/ventas";
-// Si tienes endpoint para clientes:
-// import { getClientes } from "../services/clientes";
-//import { getProductos, createProducto, updateProducto, deleteProducto } from './services/productos';
-import axios from 'axios';
-import { createProducto, deleteProducto, getProductos, updateProducto } from '../services/productos';
-const LogoPlaceholder = () => <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500">Logo</div>;
 
-//import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-//import logoImg from "@/imports/logo.png";
-import api from "../services/api";
+
+
+// ── Logo ──────────────────────────────────────────────────────────────────────
+
+function FarmaciaLogo({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" className={className} fill="none">
+      <rect width="64" height="64" rx="12" fill="#0a4b7a" />
+      <rect x="28" y="10" width="8" height="44" rx="4" fill="white" />
+      <rect x="10" y="28" width="44" height="8" rx="4" fill="white" />
+    </svg>
+  );
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -34,16 +32,7 @@ type Screen =
   | "empleados" | "proveedores" | "alertas" | "reportes"
   | "historial" | "eliminados" | "configuracion";
 
-interface User {
-  cargo: any; name: string; role: Role; 
-}
-
-interface AuthUser {
-  id_empleado: number;
-  nombre: string;
-  apellido: string;
-  cargo: 'Administrador' | 'Farmacéutica' | 'Cajero';
-}
+interface User { name: string; role: Role; }
 
 interface Product {
   id: number; name: string; description: string; price: number;
@@ -108,6 +97,10 @@ const LOGS: ChangeLog[] = [
   { id: 5, date: "19/05/2026 08:22", user: "Admin Sistema", field: "precio", before: "$3.50", after: "$3.80", product: "Ibuprofeno 400mg" },
 ];
 
+const SALES_DATA = [
+  { day: "Lun", ventas: 420 }, { day: "Mar", ventas: 310 }, { day: "Mié", ventas: 580 },
+  { day: "Jue", ventas: 490 }, { day: "Vie", ventas: 720 }, { day: "Sáb", ventas: 850 }, { day: "Hoy", ventas: 340 },
+];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -199,7 +192,7 @@ function Select({ children, value, onChange, className = "" }: {
   );
 }
 
-// ── const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role)); ──────────────────────────────────────────────────────────────────────
+// ── Login ──────────────────────────────────────────────────────────────────────
 
 function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
   const [username, setUsername] = useState("");
@@ -213,80 +206,66 @@ function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
     cajero: { name: "Lucía Pérez", role: "cajero", pass: "cajero123" },
   };
 
-  const handleLogin = () => {
-    if (!username || !password) {
-      setError("Complete todos los campos.");
-      return;
-    }
+  function handleLogin() {
+    if (!username || !password) { setError("Complete todos los campos."); return; }
     const u = USERS[username.toLowerCase()];
-    if (!u || u.pass !== password) {
-      setError("Usuario o contraseña incorrectos.");
-      return;
-    }
+    if (!u || u.pass !== password) { setError("Usuario o contraseña incorrectos."); return; }
     setError("");
     onLogin({ name: u.name, role: u.role });
-  };
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: "Inter, sans-serif" }}>
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-4">
-            <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center text-xs">Logo</div>
+            <FarmaciaLogo className="w-full h-full" />
           </div>
           <h1 className="text-lg font-bold text-[#0a2a44] text-center leading-tight">Farmacias San Cupertino</h1>
           <p className="text-xs text-gray-400 mt-0.5">Sistema de gestión</p>
         </div>
-
         <h2 className="text-xl font-bold text-[#1e1e1e] mb-1">Iniciar sesión</h2>
         <p className="text-gray-500 text-sm mb-6">Ingrese sus credenciales para continuar</p>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Usuario</label>
-            <Input placeholder="Usuario" value={username} onChange={setUsername} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Contraseña</label>
-            <div className="relative">
-              <Input
-                placeholder="Contraseña"
-                type={showPw ? "text" : "password"}
-                value={password}
-                onChange={setPassword}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Usuario</label>
+              <Input placeholder="Usuario" value={username} onChange={setUsername} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Contraseña</label>
+              <div className="relative">
+                <Input placeholder="Contraseña" type={showPw ? "text" : "password"} value={password} onChange={setPassword} />
+                <button type="button" onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {error && (
-          <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
-            <AlertTriangle size={14} />
-            {error}
+          {error && (
+            <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+              <AlertTriangle size={14} />
+              {error}
+            </div>
+          )}
+
+          <Btn variant="primary" size="lg" className="w-full mt-6 justify-center" onClick={handleLogin}>
+            Iniciar sesión
+          </Btn>
+
+          <button className="w-full text-center text-[#0a4b7a] text-sm mt-4 hover:underline">
+            ¿Olvidó su contraseña?
+          </button>
+
+          <div className="mt-6 p-4 bg-[#e3f2fd] rounded-lg text-xs text-[#0a4b7a] space-y-1">
+            <div className="font-semibold mb-2">Cuentas de prueba:</div>
+            <div>admin / admin123 → Administrador</div>
+            <div>farmaceutico / farm123 → Farmacéutico</div>
+            <div>cajero / cajero123 → Cajero</div>
           </div>
-        )}
-
-        <Btn variant="primary" size="lg" className="w-full mt-6 justify-center" onClick={handleLogin}>
-          Iniciar sesión
-        </Btn>
-
-        <button className="w-full text-center text-[#0a4b7a] text-sm mt-4 hover:underline">
-          ¿Olvidó su contraseña?
-        </button>
-
-        <div className="mt-6 p-4 bg-[#e3f2fd] rounded-lg text-xs text-[#0a4b7a] space-y-1">
-          <div className="font-semibold mb-2">Cuentas de prueba:</div>
-          <div>admin / admin123 → Administrador</div>
-          <div>farmaceutico / farm123 → Farmacéutico</div>
-          <div>cajero / cajero123 → Cajero</div>
-        </div>
       </div>
     </div>
   );
@@ -314,22 +293,27 @@ function Sidebar({ user, current, onNav, onLogout }: {
   const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role));
   return (
     <aside className="flex flex-col h-full bg-[#0a2a44] w-60 flex-shrink-0">
+      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/10">
         <div className="w-9 h-9 flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-1">
-          <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center text-xs">Logo</div>
+          <FarmaciaLogo className="w-full h-full" />
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-white font-bold text-sm tracking-tight block leading-tight">Farmacias San Cupertino</span>
           <span className="text-white/40 text-[10px] tracking-wide">Gestión Farmacéutica</span>
         </div>
       </div>
+
+      {/* Nav */}
       <nav className="flex-1 py-3 overflow-y-auto">
         {visible.map(item => {
           const active = current === item.screen;
           return (
             <button key={item.screen} onClick={() => onNav(item.screen)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all ${
-                active ? "bg-[#0a4b7a] text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+                active
+                  ? "bg-[#0a4b7a] text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
               }`}>
               <span className="flex-shrink-0">{item.icon}</span>
               <span className="truncate">{item.label}</span>
@@ -338,6 +322,8 @@ function Sidebar({ user, current, onNav, onLogout }: {
           );
         })}
       </nav>
+
+      {/* User */}
       <div className="border-t border-white/10 p-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
@@ -357,11 +343,6 @@ function Sidebar({ user, current, onNav, onLogout }: {
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────────
-const SALES_DATA = [
-  { day: "Lun", ventas: 420 }, { day: "Mar", ventas: 310 }, { day: "Mié", ventas: 580 },
-  { day: "Jue", ventas: 490 }, { day: "Vie", ventas: 720 }, { day: "Sáb", ventas: 850 }, { day: "Hoy", ventas: 340 },
-];
-
 
 function Dashboard() {
   const kpis = [
@@ -378,7 +359,7 @@ function Dashboard() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-xl font-bold text-[#1e1e1e]">Tablero Principal</h1>
-        <p className="text-gray-500 text-sm">Resumen operativo — {new Date().toLocaleDateString()}</p>
+        <p className="text-gray-500 text-sm">Resumen operativo — 21/05/2026</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -434,6 +415,9 @@ function Dashboard() {
                 <span className="text-xs text-gray-400">{p.expiry}</span>
               </div>
             ))}
+            {PRODUCTS.filter(p => { const d = new Date(p.expiry); const now = new Date(); const diff = (d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24); return diff > 0 && diff <= 30; }).length === 0 && (
+              <p className="text-sm text-gray-400">Ninguno en los próximos 30 días.</p>
+            )}
           </div>
         </Card>
       </div>
@@ -441,12 +425,9 @@ function Dashboard() {
   );
 }
 
-
 // ── POS / Ventas ───────────────────────────────────────────────────────────────
 
 function Ventas() {
-  const [productos, setProductos] = useState<Product[]>([]);
-  const [clientes, setClientes] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [clientSearch, setClientSearch] = useState("");
@@ -501,46 +482,7 @@ function Ventas() {
     setClientSearch("");
     setTimeout(() => setSaleDone(false), 3000);
   }
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        // Cargar productos desde la API real
-        const prods = await api.getProductos();
-        // Convertir Producto[] al formato que usa el carrito (Product)
-        const productosFormateados = prods.map(p => ({
-          id: p.id_producto,
-          name: p.nombre_producto,
-          description: p.nombre_categoria || "",
-          price: p.precio,
-          stock: p.stock,
-          lot: p.lote,
-          expiry: p.fecha_vencimiento,
-          supplier: "", // No tenemos proveedor en la BD aún
-          categories: [],
-          controlled: p.id_categoria === 8, // si 8 es "Controlado"
-          deleted: false,
-        }));
-        setProductos(productosFormateados);
 
-        // Cargar clientes desde la API real
-        const clis = await api.getClientes();
-        const clientesFormateados = clis.map(c => ({
-          id: c.id_cliente,
-          name: `${c.nombre} ${c.apellido}`,
-          phone: c.telefono,
-          email: c.correo,
-          address: c.direccion,
-          deleted: false,
-        }));
-        setClientes(clientesFormateados);
-      } catch (error) {
-        console.error("Error cargando datos para ventas:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    cargarDatos();
-  }, []);
   return (
     <div className="flex h-full" style={{ minHeight: 0 }}>
       {/* Left: search */}
@@ -618,8 +560,8 @@ function Ventas() {
                 {cart.map(item => {
                   const rem = item.product.stock - item.qty;
                   return (
-                    <>
-                      <tr key={item.product.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <React.Fragment key={item.product.id}>
+                      <tr className="border-b border-gray-50 hover:bg-gray-50">
                         <td className="py-2 px-2">
                           <div className="font-medium text-[#1e1e1e]">{item.product.name}</div>
                           {item.product.controlled && (
@@ -664,7 +606,7 @@ function Ventas() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -740,83 +682,11 @@ function Productos() {
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [showControlled, setShowControlled] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState(PRODUCTS);
   const [form, setForm] = useState({ name: "", price: "", stock: "", lot: "", expiry: "", supplier: "", description: "", categories: [] as string[], controlled: false });
   const [formError, setFormError] = useState("");
 
   const CATEGORIES = ["Analgésico", "Antibiótico", "Antiinflamatorio", "Antidiabético", "Antihistamínico", "Ansiolítico", "Gastroprotector", "Controlado"];
-
-
-    const fetchProducts = async () => {
-    try {
-      const res = await api.getProductos();
-      // Mapea los campos que devuelve el backend a la interfaz Product
-      const data = res.map((p: any) => ({
-        id: p.id_producto,         // o p.id, según tu backend
-        name: p.nombre_producto,
-        description: p.descripcion || "",
-        price: parseFloat(p.precio),
-        stock: p.stock,
-        lot: p.lote,
-        expiry: p.fecha_vencimiento,
-        supplier: p.id_proveedor,  // más adelante podremos mostrar el nombre del proveedor
-        categories: p.categorias ? p.categorias.split(',') : [], // si recibes las categorías como string
-        controlled: p.controlled ? true : false,
-      }));
-      setProducts(data);
-    } catch (error) {
-      console.error('Error al cargar productos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filtred = products.filter(
-    (p) =>
-      !p.deleted &&
-      (!showControlled || p.controlled) &&
-      p.name.toLowerCase().includes(search.toLowerCase()) &&
-      (!filterCategory || p.categories.includes(filterCategory)) &&
-      (!filterStock ||
-        (filterStock === "agotado" && p.stock === 0) ||
-        (filterStock === "critico" && p.stock > 0 && p.stock <= 10) ||
-        (filterStock === "bajo" && p.stock > 10 && p.stock <= 20) ||
-        (filterStock === "normal" && p.stock > 20))
-  )
-
-  function openEdit(p: Product) {
-    setEditProduct(p);
-    setForm({
-      name: p.name,
-      price: String(p.price),
-      stock: String(p.stock),
-      lot: p.lot,
-      expiry: p.expiry,
-      supplier: String(p.supplier),
-      description: p.description,
-      categories: [...p.categories],
-      controlled: p.controlled,
-    });
-    setShowForm(true);
-    setFormError("");
-  }
-
-  function openNew() {
-    setEditProduct(null);
-    setForm({
-      name: "",
-      price: "",
-      stock: "",
-      lot: "",
-      expiry: "",
-      supplier: "",
-      description: "",
-      categories: [],
-      controlled: false,
-    });
-    setShowForm(true);
-    setFormError("");
-  }
 
   const filtered = products.filter(p => !p.deleted
     && (!showControlled || p.controlled)
@@ -825,6 +695,8 @@ function Productos() {
     && (!filterStock || (filterStock === "agotado" && p.stock === 0) || (filterStock === "critico" && p.stock > 0 && p.stock <= 10) || (filterStock === "bajo" && p.stock > 10 && p.stock <= 20) || (filterStock === "normal" && p.stock > 20))
   );
 
+  function openEdit(p: Product) { setEditProduct(p); setForm({ name: p.name, price: String(p.price), stock: String(p.stock), lot: p.lot, expiry: p.expiry, supplier: p.supplier, description: p.description, categories: [...p.categories], controlled: p.controlled }); setShowForm(true); setFormError(""); }
+  function openNew() { setEditProduct(null); setForm({ name: "", price: "", stock: "", lot: "", expiry: "", supplier: "", description: "", categories: [], controlled: false }); setShowForm(true); setFormError(""); }
   function deleteProduct(id: number) { setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: true } : p)); }
   function toggleCat(cat: string) {
     setForm(prev => {
@@ -834,7 +706,7 @@ function Productos() {
       return { ...prev, categories: cats, controlled };
     });
   }
-  async function saveForm() {
+  function saveForm() {
     if (!form.name || !form.price || !form.stock || !form.lot || !form.expiry || !form.supplier) { setFormError("Complete todos los campos obligatorios."); return; }
     if (parseFloat(form.price) <= 0) { setFormError("El precio debe ser mayor a 0."); return; }
     if (new Date(form.expiry) < new Date()) { setFormError("La fecha de vencimiento debe ser futura."); return; }
@@ -845,43 +717,8 @@ function Productos() {
     } else {
       setProducts(prev => [...prev, { id: Date.now(), ...form, price: parseFloat(form.price), stock: parseInt(form.stock) }]);
     }
-    if (parseFloat(form.price) <= 0) {
-      setFormError("El precio debe ser mayor a 0.");
-      return;
-    }
-    if (new Date(form.expiry) < new Date()) {
-      setFormError("La fecha de vencimiento debe ser futura.");
-      return;
-    }
-
-    const payload = {
-      nombre_producto: form.name,
-      descripcion: form.description,
-      precio: parseFloat(form.price),
-      stock: parseInt(form.stock),
-      lote: form.lot,
-      fecha_vencimiento: form.expiry,
-      id_proveedor: parseInt(form.supplier),
-      // categorías: si tu backend espera un array de ids o nombres
-    };
-
-    try {
-      if (editProduct) {
-        await api.updateProducto(editProduct.id, payload);
-      } else {
-        await api.createProducto(payload);
-      }
-      setShowForm(false);
-      fetchProducts(); // recargar lista
-    } catch (error) {
-      console.error("Error al guardar:", error);
-      setFormError("Error al guardar el producto. Verifique los datos.");
-    }
-  };
- // if (loading) {
- //     return <div className="p-6 text-center">Cargando productos...</div>;
- //   }
-
+    setShowForm(false);
+  }
 
   return (
     <div className="p-6 space-y-4">
@@ -1847,8 +1684,14 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
       <Sidebar user={user} current={screen} onNav={navigate} onLogout={onLogout} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Header */}
         <header className="h-14 bg-white border-b-2 border-[#0a4b7a]/10 flex items-center px-6 gap-4 flex-shrink-0">
           <h2 className="font-semibold text-[#1e1e1e] text-sm">{screenTitle[screen]}</h2>
+          <div className="hidden xl:flex items-center gap-1.5 ml-1 opacity-30">
+            <div className="w-5 h-5">
+              <FarmaciaLogo className="w-full h-full" />
+            </div>
+          </div>
           <div className="ml-auto flex items-center gap-3">
             {unattendedAlerts > 0 && (
               <button onClick={() => navigate("alertas")} className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -1873,6 +1716,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
           </div>
         </header>
 
+        {/* Content */}
         <main className="flex-1 overflow-auto">
           {screen === "dashboard" && <Dashboard />}
           {screen === "ventas" && <Ventas />}
@@ -1894,8 +1738,8 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
 // ── Root ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   if (!user) return <LoginScreen onLogin={setUser} />;
   return <AppShell user={user} onLogout={() => setUser(null)} />;
-  }
+}
