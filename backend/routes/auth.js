@@ -9,20 +9,16 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const [user] = await sequelize.query(
-      `SELECT id_empleado, correo, password_hash, cargo 
+      `SELECT id_empleado, nombre, apellido, correo, password_hash, cargo 
        FROM empleados 
        WHERE correo = ?`,
       { replacements: [email], type: sequelize.QueryTypes.SELECT }
     );
 
-    if (!user) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
+    if (!user) return res.status(401).json({ error: 'Credenciales inválidas' });
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
+    if (!valid) return res.status(401).json({ error: 'Credenciales inválidas' });
 
     const token = jwt.sign(
       { id: user.id_empleado, rol: user.cargo },
@@ -30,7 +26,12 @@ router.post('/login', async (req, res) => {
       { expiresIn: '8h' }
     );
 
-    res.json({ token, rol: user.cargo, nombre: user.correo });
+    res.json({
+      token,
+      rol: user.cargo,
+      nombre: `${user.nombre} ${user.apellido}`,
+      id: user.id_empleado
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error en el servidor' });

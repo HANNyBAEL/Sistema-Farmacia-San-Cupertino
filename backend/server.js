@@ -6,22 +6,24 @@ import authRoutes from './routes/auth.js';
 import productoRoutes from './routes/productos.js';
 import ventaRoutes from './routes/ventas.js';
 import dashboardRoutes from './routes/dashboard.js';
+import clienteRoutes from './routes/clientes.js';
+import proveedorRoutes from './routes/proveedores.js';
 
 dotenv.config();
 const app = express();
 
-// ✅ CORS primero, antes de todo
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json());
 
-// Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/productos', productoRoutes);
 app.use('/api/ventas', ventaRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/clientes', clienteRoutes);
+app.use('/api/proveedores', proveedorRoutes);
 
 try {
   await sequelize.authenticate();
