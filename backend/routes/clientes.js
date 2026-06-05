@@ -3,11 +3,14 @@ import sequelize from '../config/database.js';
 
 const router = express.Router();
 
-// Obtener todos los clientes
+// GET todos los clientes con indicador de si tienen ventas
 router.get('/', async (req, res) => {
   try {
     const clientes = await sequelize.query(
-      'SELECT * FROM clientes ORDER BY id_cliente DESC',
+      `SELECT c.*,
+        EXISTS(SELECT 1 FROM ventas v WHERE v.id_cliente = c.id_cliente) AS has_ventas
+       FROM clientes c
+       ORDER BY c.id_cliente DESC`,
       { type: sequelize.QueryTypes.SELECT }
     );
     res.json(clientes);
@@ -17,7 +20,22 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Crear cliente
+// GET un cliente
+router.get('/:id', async (req, res) => {
+  try {
+    const clientes = await sequelize.query(
+      'SELECT * FROM clientes WHERE id_cliente = :id',
+      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT }
+    );
+    if (!clientes.length) return res.status(404).json({ error: 'Cliente no encontrado' });
+    res.json(clientes[0]);
+  } catch (error) {
+    console.error('❌ GET /clientes/:id:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST crear cliente
 router.post('/', async (req, res) => {
   const { nombre, apellido, telefono, correo, direccion } = req.body;
   try {
@@ -25,17 +43,9 @@ router.post('/', async (req, res) => {
       `INSERT INTO clientes (nombre, apellido, telefono, correo, direccion)
        VALUES (:nombre, :apellido, :telefono, :correo, :direccion)`,
       {
-        replacements: {
-          nombre,
-          apellido,
-          telefono,
-          correo,
-          direccion: direccion || null
-        },
-        type: sequelize.QueryTypes.INSERT
+        replacements: { nombre, apellido, telefono, correo, direccion: direccion || null }
       }
     );
-    console.log('✅ Cliente creado:', result);
     res.status(201).json({ id_cliente: result, message: 'Cliente creado' });
   } catch (error) {
     console.error('❌ POST /clientes:', error);
@@ -43,52 +53,51 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Actualizar cliente
+// PUT actualizar cliente
 router.put('/:id', async (req, res) => {
   const { nombre, apellido, telefono, correo, direccion } = req.body;
   try {
     await sequelize.query(
       `UPDATE clientes
-       SET nombre = :nombre,
-           apellido = :apellido,
-           telefono = :telefono,
-           correo = :correo,
-           direccion = :direccion
+       SET nombre = :nombre, apellido = :apellido, telefono = :telefono,
+           correo = :correo, direccion = :direccion
        WHERE id_cliente = :id`,
       {
         replacements: {
-          nombre,
-          apellido,
-          telefono,
-          correo,
-          direccion: direccion || null,
-          id: Number(req.params.id)
-        },
-        type: sequelize.QueryTypes.UPDATE
+          nombre, apellido, telefono, correo, direccion: direccion || null,
+          id: req.params.id
+        }
       }
     );
-    console.log('✅ Cliente actualizado:', req.params.id);
     res.json({ message: 'Cliente actualizado' });
   } catch (error) {
-    console.error('❌ PUT /clientes:', error);
+    console.error('❌ PUT /clientes/:id:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Eliminar cliente
+// DELETE cliente: solo permite eliminar si NO tiene ventas asociadas
 router.delete('/:id', async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
+    const ventas = await sequelize.query(
+      'SELECT COUNT(*) as count FROM ventas WHERE id_cliente = :id',
+      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT, transaction }
+    );
+    const tieneVentas = ventas[0].count > 0;
+    if (tieneVentas) {
+      await transaction.rollback();
+      return res.status(400).json({ error: 'No se puede eliminar el cliente porque tiene ventas registradas.' });
+    }
     await sequelize.query(
       'DELETE FROM clientes WHERE id_cliente = :id',
-      {
-        replacements: { id: Number(req.params.id) },
-        type: sequelize.QueryTypes.DELETE
-      }
+      { replacements: { id: req.params.id }, transaction }
     );
-    console.log('✅ Cliente eliminado:', req.params.id);
-    res.json({ message: 'Cliente eliminado' });
+    await transaction.commit();
+    res.json({ message: 'Cliente eliminado correctamente' });
   } catch (error) {
-    console.error('❌ DELETE /clientes:', error);
+    await transaction.rollback();
+    console.error('❌ DELETE /clientes/:id:', error);
     res.status(500).json({ error: error.message });
   }
 });

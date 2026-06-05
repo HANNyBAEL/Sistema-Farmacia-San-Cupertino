@@ -38,6 +38,7 @@ type Screen =
 interface User { name: string; role: Role; id: number; }
 
 interface Product {
+  has_ventas: any;
   id_producto: number;
   nombre_producto: string;
   descripcion?: string;
@@ -50,6 +51,7 @@ interface Product {
 }
 
 interface Client {
+  has_ventas: any;
   id_cliente: number;
   nombre: string;
   apellido: string;
@@ -418,12 +420,16 @@ function Productos() {
                   <td className="py-3 px-4 font-mono text-gray-500 text-xs">{p.lote}</td>
                   <td className="py-3 px-4 text-gray-600 text-xs">{p.fecha_vencimiento}</td>
                   <td className="py-3 px-4 text-gray-500 text-xs">{p.id_proveedor}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]"><Edit2 size={14}/></button>
-                      <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50"><Trash2 size={14}/></button>
-                    </div>
-                  </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                        {p.has_ventas ? (
+                          <span className="text-gray-400 text-xs italic" title="Este producto tiene ventas registradas y no se puede desactivar">🔒</span>
+                        ) : (
+                          <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Desactivar"><Trash2 size={14}/></button>
+                        )}
+                      </div>
+                    </td>
                 </tr>
               ))}
               {filtered.length===0 && <td><td colSpan={8} className="py-12 text-center text-gray-400">Sin productos.</td></td>}
@@ -654,9 +660,16 @@ function Clientes() {
       setShowForm(false);load();
     }catch(e:any){setFormError(e?.response?.data?.error??"Error al guardar.");}
   }
+
   async function handleDelete(id:number){
     if(!confirm("¿Eliminar este cliente?"))return;
-    try{await clientesApi.delete(id);load();}catch(e){console.error(e);}
+    try{
+      await clientesApi.delete(id);
+      load();
+    }catch(e:any){
+      const msg = e?.response?.data?.error || "Error al eliminar el cliente";
+      alert(msg);
+    }
   }
 
   if(loading) return <LoadingSpinner/>;
@@ -688,13 +701,17 @@ function Clientes() {
                 <td className="py-3 px-4 text-gray-600 text-xs">{c.direccion??"—"}</td>
                 <td className="py-3 px-4">
                   <div className="flex gap-2">
-                    <button onClick={()=>openEdit(c)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]"><Edit2 size={14}/></button>
-                    <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50"><Trash2 size={14}/></button>
+                    <button onClick={()=>openEdit(c)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                    {c.has_ventas ? (
+                      <span className="text-gray-400 text-xs italic" title="Este cliente tiene ventas registradas y no se puede eliminar">🔒</span>
+                    ) : (
+                      <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Eliminar"><Trash2 size={14}/></button>
+                    )}
                   </div>
                 </td>
               </tr>
             ))}
-            {filtered.length===0&&<tr><td colSpan={5} className="py-10 text-center text-gray-400">Sin clientes.</td></tr>}
+            {filtered.length===0&&(<tr><td colSpan={5} className="py-10 text-center text-gray-400">Sin clientes.</td></tr>)}
           </tbody>
         </table>
       </Card>
