@@ -1,6 +1,5 @@
 import api from './api';
 
-export const createVenta = async (venta) => {
-  const { data } = await api.post('/ventas', venta);
-  return data;
-};
+export async function createVenta(data) {
+  return api.post('/ventas', data).then(res => res.data);
+}

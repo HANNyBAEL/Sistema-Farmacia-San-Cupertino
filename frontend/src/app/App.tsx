@@ -156,7 +156,8 @@ function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
       const role = roleMap[data.rol?.toLowerCase()] ?? "cajero";
       onLogin({ name: data.nombre, role, id: data.id });
     } catch (err: any) {
-      setError(err?.response?.data?.error ?? "Error al conectar con el servidor.");
+      const msg = err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.";
+      setError(msg);
     } finally { setLoading(false); }
   }
 
@@ -425,7 +426,7 @@ function Productos() {
                   </td>
                 </tr>
               ))}
-              {filtered.length===0 && <tr><td colSpan={8} className="py-12 text-center text-gray-400">Sin productos.</td></tr>}
+              {filtered.length===0 && <td><td colSpan={8} className="py-12 text-center text-gray-400">Sin productos.</td></td>}
             </tbody>
           </table>
         </div>
@@ -506,7 +507,7 @@ function Ventas({ user }: { user: User }) {
   }
 
   const subtotal = cart.reduce((s, i) => s + Number(i.product.precio) * i.qty, 0);
-  const iva   = subtotal * 0.12;
+  const iva   = subtotal * 0.13;
   const total = subtotal + iva;
 
   async function finalizarVenta() {
@@ -586,12 +587,12 @@ function Ventas({ user }: { user: User }) {
           <h2 className="font-semibold text-[#1e1e1e] text-sm mb-3">Cliente</h2>
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={clientSearch} onChange={e=>setClientSearch(e.target.value)} placeholder="Buscar cliente..."
+            <input value={clientSearch} onChange={e=>setClientSearch(e.target.value)} placeholder="Buscar por correo electrónico..."
               className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
           {clientSearch && (
             <div className="mt-1 border border-gray-100 rounded-lg overflow-hidden shadow-sm">
-              {clients.filter(c=>`${c.nombre} ${c.apellido}`.toLowerCase().includes(clientSearch.toLowerCase())).map(c=>(
+              {clients.filter(c => c.correo.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
                 <button key={c.id_cliente} onClick={()=>{setSelectedClient(c);setClientSearch("");}}
                   className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">
                   {c.nombre} {c.apellido}
@@ -610,7 +611,7 @@ function Ventas({ user }: { user: User }) {
           <h2 className="font-semibold text-[#1e1e1e] text-sm mb-4">Resumen</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-            <div className="flex justify-between text-gray-600"><span>IVA (12%)</span><span>${iva.toFixed(2)}</span></div>
+            <div className="flex justify-between text-gray-600"><span>IVA (13%)</span><span>${iva.toFixed(2)}</span></div>
             <div className="flex justify-between text-[#1e1e1e] font-bold text-base border-t border-gray-100 pt-2">
               <span>Total</span><span className="text-[#0a4b7a]">${total.toFixed(2)}</span>
             </div>
