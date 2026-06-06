@@ -16,6 +16,7 @@ import proveedoresApi from "../services/proveedores";
 import empleadosApi from "../services/empleados";
 import { getHistorial, getDetalleVenta } from "../services/historial";
 import eliminadosApi from "../services/eliminados";
+import api from "../services/api";
 
 // ── Logo ──────────────────────────────────────────────────────────────────────
 function FarmaciaLogo({ className = "" }: { className?: string }) {
@@ -47,7 +48,7 @@ interface Product {
   lote: string;
   fecha_vencimiento: string;
   id_proveedor: number;
-  deleted?: number;
+  deleted: number;
 }
 
 interface Client {
@@ -264,7 +265,19 @@ function Dashboard() {
 
   useEffect(() => {
     Promise.all([fetchKPIs(), fetchVentasUltimos7Dias()])
-      .then(([k, s]) => { setKpis(k); setSalesData(s); })
+      .then(([k, s]) => {
+        const processed = s.map((item: { dia: string; ventas: number }) => {
+          // ← cambiar "day" por "dia"
+          const date = new Date(item.dia + 'T12:00:00Z'); // ← cambiar "day" por "dia"
+          const dayName = date.toLocaleDateString('es-ES', {
+            weekday: 'short',
+            timeZone: 'America/El_Salvador'
+          });
+          return { day: dayName.replace('.', ''), ventas: item.ventas };
+        });
+        setSalesData(processed);
+        setKpis(k);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -291,7 +304,11 @@ function Dashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
         {cards.map(k => (
           <Card key={k.label} accent={k.accent} className="p-4">
-            <div className={`inline-flex p-2 rounded-lg mb-3 ${k.accent==="red"?"bg-red-50 text-red-600":k.accent==="amber"?"bg-amber-50 text-amber-600":"bg-[#e3f2fd] text-[#0a4b7a]"}`}>
+            <div className={`inline-flex p-2 rounded-lg mb-3 ${
+              k.accent === "red" ? "bg-red-50 text-red-600" :
+              k.accent === "amber" ? "bg-amber-50 text-amber-600" :
+              "bg-[#e3f2fd] text-[#0a4b7a]"
+            }`}>
               {k.icon}
             </div>
             <div className="text-2xl font-bold text-[#1e1e1e]">{k.value}</div>
@@ -304,10 +321,23 @@ function Dashboard() {
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={salesData} barSize={28}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="day" tick={{ fontSize:12, fill:"#6b7280" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize:12, fill:"#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-            <Tooltip formatter={(v: number) => [`$${v}`,"Ventas"]} contentStyle={{ borderRadius:8, border:"1px solid #e5e7eb", fontSize:12 }} />
-            <Bar dataKey="ventas" fill="#0a4b7a" radius={[4,4,0,0]} />
+            <XAxis 
+              dataKey="day" 
+              tick={{ fontSize: 12, fill: "#6b7280" }} 
+              axisLine={false} 
+              tickLine={false} 
+            />
+            <YAxis 
+              tick={{ fontSize: 12, fill: "#6b7280" }} 
+              axisLine={false} 
+              tickLine={false} 
+              tickFormatter={v => `$${v}`} 
+            />
+            <Tooltip 
+              formatter={(v: number) => [`$${v}`, "Ventas"]} 
+              contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }} 
+            />
+            <Bar dataKey="ventas" fill="#0a4b7a" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -371,8 +401,24 @@ function Productos() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("¿Eliminar este producto?")) return;
-    try { await deleteProducto(id); load(); } catch (e) { console.error(e); }
+    if (!confirm("¿Eliminar este producto permanentemente?")) return;
+    try {
+      await deleteProducto(id);
+      load();
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? "No se puede eliminar este producto.");
+    }
+  }
+
+  async function handleToggle(id: number, deleted: number) {
+    const accion = deleted ? "activar" : "desactivar";
+    if (!confirm(`¿Deseas ${accion} este producto?`)) return;
+    try {
+      await api.patch(`/productos/${id}/toggle`);
+      load();
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? `Error al ${accion} el producto.`);
+    }
   }
 
   if (loading) return <LoadingSpinner />;
@@ -405,14 +451,14 @@ function Productos() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                {["Nombre","Descripción","Precio","Stock","Lote","Vencimiento","Proveedor ID","Acciones"].map(h=>(
+                {["Nombre","Descripción","Precio","Stock","Lote","Vencimiento","Proveedor ID","Estado","Acciones"].map(h=>(
                   <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map(p=>(
-                <tr key={p.id_producto} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
+                <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.deleted ? 'bg-gray-50 opacity-60' : 'hover:bg-[#f0f7ff]'}`}>
                   <td className="py-3 px-4 font-medium text-[#1e1e1e]">{p.nombre_producto}</td>
                   <td className="py-3 px-4 text-gray-500 text-xs">{p.descripcion ?? "—"}</td>
                   <td className="py-3 px-4 font-mono text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</td>
@@ -420,19 +466,47 @@ function Productos() {
                   <td className="py-3 px-4 font-mono text-gray-500 text-xs">{p.lote}</td>
                   <td className="py-3 px-4 text-gray-600 text-xs">{p.fecha_vencimiento}</td>
                   <td className="py-3 px-4 text-gray-500 text-xs">{p.id_proveedor}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                        {p.has_ventas ? (
-                          <span className="text-gray-400 text-xs italic" title="Este producto tiene ventas registradas y no se puede desactivar">🔒</span>
-                        ) : (
-                          <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Desactivar"><Trash2 size={14}/></button>
-                        )}
-                      </div>
-                    </td>
+                  <td className="py-3 px-4">
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                      {p.deleted ? "Inactivo" : "Activo"}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={()=>openEdit(p)}
+                        className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]"
+                        title="Editar"
+                      >
+                        <Edit2 size={14}/>
+                      </button>
+                      <button
+                        onClick={()=>handleToggle(p.id_producto, p.deleted)}
+                        className={`p-1 rounded text-xs font-semibold px-2 py-1 ${
+                          p.deleted
+                            ? 'text-green-700 bg-green-50 hover:bg-green-100'
+                            : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                        }`}
+                        title={p.deleted ? "Activar producto" : "Desactivar producto"}
+                      >
+                        {p.deleted ? "Activar" : "Desactivar"}
+                      </button>
+                      {!p.has_ventas && (
+                        <button
+                          onClick={()=>handleDelete(p.id_producto)}
+                          className="text-[#d32f2f] p-1 rounded hover:bg-red-50"
+                          title="Eliminar permanentemente"
+                        >
+                          <Trash2 size={14}/>
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
-              {filtered.length===0 && <td><td colSpan={8} className="py-12 text-center text-gray-400">Sin productos.</td></td>}
+              {filtered.length===0 && (
+                <tr><td colSpan={9} className="py-12 text-center text-gray-400">Sin productos.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -491,12 +565,35 @@ function Ventas({ user }: { user: User }) {
   const results = products.filter(p => p.nombre_producto.toLowerCase().includes(search.toLowerCase()) && p.stock > 0).slice(0, 6);
 
   function addToCart(p: Product) {
-    if (p.stock === 0) { setSaleError(`Sin stock de ${p.nombre_producto}.`); return; }
+    // Producto desactivado
+    if (p.deleted === 1) {
+      setSaleError(`"${p.nombre_producto}" está desactivado y no se puede vender.`);
+      return;
+    }
+
+    // Producto vencido
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const vencimiento = new Date(p.fecha_vencimiento + 'T00:00:00');
+    if (vencimiento < hoy) {
+      setSaleError(`"${p.nombre_producto}" está vencido y no se puede vender.`);
+      return;
+    }
+
+    // Sin stock
+    if (p.stock === 0) {
+      setSaleError(`"${p.nombre_producto}" no tiene stock disponible.`);
+      return;
+    }
+
     setSaleError("");
     setCart(prev => {
       const exists = prev.find(i => i.product.id_producto === p.id_producto);
       if (exists) {
-        if (exists.qty >= p.stock) { setSaleError(`Solo quedan ${p.stock} unidades.`); return prev; }
+        if (exists.qty >= p.stock) {
+          setSaleError(`Solo quedan ${p.stock} unidades de "${p.nombre_producto}".`);
+          return prev;
+        }
         return prev.map(i => i.product.id_producto === p.id_producto ? { ...i, qty: i.qty+1 } : i);
       }
       return [...prev, { product: p, qty: 1 }];

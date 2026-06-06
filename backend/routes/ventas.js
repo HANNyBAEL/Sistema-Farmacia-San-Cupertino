@@ -16,12 +16,17 @@ router.post('/', async (req, res) => {
     const clienteId = id_cliente ? Number(id_cliente) : null;
     const empleadoId = Number(id_empleado);
 
+    // Fecha actual en zona horaria de El Salvador desde MySQL
+    const [[{ fechaHoy }]] = await sequelize.query(
+      `SELECT DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00')) as fechaHoy`
+    );
+
     // 1. Insertar cabecera de la venta
     const [ventaResult] = await sequelize.query(
       `INSERT INTO ventas (fecha, total, id_cliente, id_empleado)
-       VALUES (CURDATE(), 0, :clienteId, :empleadoId)`,
+       VALUES (:fechaHoy, 0, :clienteId, :empleadoId)`,
       {
-        replacements: { clienteId, empleadoId },
+        replacements: { fechaHoy, clienteId, empleadoId },
         type: sequelize.QueryTypes.INSERT,
         transaction
       }

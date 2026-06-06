@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getProductos, createProducto, deleteProducto } from '../services/productos';
 
+
 const Productos = () => {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);

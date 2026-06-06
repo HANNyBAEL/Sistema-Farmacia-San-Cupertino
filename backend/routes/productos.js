@@ -3,15 +3,13 @@ import sequelize from '../config/database.js';
 
 const router = express.Router();
 
-// GET todos los productos (solo activos)
-// GET todos los productos (solo activos) con indicador de si tienen ventas
+// GET todos los productos (activos e inactivos)
 router.get('/', async (req, res) => {
   try {
     const productos = await sequelize.query(
       `SELECT p.*,
         EXISTS(SELECT 1 FROM detalle_ventas dv WHERE dv.id_producto = p.id_producto) AS has_ventas
        FROM productos p
-       WHERE p.deleted = 0
        ORDER BY p.id_producto DESC`,
       { type: sequelize.QueryTypes.SELECT }
     );
@@ -26,7 +24,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const productos = await sequelize.query(
-      'SELECT * FROM productos WHERE id_producto = :id AND deleted = 0',
+      'SELECT * FROM productos WHERE id_producto = :id',
       {
         replacements: { id: Number(req.params.id) },
         type: sequelize.QueryTypes.SELECT
@@ -149,11 +147,28 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE producto: solo permite desactivar si NO tiene ventas asociadas
+// PATCH activar/desactivar producto
+router.patch('/:id/toggle', async (req, res) => {
+  try {
+    await sequelize.query(
+      'UPDATE productos SET deleted = NOT deleted WHERE id_producto = :id',
+      {
+        replacements: { id: Number(req.params.id) },
+        type: sequelize.QueryTypes.UPDATE
+      }
+    );
+    console.log('✅ Estado del producto actualizado:', req.params.id);
+    res.json({ message: 'Estado del producto actualizado' });
+  } catch (error) {
+    console.error('❌ PATCH /productos/:id/toggle:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE producto: solo si NO tiene ventas
 router.delete('/:id', async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
-    // Verificar si el producto tiene ventas registradas
     const ventas = await sequelize.query(
       'SELECT COUNT(*) as count FROM detalle_ventas WHERE id_producto = :id',
       {
@@ -167,24 +182,23 @@ router.delete('/:id', async (req, res) => {
 
     if (tieneVentas) {
       await transaction.rollback();
-      return res.status(400).json({ 
-        error: 'No se puede eliminar el producto porque tiene ventas registradas.' 
+      return res.status(400).json({
+        error: 'No se puede eliminar el producto porque tiene ventas registradas.'
       });
     }
 
-    // Si no tiene ventas, proceder con eliminación lógica (desactivar)
     await sequelize.query(
-      'UPDATE productos SET deleted = 1 WHERE id_producto = :id',
+      'DELETE FROM productos WHERE id_producto = :id',
       {
         replacements: { id: Number(req.params.id) },
-        type: sequelize.QueryTypes.UPDATE,
+        type: sequelize.QueryTypes.DELETE,
         transaction
       }
     );
 
     await transaction.commit();
-    console.log('✅ Producto desactivado (soft delete):', req.params.id);
-    res.json({ message: 'Producto desactivado correctamente' });
+    console.log('✅ Producto eliminado:', req.params.id);
+    res.json({ message: 'Producto eliminado correctamente' });
   } catch (error) {
     await transaction.rollback();
     console.error('❌ DELETE /productos/:id:', error);

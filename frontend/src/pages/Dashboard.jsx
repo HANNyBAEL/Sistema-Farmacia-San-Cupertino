@@ -23,7 +23,10 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-    cargarDatos();
+
+    cargarDatos(); // carga inicial
+    const intervalo = setInterval(cargarDatos, 10000); // refresca cada 10 segundos
+    return () => clearInterval(intervalo); // limpia al salir
   }, []);
 
   if (loading) return <p>Cargando indicadores...</p>;
