@@ -5,6 +5,11 @@ const router = express.Router();
 
 router.get('/kpis', async (req, res) => {
   try {
+    // Obtener fecha de hoy en El Salvador como string
+    const [[{ hoy }]] = await sequelize.query(
+      `SELECT DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '-06:00'), '%Y-%m-%d') as hoy`
+    );
+
     const [[{ totalProductos }]] = await sequelize.query(
       'SELECT COUNT(*) as totalProductos FROM productos'
     );
@@ -18,21 +23,20 @@ router.get('/kpis', async (req, res) => {
     );
 
     const [[{ ventasHoy }]] = await sequelize.query(
-      `SELECT COUNT(*) as ventasHoy 
-       FROM ventas 
-       WHERE fecha = CURDATE()`
+      `SELECT COUNT(*) as ventasHoy FROM ventas WHERE fecha = :hoy`,
+      { replacements: { hoy } }
     );
 
     const [[{ ingresosHoy }]] = await sequelize.query(
-      `SELECT COALESCE(SUM(total), 0) as ingresosHoy 
-       FROM ventas 
-       WHERE fecha = CURDATE()`
+      `SELECT COALESCE(SUM(total), 0) as ingresosHoy FROM ventas WHERE fecha = :hoy`,
+      { replacements: { hoy } }
     );
 
     const [[{ porVencer }]] = await sequelize.query(
       `SELECT COUNT(*) as porVencer 
        FROM productos 
-       WHERE fecha_vencimiento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)`
+       WHERE fecha_vencimiento BETWEEN :hoy AND DATE_ADD(:hoy, INTERVAL 30 DAY)`,
+      { replacements: { hoy } }
     );
 
     const [[{ proveedoresActivos }]] = await sequelize.query(
@@ -66,23 +70,27 @@ router.get('/kpis', async (req, res) => {
 
 router.get('/ventas-ultimos-7-dias', async (req, res) => {
   try {
+    // Obtener fecha de hoy en El Salvador como string
+    const [[{ hoy }]] = await sequelize.query(
+      `SELECT DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '-06:00'), '%Y-%m-%d') as hoy`
+    );
+
     const [rows] = await sequelize.query(`
       SELECT 
         fecha as dia,
         COALESCE(SUM(total), 0) as ventas
       FROM ventas
-      WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+      WHERE fecha >= DATE_SUB(:hoy, INTERVAL 6 DAY)
       GROUP BY fecha
       ORDER BY fecha ASC
-    `);
+    `, { replacements: { hoy } });
 
-    // Rellenar los 7 días aunque no haya ventas ese día
-// Rellenar los 7 días usando fecha de El Salvador (UTC-6)
+    // Rellenar los 7 días usando la fecha de El Salvador
     const result = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(Date.now() - 6 * 60 * 60 * 1000); // ajustar a UTC-6
-      d.setUTCDate(d.getUTCDate() - i);
-      const fechaStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+      const base = new Date(hoy + 'T00:00:00');
+      base.setDate(base.getDate() - i);
+      const fechaStr = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}-${String(base.getDate()).padStart(2, '0')}`;
       const found = rows.find(r => {
         const diaStr = r.dia instanceof Date
           ? r.dia.toISOString().slice(0, 10)

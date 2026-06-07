@@ -3,14 +3,21 @@ import sequelize from '../config/database.js';
 
 const router = express.Router();
 
-// GET todos los productos (activos e inactivos)
+// GET todos los productos (activos e inactivos, excluye papelera)
 router.get('/', async (req, res) => {
   try {
     const productos = await sequelize.query(
       `SELECT p.*,
-        EXISTS(SELECT 1 FROM detalle_ventas dv WHERE dv.id_producto = p.id_producto) AS has_ventas
+        EXISTS(SELECT 1 FROM detalle_ventas dv WHERE dv.id_producto = p.id_producto) AS has_ventas,
+        CONCAT(pr.nombre, ' ', pr.apellido) AS proveedor_nombre,
+        GROUP_CONCAT(c.nombre_categoria SEPARATOR ', ') AS categorias_nombres
        FROM productos p
-       ORDER BY p.id_producto DESC`,
+       LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
+       LEFT JOIN productos_categorias pc ON pc.id_producto = p.id_producto
+       LEFT JOIN categorias c ON c.id_categoria = pc.id_categoria
+       WHERE p.papelera = 0
+       GROUP BY p.id_producto
+       ORDER BY p.nombre_producto ASC`,
       { type: sequelize.QueryTypes.SELECT }
     );
     res.json(productos);
@@ -24,7 +31,14 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const productos = await sequelize.query(
-      'SELECT * FROM productos WHERE id_producto = :id',
+      `SELECT p.*,
+        CONCAT(pr.nombre, ' ', pr.apellido) AS proveedor_nombre,
+        GROUP_CONCAT(pc.id_categoria) AS categorias_ids
+       FROM productos p
+       LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
+       LEFT JOIN productos_categorias pc ON pc.id_producto = p.id_producto
+       WHERE p.id_producto = :id
+       GROUP BY p.id_producto`,
       {
         replacements: { id: Number(req.params.id) },
         type: sequelize.QueryTypes.SELECT
@@ -165,6 +179,19 @@ router.patch('/:id/toggle', async (req, res) => {
   }
 });
 
+// PATCH mover a papelera
+router.patch('/:id/papelera', async (req, res) => {
+  try {
+    await sequelize.query(
+      'UPDATE productos SET papelera = 1 WHERE id_producto = :id',
+      { replacements: { id: Number(req.params.id) } }
+    );
+    res.json({ message: 'Producto movido a papelera' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // DELETE producto: solo si NO tiene ventas
 router.delete('/:id', async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -186,6 +213,15 @@ router.delete('/:id', async (req, res) => {
         error: 'No se puede eliminar el producto porque tiene ventas registradas.'
       });
     }
+
+    await sequelize.query(
+      'DELETE FROM productos_categorias WHERE id_producto = :id',
+      {
+        replacements: { id: Number(req.params.id) },
+        type: sequelize.QueryTypes.DELETE,
+        transaction
+      }
+    );
 
     await sequelize.query(
       'DELETE FROM productos WHERE id_producto = :id',

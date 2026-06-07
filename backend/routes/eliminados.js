@@ -3,67 +3,113 @@ import sequelize from '../config/database.js';
 
 const router = express.Router();
 
-/**
- * GET /api/eliminados
- * Devuelve los productos marcados como deleted=1
- */
+// GET todos los registros eliminados (productos, clientes, proveedores, empleados)
 router.get('/', async (req, res) => {
   try {
-    const [rows] = await sequelize.query(
-      `SELECT p.*, CONCAT(pr.nombre, ' ', pr.apellido) AS proveedor_nombre
-       FROM productos p
-       LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
-       WHERE p.deleted = 1
-       ORDER BY p.id_producto DESC`
+    const productos = await sequelize.query(
+      `SELECT 'producto' as tipo, p.id_producto as id, p.nombre_producto as nombre,
+        p.lote, p.precio, p.stock, p.fecha_vencimiento,
+        CONCAT(pr.nombre, ' ', pr.apellido) AS detalle
+      FROM productos p
+      LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
+      WHERE p.papelera = 1
+      ORDER BY p.nombre_producto ASC`,
+      { type: sequelize.QueryTypes.SELECT }
     );
-    res.json(rows);
+
+    const clientes = await sequelize.query(
+      `SELECT 'cliente' as tipo, c.id_cliente as id,
+        CONCAT(c.nombre, ' ', c.apellido) as nombre,
+        NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
+        c.correo AS detalle
+      FROM clientes c
+      WHERE c.papelera = 1
+      ORDER BY c.nombre ASC`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+
+    const proveedores = await sequelize.query(
+      `SELECT 'proveedor' as tipo, p.id_proveedor as id,
+        CONCAT(p.nombre, ' ', p.apellido) as nombre,
+        NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
+        p.correo AS detalle
+      FROM proveedores p
+      WHERE p.papelera = 1
+      ORDER BY p.nombre ASC`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+
+    const empleados = await sequelize.query(
+      `SELECT 'empleado' as tipo, e.id_empleado as id,
+        CONCAT(e.nombre, ' ', e.apellido) as nombre,
+        NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
+        e.cargo AS detalle
+       FROM empleados e
+       WHERE e.activo = 0
+       ORDER BY e.nombre ASC`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+
+    res.json([...productos, ...clientes, ...proveedores, ...empleados]);
   } catch (error) {
+    console.error('❌ GET /eliminados:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-/**
- * PUT /api/eliminados/:id/restaurar
- * Restaura un producto (deleted=0)
- */
-router.put('/:id/restaurar', async (req, res) => {
+// PUT restaurar según tipo
+router.put('/:tipo/:id/restaurar', async (req, res) => {
+  const { tipo, id } = req.params;
   try {
-    await sequelize.query(
-      `UPDATE productos SET deleted = 0 WHERE id_producto = ?`,
-      { replacements: [req.params.id] }
-    );
-    res.json({ message: 'Producto restaurado correctamente' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * DELETE /api/eliminados/:id
- * Elimina permanentemente un producto (solo si ya está en deleted=1)
- */
-router.delete('/:id', async (req, res) => {
-  const connection = await sequelize.connectionManager.getConnection();
-  try {
-    await connection.beginTransaction();
-    // Verificar que esté en deleted=1
-    const [[prod]] = await connection.query(
-      `SELECT id_producto FROM productos WHERE id_producto = ? AND deleted = 1`,
-      [req.params.id]
-    );
-    if (!prod) {
-      await connection.rollback();
-      return res.status(404).json({ error: 'Producto no encontrado en eliminados.' });
+    if (tipo === 'producto') {
+      await sequelize.query('UPDATE productos SET papelera = 0 WHERE id_producto = :id', { replacements: { id } });
+    } else if (tipo === 'cliente') {
+      await sequelize.query('UPDATE clientes SET papelera = 0 WHERE id_cliente = :id', { replacements: { id } });
+    } else if (tipo === 'proveedor') {
+      await sequelize.query('UPDATE proveedores SET papelera = 0 WHERE id_proveedor = :id', { replacements: { id } });
+    } else if (tipo === 'empleado') {
+      await sequelize.query('UPDATE empleados SET activo = 1 WHERE id_empleado = :id', { replacements: { id } });
     }
-    await connection.query(`DELETE FROM productos_categorias WHERE id_producto = ?`, [req.params.id]);
-    await connection.query(`DELETE FROM productos WHERE id_producto = ?`, [req.params.id]);
-    await connection.commit();
-    res.json({ message: 'Producto eliminado permanentemente' });
+    res.json({ message: 'Registro restaurado correctamente' });
   } catch (error) {
-    await connection.rollback();
     res.status(500).json({ error: error.message });
-  } finally {
-    connection.release();
+  }
+});
+
+// DELETE eliminar permanentemente según tipo
+router.delete('/:tipo/:id', async (req, res) => {
+  const { tipo, id } = req.params;
+  const transaction = await sequelize.transaction();
+  try {
+    if (tipo === 'producto') {
+      await sequelize.query('DELETE FROM productos_categorias WHERE id_producto = :id', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
+      await sequelize.query('DELETE FROM productos WHERE id_producto = :id AND deleted = 1', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
+    } else if (tipo === 'cliente') {
+      const ventas = await sequelize.query('SELECT COUNT(*) as count FROM ventas WHERE id_cliente = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction });
+      if (ventas[0].count > 0) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'No se puede eliminar el cliente porque tiene ventas registradas.' });
+      }
+      await sequelize.query('DELETE FROM clientes WHERE id_cliente = :id', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
+    } else if (tipo === 'proveedor') {
+      const productos = await sequelize.query('SELECT COUNT(*) as count FROM productos WHERE id_proveedor = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction });
+      if (productos[0].count > 0) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'No se puede eliminar el proveedor porque tiene productos registrados.' });
+      }
+      await sequelize.query('DELETE FROM proveedores WHERE id_proveedor = :id', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
+    } else if (tipo === 'empleado') {
+      await sequelize.query('DELETE FROM empleados WHERE id_empleado = :id AND activo = 0', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
+    } else {
+      await transaction.rollback();
+      return res.status(400).json({ error: 'Tipo no válido' });
+    }
+    await transaction.commit();
+    res.json({ message: 'Registro eliminado permanentemente' });
+  } catch (error) {
+    await transaction.rollback();
+    console.error('❌ DELETE /eliminados:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

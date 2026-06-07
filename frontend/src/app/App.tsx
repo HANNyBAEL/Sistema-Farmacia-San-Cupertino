@@ -12,7 +12,7 @@ import { getProductos, createProducto, updateProducto, deleteProducto } from "..
 import { fetchKPIs, fetchVentasUltimos7Dias } from "../services/dashboard";
 import { createVenta } from "../services/ventas";
 import clientesApi from "../services/clientes";
-import proveedoresApi from "../services/proveedores";
+import proveedoresApi, { moverProductoAPapelera } from "../services/proveedores";
 import empleadosApi from "../services/empleados";
 import { getHistorial, getDetalleVenta } from "../services/historial";
 import eliminadosApi from "../services/eliminados";
@@ -39,6 +39,7 @@ type Screen =
 interface User { name: string; role: Role; id: number; }
 
 interface Product {
+  papelera: any;
   has_ventas: any;
   id_producto: number;
   nombre_producto: string;
@@ -49,9 +50,13 @@ interface Product {
   fecha_vencimiento: string;
   id_proveedor: number;
   deleted: number;
+  proveedor_nombre?: string;
+  categorias_nombres?: string;
+  categorias_ids?: string;
 }
 
 interface Client {
+  papelera: any;
   has_ventas: any;
   id_cliente: number;
   nombre: string;
@@ -59,6 +64,7 @@ interface Client {
   telefono: string;
   correo: string;
   direccion?: string;
+  deleted: number;
 }
 
 interface Supplier {
@@ -68,6 +74,8 @@ interface Supplier {
   telefono?: string;
   correo?: string;
   direccion?: string;
+  deleted: number;
+  has_productos: any;
 }
 
 interface Empleado {
@@ -346,6 +354,35 @@ function Dashboard() {
 }
 
 // ── Productos ─────────────────────────────────────────────────────────────────
+const CATEGORIAS = [
+  { id: 1,  nombre: "Analgésicos" },
+  { id: 2,  nombre: "Antibióticos" },
+  { id: 3,  nombre: "Vitaminas" },
+  { id: 4,  nombre: "Antiinflamatorios" },
+  { id: 5,  nombre: "Antipsicóticos" },
+  { id: 6,  nombre: "Antidepresivos" },
+  { id: 7,  nombre: "Anticonvulsionantes" },
+  { id: 8,  nombre: "Controlados" },
+  { id: 9,  nombre: "Antihistamínicos" },
+  { id: 10, nombre: "Antidiabéticos" },
+  { id: 11, nombre: "Antihipertensivos" },
+  { id: 12, nombre: "Antibióticos orales" },
+  { id: 13, nombre: "Corticosteroides" },
+  { id: 14, nombre: "Diuréticos" },
+  { id: 15, nombre: "Antivirales" },
+  { id: 16, nombre: "Antimicóticos" },
+  { id: 17, nombre: "Antiparasitarios" },
+  { id: 18, nombre: "Suplementos" },
+  { id: 19, nombre: "Analgésicos Opioides" },
+  { id: 20, nombre: "Broncodilatadores" },
+  { id: 21, nombre: "Anticoagulantes" },
+  { id: 22, nombre: "Ansiolíticos" },
+  { id: 23, nombre: "Hipnóticos" },
+  { id: 24, nombre: "Cardioprotectores" },
+  { id: 25, nombre: "Gastrointestinal" },
+  { id: 26, nombre: "Otros" },
+];
+
 function Productos() {
   const [products, setProducts]   = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -355,7 +392,11 @@ function Productos() {
   const [showForm, setShowForm]   = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [formError, setFormError] = useState("");
-  const [form, setForm]           = useState({ nombre_producto:"", descripcion:"", precio:"", stock:"", lote:"", fecha_vencimiento:"", id_proveedor:"" });
+  const [selectedCats, setSelectedCats] = useState<number[]>([]);
+  const [form, setForm] = useState({
+    nombre_producto:"", descripcion:"", precio:"", stock:"",
+    lote:"", fecha_vencimiento:"", id_proveedor:""
+  });
 
   async function load() {
     setLoading(true);
@@ -368,31 +409,62 @@ function Productos() {
 
   useEffect(() => { load(); }, []);
 
-  const filtered = products.filter(p =>
-    p.nombre_producto.toLowerCase().includes(search.toLowerCase()) &&
-    (!filterStock ||
-      (filterStock==="agotado" && p.stock===0) ||
-      (filterStock==="critico" && p.stock>0 && p.stock<=10) ||
-      (filterStock==="bajo"    && p.stock>10 && p.stock<=20) ||
-      (filterStock==="normal"  && p.stock>20))
-  );
+  const filtered = products
+    .filter(p =>
+      p.nombre_producto.toLowerCase().includes(search.toLowerCase()) &&
+      (!filterStock ||
+        (filterStock==="agotado" && p.stock===0) ||
+        (filterStock==="critico" && p.stock>0 && p.stock<=10) ||
+        (filterStock==="bajo"    && p.stock>10 && p.stock<=20) ||
+        (filterStock==="normal"  && p.stock>20))
+    )
+    .sort((a, b) => a.nombre_producto.localeCompare(b.nombre_producto, 'es'));
 
   function openNew() {
     setEditProduct(null);
+    setSelectedCats([]);
     setForm({ nombre_producto:"", descripcion:"", precio:"", stock:"", lote:"", fecha_vencimiento:"", id_proveedor:"" });
     setFormError(""); setShowForm(true);
   }
+
   function openEdit(p: Product) {
     setEditProduct(p);
-    setForm({ nombre_producto:p.nombre_producto, descripcion:p.descripcion??"", precio:String(p.precio), stock:String(p.stock), lote:p.lote, fecha_vencimiento:p.fecha_vencimiento, id_proveedor:String(p.id_proveedor) });
+    const cats = p.categorias_ids
+      ? String(p.categorias_ids).split(',').map(Number).filter(Boolean)
+      : [];
+    setSelectedCats(cats);
+    setForm({
+      nombre_producto: p.nombre_producto,
+      descripcion: p.descripcion ?? "",
+      precio: String(p.precio),
+      stock: String(p.stock),
+      lote: p.lote,
+      fecha_vencimiento: p.fecha_vencimiento,
+      id_proveedor: String(p.id_proveedor)
+    });
     setFormError(""); setShowForm(true);
+  }
+
+  function toggleCat(id: number) {
+    setSelectedCats(prev =>
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    );
   }
 
   async function saveForm() {
     if (!form.nombre_producto || !form.precio || !form.stock || !form.lote || !form.fecha_vencimiento || !form.id_proveedor) {
       setFormError("Complete todos los campos obligatorios."); return;
     }
-    const payload = { nombre_producto:form.nombre_producto, descripcion:form.descripcion||null, precio:parseFloat(form.precio), stock:parseInt(form.stock), lote:form.lote, fecha_vencimiento:form.fecha_vencimiento, id_proveedor:parseInt(form.id_proveedor) };
+    const payload = {
+      nombre_producto: form.nombre_producto,
+      descripcion: form.descripcion || null,
+      precio: parseFloat(form.precio),
+      stock: parseInt(form.stock),
+      lote: form.lote,
+      fecha_vencimiento: form.fecha_vencimiento,
+      id_proveedor: parseInt(form.id_proveedor),
+      categorias: selectedCats
+    };
     try {
       if (editProduct) await updateProducto(editProduct.id_producto, payload);
       else             await createProducto(payload);
@@ -401,12 +473,12 @@ function Productos() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("¿Eliminar este producto permanentemente?")) return;
+    if (!confirm("¿Mover este producto a la papelera?")) return;
     try {
-      await deleteProducto(id);
+      await moverProductoAPapelera(id);
       load();
     } catch (e: any) {
-      alert(e?.response?.data?.error ?? "No se puede eliminar este producto.");
+      alert(e?.response?.data?.error ?? "Error al eliminar el producto.");
     }
   }
 
@@ -451,7 +523,7 @@ function Productos() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                {["Nombre","Descripción","Precio","Stock","Lote","Vencimiento","Proveedor ID","Estado","Acciones"].map(h=>(
+                {["Nombre","Categoría","Precio","Stock","Lote","Vencimiento","Proveedor","Estado","Acciones"].map(h=>(
                   <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
                 ))}
               </tr>
@@ -460,12 +532,36 @@ function Productos() {
               {filtered.map(p=>(
                 <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.deleted ? 'bg-gray-50 opacity-60' : 'hover:bg-[#f0f7ff]'}`}>
                   <td className="py-3 px-4 font-medium text-[#1e1e1e]">{p.nombre_producto}</td>
-                  <td className="py-3 px-4 text-gray-500 text-xs">{p.descripcion ?? "—"}</td>
+                    <td className="py-3 px-4 text-gray-500 text-xs">
+                      {p.categorias_nombres ? (() => {
+                        const cats = p.categorias_nombres.split(', ');
+                        const primera = cats[0];
+                        const resto = cats.slice(1);
+                        return (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="inline-block bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">{primera}</span>
+                            {resto.length > 0 && (
+                              <div className="relative group">
+                                <button className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold hover:bg-blue-200 transition-colors">
+                                  +{resto.length}
+                                </button>
+                                <div className="absolute left-0 top-6 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-max">
+                                  <p className="text-xs font-semibold text-gray-500 mb-1.5">Otras categorías:</p>
+                                  {resto.map((cat: string, i: number) => (
+                                    <div key={i} className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded mb-1">{cat}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })() : <span className="text-gray-400">—</span>}
+                    </td>
                   <td className="py-3 px-4 font-mono text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</td>
                   <td className="py-3 px-4"><span className={`text-xs px-2 py-1 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock} — {stockLabel(p.stock)}</span></td>
                   <td className="py-3 px-4 font-mono text-gray-500 text-xs">{p.lote}</td>
                   <td className="py-3 px-4 text-gray-600 text-xs">{p.fecha_vencimiento}</td>
-                  <td className="py-3 px-4 text-gray-500 text-xs">{p.id_proveedor}</td>
+                  <td className="py-3 px-4 text-gray-600 text-xs">{p.proveedor_nombre ?? p.id_proveedor}</td>
                   <td className="py-3 px-4">
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                       {p.deleted ? "Inactivo" : "Activo"}
@@ -473,32 +569,16 @@ function Productos() {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={()=>openEdit(p)}
-                        className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]"
-                        title="Editar"
-                      >
-                        <Edit2 size={14}/>
-                      </button>
+                      <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
                       <button
                         onClick={()=>handleToggle(p.id_producto, p.deleted)}
-                        className={`p-1 rounded text-xs font-semibold px-2 py-1 ${
-                          p.deleted
-                            ? 'text-green-700 bg-green-50 hover:bg-green-100'
-                            : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
-                        }`}
+                        className={`p-1 rounded text-xs font-semibold px-2 py-1 ${p.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
                         title={p.deleted ? "Activar producto" : "Desactivar producto"}
                       >
                         {p.deleted ? "Activar" : "Desactivar"}
                       </button>
                       {!p.has_ventas && (
-                        <button
-                          onClick={()=>handleDelete(p.id_producto)}
-                          className="text-[#d32f2f] p-1 rounded hover:bg-red-50"
-                          title="Eliminar permanentemente"
-                        >
-                          <Trash2 size={14}/>
-                        </button>
+                        <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
                       )}
                     </div>
                   </td>
@@ -511,6 +591,7 @@ function Productos() {
           </table>
         </div>
       </Card>
+
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
@@ -532,6 +613,22 @@ function Productos() {
                   <option value="">Seleccionar proveedor...</option>
                   {suppliers.map(s=><option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>)}
                 </Select>
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-gray-600 mb-2">Categorías</label>
+                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-[#f8fafc]">
+                  {CATEGORIAS.map(cat => (
+                    <label key={cat.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-white rounded px-1 py-0.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedCats.includes(cat.id)}
+                        onChange={() => toggleCat(cat.id)}
+                        className="rounded"
+                      />
+                      <span className="text-gray-700">{cat.nombre}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
@@ -556,44 +653,43 @@ function Ventas({ user }: { user: User }) {
   const [saleError, setSaleError] = useState("");
   const [saleDone, setSaleDone]   = useState(false);
 
+  // Modal nuevo cliente
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [newClientForm, setNewClientForm] = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
+  const [newClientError, setNewClientError] = useState("");
+  const [savingClient, setSavingClient] = useState(false);
+
   useEffect(() => {
     Promise.all([getProductos(), clientesApi.getAll()])
-      .then(([prods, clts]) => { setProducts(prods); setClients(clts); })
+      .then(([prods, clts]) => {
+        setProducts(prods.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+        setClients(clts);
+      })
       .catch(console.error);
   }, []);
 
-  const results = products.filter(p => p.nombre_producto.toLowerCase().includes(search.toLowerCase()) && p.stock > 0).slice(0, 6);
+  const results = products
+    .filter(p => {
+      if (p.stock <= 0) return false;
+      if (p.papelera) return false;
+      const term = search.toLowerCase();
+      const name = p.nombre_producto.toLowerCase();
+      return name.startsWith(term) || name.split(' ').some(word => word.startsWith(term));
+    })
+    .slice(0, 6);
 
   function addToCart(p: Product) {
-    // Producto desactivado
-    if (p.deleted === 1) {
-      setSaleError(`"${p.nombre_producto}" está desactivado y no se puede vender.`);
-      return;
-    }
-
-    // Producto vencido
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    if (p.papelera) { setSaleError(`"${p.nombre_producto}" no está disponible.`); return; }
+    if (p.deleted === 1) { setSaleError(`"${p.nombre_producto}" está desactivado y no se puede vender.`); return; }
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const vencimiento = new Date(p.fecha_vencimiento + 'T00:00:00');
-    if (vencimiento < hoy) {
-      setSaleError(`"${p.nombre_producto}" está vencido y no se puede vender.`);
-      return;
-    }
-
-    // Sin stock
-    if (p.stock === 0) {
-      setSaleError(`"${p.nombre_producto}" no tiene stock disponible.`);
-      return;
-    }
-
+    if (vencimiento < hoy) { setSaleError(`"${p.nombre_producto}" está vencido y no se puede vender.`); return; }
+    if (p.stock === 0) { setSaleError(`"${p.nombre_producto}" no tiene stock disponible.`); return; }
     setSaleError("");
     setCart(prev => {
       const exists = prev.find(i => i.product.id_producto === p.id_producto);
       if (exists) {
-        if (exists.qty >= p.stock) {
-          setSaleError(`Solo quedan ${p.stock} unidades de "${p.nombre_producto}".`);
-          return prev;
-        }
+        if (exists.qty >= p.stock) { setSaleError(`Solo quedan ${p.stock} unidades de "${p.nombre_producto}".`); return prev; }
         return prev.map(i => i.product.id_producto === p.id_producto ? { ...i, qty: i.qty+1 } : i);
       }
       return [...prev, { product: p, qty: 1 }];
@@ -618,13 +714,89 @@ function Ventas({ user }: { user: User }) {
     try {
       await createVenta({ id_cliente: selectedClient?.id_cliente ?? null, id_empleado: user.id, productos: cart.map(i => ({ id_producto: i.product.id_producto, cantidad: i.qty })) });
       setSaleDone(true); setCart([]); setSelectedClient(null); setClientSearch("");
-      const prods = await getProductos(); setProducts(prods);
+      const prods = await getProductos();
+      setProducts([...prods].sort((a: Product, b: Product) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
       setTimeout(() => setSaleDone(false), 3000);
     } catch (e: any) { setSaleError(e?.response?.data?.error ?? "Error al registrar la venta."); }
   }
 
+  async function guardarNuevoCliente() {
+    if (!newClientForm.nombre || !newClientForm.apellido || !newClientForm.telefono) {
+      setNewClientError("Nombre, apellido y teléfono son obligatorios."); return;
+    }
+    setSavingClient(true);
+    try {
+      const nuevo = await clientesApi.create(newClientForm);
+      // Recargar clientes y seleccionar el nuevo
+      const clts = await clientesApi.getAll();
+      setClients(clts);
+      // Buscar el cliente recién creado
+      const creado = clts.find((c: Client) =>
+        c.nombre === newClientForm.nombre &&
+        c.apellido === newClientForm.apellido &&
+        c.telefono === newClientForm.telefono
+      );
+      if (creado) setSelectedClient(creado);
+      setShowNewClient(false);
+      setNewClientForm({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
+      setNewClientError("");
+    } catch (e: any) {
+      setNewClientError(e?.response?.data?.error ?? "Error al registrar el cliente.");
+    } finally {
+      setSavingClient(false);
+    }
+  }
+
   return (
     <div className="flex h-full" style={{ minHeight:0 }}>
+
+      {/* Modal nuevo cliente */}
+      {showNewClient && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-[#1e1e1e]">Nuevo Cliente</h2>
+              <button onClick={()=>{setShowNewClient(false);setNewClientError("");}} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+            </div>
+            {newClientError && (
+              <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+                <AlertTriangle size={14}/>{newClientError}
+              </div>
+            )}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                  <Input value={newClientForm.nombre} onChange={v=>setNewClientForm(p=>({...p,nombre:v}))} placeholder="Nombre"/>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label>
+                  <Input value={newClientForm.apellido} onChange={v=>setNewClientForm(p=>({...p,apellido:v}))} placeholder="Apellido"/>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono *</label>
+                <Input value={newClientForm.telefono} onChange={v=>setNewClientForm(p=>({...p,telefono:v}))} placeholder="7000-0000"/>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+                <Input type="email" value={newClientForm.correo} onChange={v=>setNewClientForm(p=>({...p,correo:v}))} placeholder="correo@ejemplo.com"/>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+                <Input value={newClientForm.direccion} onChange={v=>setNewClientForm(p=>({...p,direccion:v}))} placeholder="Dirección opcional"/>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-5">
+              <Btn variant="secondary" onClick={()=>{setShowNewClient(false);setNewClientError("");}}>Cancelar</Btn>
+              <Btn variant="primary" onClick={guardarNuevoCliente} disabled={savingClient}>
+                <Check size={14}/> {savingClient ? "Guardando..." : "Registrar"}
+              </Btn>
+            </div>
+          </Card>
+        </div>
+      )}
+
       <div className="w-72 border-r border-gray-100 flex flex-col bg-white">
         <div className="p-4 border-b border-gray-100">
           <h2 className="font-semibold text-[#1e1e1e] text-sm mb-3">Buscar Producto</h2>
@@ -687,7 +859,16 @@ function Ventas({ user }: { user: User }) {
 
       <div className="w-64 border-l border-gray-100 flex flex-col bg-white">
         <div className="p-4 border-b border-gray-100">
-          <h2 className="font-semibold text-[#1e1e1e] text-sm mb-3">Cliente</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-[#1e1e1e] text-sm">Cliente</h2>
+            <button
+              onClick={()=>{setShowNewClient(true);setNewClientError("");}}
+              className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:text-[#0d5c96] font-medium hover:bg-[#e3f2fd] px-2 py-1 rounded-lg transition-colors"
+              title="Registrar nuevo cliente"
+            >
+              <Plus size={12}/> Nuevo
+            </button>
+          </div>
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input value={clientSearch} onChange={e=>setClientSearch(e.target.value)} placeholder="Buscar por correo electrónico..."
@@ -695,7 +876,7 @@ function Ventas({ user }: { user: User }) {
           </div>
           {clientSearch && (
             <div className="mt-1 border border-gray-100 rounded-lg overflow-hidden shadow-sm">
-              {clients.filter(c => c.correo.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
+              {clients.filter(c => c.correo.toLowerCase().includes(clientSearch.toLowerCase()) && !c.deleted && !c.papelera).map(c => (
                 <button key={c.id_cliente} onClick={()=>{setSelectedClient(c);setClientSearch("");}}
                   className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">
                   {c.nombre} {c.apellido}
@@ -744,7 +925,10 @@ function Clientes() {
     try { setClients(await clientesApi.getAll()); } catch(e){console.error(e);} finally{setLoading(false);}
   }
   useEffect(()=>{load();},[]);
-  const filtered = clients.filter(c=>`${c.nombre} ${c.apellido}`.toLowerCase().includes(search.toLowerCase()));
+
+  const filtered = clients.filter(c=>
+    `${c.nombre} ${c.apellido}`.toLowerCase().includes(search.toLowerCase())
+  );
 
   function openNew(){setEditClient(null);setForm({nombre:"",apellido:"",telefono:"",correo:"",direccion:""});setFormError("");setShowForm(true);}
   function openEdit(c:Client){setEditClient(c);setForm({nombre:c.nombre,apellido:c.apellido,telefono:c.telefono,correo:c.correo,direccion:c.direccion??""});setFormError("");setShowForm(true);}
@@ -758,14 +942,24 @@ function Clientes() {
     }catch(e:any){setFormError(e?.response?.data?.error??"Error al guardar.");}
   }
 
-  async function handleDelete(id:number){
-    if(!confirm("¿Eliminar este cliente?"))return;
-    try{
-      await clientesApi.delete(id);
+  async function handleDelete(id: number) {
+    if (!confirm("¿Mover este cliente a la papelera?")) return;
+    try {
+      await clientesApi.moverAPapelera(id);
       load();
-    }catch(e:any){
-      const msg = e?.response?.data?.error || "Error al eliminar el cliente";
-      alert(msg);
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? "Error al eliminar el cliente.");
+    }
+  }
+
+  async function handleToggle(id: number, deleted: number) {
+    const accion = deleted ? "activar" : "desactivar";
+    if (!confirm(`¿Deseas ${accion} este cliente?`)) return;
+    try {
+      await clientesApi.toggle(id);
+      load();
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? `Error al ${accion} el cliente.`);
     }
   }
 
@@ -788,27 +982,47 @@ function Clientes() {
       </Card>
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="border-b border-gray-100 bg-gray-50">{["Nombre","Teléfono","Correo","Dirección","Acciones"].map(h=><th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>)}</tr></thead>
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              {["Nombre","Teléfono","Correo","Dirección","Estado","Acciones"].map(h=>(
+                <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
+              ))}
+            </tr>
+          </thead>
           <tbody>
             {filtered.map(c=>(
-              <tr key={c.id_cliente} className="border-b border-gray-50 hover:bg-gray-50">
+              <tr key={c.id_cliente} className={`border-b border-gray-50 transition-colors ${c.deleted ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50'}`}>
                 <td className="py-3 px-4 font-medium text-[#1e1e1e]">{c.nombre} {c.apellido}</td>
                 <td className="py-3 px-4 text-gray-600">{c.telefono}</td>
                 <td className="py-3 px-4 text-gray-600">{c.correo}</td>
                 <td className="py-3 px-4 text-gray-600 text-xs">{c.direccion??"—"}</td>
                 <td className="py-3 px-4">
-                  <div className="flex gap-2">
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${c.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                    {c.deleted ? "Inactivo" : "Activo"}
+                  </span>
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex gap-2 items-center">
                     <button onClick={()=>openEdit(c)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                    {c.has_ventas ? (
-                      <span className="text-gray-400 text-xs italic" title="Este cliente tiene ventas registradas y no se puede eliminar">🔒</span>
-                    ) : (
-                      <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Eliminar"><Trash2 size={14}/></button>
+                    <button
+                      onClick={()=>handleToggle(c.id_cliente, c.deleted ?? 0)}
+                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${
+                        c.deleted
+                          ? 'text-green-700 bg-green-50 hover:bg-green-100'
+                          : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                      }`}
+                      title={c.deleted ? "Activar cliente" : "Desactivar cliente"}
+                    >
+                      {c.deleted ? "Activar" : "Desactivar"}
+                    </button>
+                    {!c.has_ventas && (
+                      <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Eliminar permanentemente"><Trash2 size={14}/></button>
                     )}
                   </div>
                 </td>
               </tr>
             ))}
-            {filtered.length===0&&(<tr><td colSpan={5} className="py-10 text-center text-gray-400">Sin clientes.</td></tr>)}
+            {filtered.length===0&&(<tr><td colSpan={6} className="py-10 text-center text-gray-400">Sin clientes.</td></tr>)}
           </tbody>
         </table>
       </Card>
@@ -850,24 +1064,49 @@ function Proveedores() {
   const [form, setForm]           = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
   const [formError, setFormError] = useState("");
 
-  async function load(){setLoading(true);try{setSuppliers(await proveedoresApi.getAll());}catch(e){console.error(e);}finally{setLoading(false);}}
-  useEffect(()=>{load();},[]);
-  const filtered = suppliers.filter(s=>`${s.nombre} ${s.apellido}`.toLowerCase().includes(search.toLowerCase()));
+  async function load(){
+    setLoading(true);
+    try{ setSuppliers(await proveedoresApi.getAll()); }
+    catch(e){ console.error(e); }
+    finally{ setLoading(false); }
+  }
+  useEffect(()=>{ load(); },[]);
 
-  function openNew(){setEditSupplier(null);setForm({nombre:"",apellido:"",telefono:"",correo:"",direccion:""});setFormError("");setShowForm(true);}
-  function openEdit(s:Supplier){setEditSupplier(s);setForm({nombre:s.nombre,apellido:s.apellido,telefono:s.telefono??"",correo:s.correo??"",direccion:s.direccion??""});setFormError("");setShowForm(true);}
+  const filtered = suppliers.filter(s=>
+    `${s.nombre} ${s.apellido}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  function openNew(){ setEditSupplier(null); setForm({nombre:"",apellido:"",telefono:"",correo:"",direccion:""}); setFormError(""); setShowForm(true); }
+  function openEdit(s:Supplier){ setEditSupplier(s); setForm({nombre:s.nombre,apellido:s.apellido,telefono:s.telefono??"",correo:s.correo??"",direccion:s.direccion??""}); setFormError(""); setShowForm(true); }
 
   async function saveForm(){
-    if(!form.nombre||!form.apellido){setFormError("Nombre y apellido son obligatorios.");return;}
+    if(!form.nombre||!form.apellido){ setFormError("Nombre y apellido son obligatorios."); return; }
     try{
-      if(editSupplier) await proveedoresApi.update(editSupplier.id_proveedor,form);
+      if(editSupplier) await proveedoresApi.update(editSupplier.id_proveedor, form);
       else             await proveedoresApi.create(form);
-      setShowForm(false);load();
-    }catch(e:any){setFormError(e?.response?.data?.error??"Error al guardar.");}
+      setShowForm(false); load();
+    }catch(e:any){ setFormError(e?.response?.data?.error??"Error al guardar."); }
   }
-  async function handleDelete(id:number){
-    if(!confirm("¿Eliminar este proveedor?"))return;
-    try{await proveedoresApi.delete(id);load();}catch(e){console.error(e);}
+
+  async function handleDelete(id: number) {
+    if (!confirm("¿Mover este proveedor a la papelera?")) return;
+    try {
+      await proveedoresApi.moverAPapelera(id);
+      load();
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? "Error al eliminar el proveedor.");
+    }
+  }
+
+  async function handleToggle(id:number, deleted:number){
+    const accion = deleted ? "activar" : "desactivar";
+    if(!confirm(`¿Deseas ${accion} este proveedor?`)) return;
+    try{
+      await api.patch(`/proveedores/${id}/toggle`);
+      load();
+    }catch(e:any){
+      alert(e?.response?.data?.error??`Error al ${accion} el proveedor.`);
+    }
   }
 
   if(loading) return <LoadingSpinner/>;
@@ -889,23 +1128,47 @@ function Proveedores() {
       </Card>
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="border-b border-gray-100 bg-gray-50">{["Nombre","Teléfono","Correo","Dirección","Acciones"].map(h=><th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>)}</tr></thead>
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              {["Nombre","Teléfono","Correo","Dirección","Estado","Acciones"].map(h=>(
+                <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
+              ))}
+            </tr>
+          </thead>
           <tbody>
             {filtered.map(s=>(
-              <tr key={s.id_proveedor} className="border-b border-gray-50 hover:bg-gray-50">
+              <tr key={s.id_proveedor} className={`border-b border-gray-50 transition-colors ${s.deleted ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50'}`}>
                 <td className="py-3 px-4 font-medium text-[#1e1e1e]">{s.nombre} {s.apellido}</td>
                 <td className="py-3 px-4 text-gray-600">{s.telefono??"—"}</td>
                 <td className="py-3 px-4 text-gray-600">{s.correo??"—"}</td>
                 <td className="py-3 px-4 text-gray-600 text-xs">{s.direccion??"—"}</td>
                 <td className="py-3 px-4">
-                  <div className="flex gap-2">
-                    <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]"><Edit2 size={14}/></button>
-                    <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50"><Trash2 size={14}/></button>
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                    {s.deleted ? "Inactivo" : "Activo"}
+                  </span>
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex gap-2 items-center">
+                    <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                    <button
+                      onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
+                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${
+                        s.deleted
+                          ? 'text-green-700 bg-green-50 hover:bg-green-100'
+                          : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                      }`}
+                      title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
+                    >
+                      {s.deleted ? "Activar" : "Desactivar"}
+                    </button>
+                    {!s.has_productos && (
+                      <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Eliminar permanentemente"><Trash2 size={14}/></button>
+                    )}
                   </div>
                 </td>
               </tr>
             ))}
-            {filtered.length===0&&<tr><td colSpan={5} className="py-10 text-center text-gray-400">Sin proveedores.</td></tr>}
+            {filtered.length===0&&<tr><td colSpan={6} className="py-10 text-center text-gray-400">Sin proveedores.</td></tr>}
           </tbody>
         </table>
       </Card>
@@ -1100,36 +1363,64 @@ function Alertas() {
 
   async function load(){
     setLoading(true);
-    try{setProducts(await getProductos());}catch(e){console.error(e);}finally{setLoading(false);}
+    try{ setProducts(await getProductos()); }catch(e){ console.error(e); }finally{ setLoading(false); }
   }
-  useEffect(()=>{load();},[]);
+  useEffect(()=>{ load(); },[]);
 
   const today = new Date();
-  const in30  = new Date(); in30.setDate(today.getDate()+30);
+  today.setHours(0,0,0,0);
+  const in30 = new Date();
+  in30.setDate(today.getDate()+30);
+  in30.setHours(0,0,0,0);
 
-  const agotados = products.filter(p=>p.stock===0);
-  const criticos = products.filter(p=>p.stock>0&&p.stock<=10);
-  const bajos    = products.filter(p=>p.stock>10&&p.stock<=20);
-  const vencer   = products.filter(p=>{
+  const agotados  = products.filter(p => p.stock === 0);
+  const criticos  = products.filter(p => p.stock > 0 && p.stock <= 10);
+  const bajos     = products.filter(p => p.stock > 10 && p.stock <= 20);
+  const vencer    = products.filter(p => {
     if(!p.fecha_vencimiento) return false;
-    const d=new Date(p.fecha_vencimiento);
-    return d>=today&&d<=in30;
+    const d = new Date(p.fecha_vencimiento + 'T00:00:00');
+    return d >= today && d <= in30;
+  });
+  const vencidos  = products.filter(p => {
+    if(!p.fecha_vencimiento) return false;
+    const d = new Date(p.fecha_vencimiento + 'T00:00:00');
+    return d < today;
   });
 
-  const tabs=[
-    {id:"todos",   label:"Todos",           count:agotados.length+criticos.length+bajos.length, color:"text-[#0a4b7a]"},
-    {id:"agotado", label:"Agotados",         count:agotados.length, color:"text-[#d32f2f]"},
-    {id:"critico", label:"Críticos (1–10)",  count:criticos.length, color:"text-orange-600"},
-    {id:"bajo",    label:"Bajo (11–20)",     count:bajos.length,    color:"text-amber-600"},
-    {id:"vencer",  label:"Próx. vencer",     count:vencer.length,   color:"text-purple-600"},
+  const totalStock = agotados.length + criticos.length + bajos.length;
+  const totalTodos = totalStock + vencer.length + vencidos.length;
+
+  const tabs = [
+    { id:"todos",   label:"Todos",          count: totalTodos,      color:"text-[#0a4b7a]" },
+    { id:"agotado", label:"Agotados",        count: agotados.length, color:"text-[#d32f2f]" },
+    { id:"critico", label:"Críticos (1–10)", count: criticos.length, color:"text-orange-600" },
+    { id:"bajo",    label:"Bajo (11–20)",    count: bajos.length,    color:"text-amber-600" },
+    { id:"vencer",  label:"Próx. vencer",    count: vencer.length,   color:"text-purple-600" },
+    { id:"vencido", label:"Vencidos",        count: vencidos.length, color:"text-red-700" },
   ];
 
-  const displayed=tab==="todos"?[...agotados,...criticos,...bajos]:tab==="agotado"?agotados:tab==="critico"?criticos:tab==="bajo"?bajos:vencer;
+  const displayed =
+    tab === "todos"   ? [...agotados, ...criticos, ...bajos, ...vencer, ...vencidos] :
+    tab === "agotado" ? agotados :
+    tab === "critico" ? criticos :
+    tab === "bajo"    ? bajos :
+    tab === "vencer"  ? vencer :
+    vencidos;
 
-  function alertCls(stock:number){
-    if(stock===0) return "bg-red-100 text-red-800";
-    if(stock<=10) return "bg-orange-100 text-orange-800";
+  function stockCls(stock: number){
+    if(stock === 0) return "bg-red-100 text-red-800";
+    if(stock <= 10) return "bg-orange-100 text-orange-800";
     return "bg-amber-100 text-amber-800";
+  }
+
+  function stockLabel(stock: number){
+    if(stock === 0) return "Agotado";
+    if(stock <= 10) return "Crítico";
+    return "Bajo";
+  }
+
+  function isVencido(fecha: string){
+    return new Date(fecha + 'T00:00:00') < today;
   }
 
   if(loading) return <LoadingSpinner/>;
@@ -1137,17 +1428,22 @@ function Alertas() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#1e1e1e]">Alertas de Stock</h1>
-          <p className="text-sm text-gray-500">{agotados.length} agotados · {criticos.length} críticos · {bajos.length} bajos · {vencer.length} próx. vencer</p>
+          <h1 className="text-xl font-bold text-[#1e1e1e]">Alertas</h1>
+          <p className="text-sm text-gray-500">
+            {agotados.length} agotados · {criticos.length} críticos · {bajos.length} bajos · {vencer.length} próx. vencer · {vencidos.length} vencidos
+          </p>
         </div>
         <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+
+      {/* Tarjetas resumen */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
-          {label:"Agotados",   value:agotados.length, cls:"bg-red-50 text-[#d32f2f] border-red-100"},
-          {label:"Críticos",   value:criticos.length, cls:"bg-orange-50 text-orange-700 border-orange-100"},
-          {label:"Stock Bajo", value:bajos.length,    cls:"bg-amber-50 text-amber-700 border-amber-100"},
-          {label:"Por Vencer", value:vencer.length,   cls:"bg-purple-50 text-purple-700 border-purple-100"},
+          { label:"Agotados",      value: agotados.length, cls:"bg-red-50 text-[#d32f2f] border-red-100" },
+          { label:"Críticos",      value: criticos.length, cls:"bg-orange-50 text-orange-700 border-orange-100" },
+          { label:"Stock Bajo",    value: bajos.length,    cls:"bg-amber-50 text-amber-700 border-amber-100" },
+          { label:"Próx. Vencer",  value: vencer.length,   cls:"bg-purple-50 text-purple-700 border-purple-100" },
+          { label:"Vencidos",      value: vencidos.length, cls:"bg-red-50 text-red-800 border-red-200" },
         ].map(k=>(
           <div key={k.label} className={`rounded-lg border p-4 ${k.cls}`}>
             <div className="text-2xl font-bold">{k.value}</div>
@@ -1155,6 +1451,8 @@ function Alertas() {
           </div>
         ))}
       </div>
+
+      {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit flex-wrap">
         {tabs.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
@@ -1164,41 +1462,56 @@ function Alertas() {
           </button>
         ))}
       </div>
+
+      {/* Tabla */}
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
-              {(tab==="vencer"
-                ?["Producto","Lote","Stock","Vencimiento","Días restantes"]
-                :["Producto","Lote","Stock actual","Estado","Vencimiento"]
-              ).map(h=><th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>)}
+              {["Producto","Lote","Stock","Estado","Vencimiento","Días"].map(h=>(
+                <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {displayed.map(p=>{
-              const dias=p.fecha_vencimiento?Math.round((new Date(p.fecha_vencimiento).getTime()-today.getTime())/86400000):null;
+              const fechaDate = p.fecha_vencimiento ? new Date(p.fecha_vencimiento + 'T00:00:00') : null;
+              const dias = fechaDate ? Math.round((fechaDate.getTime() - today.getTime()) / 86400000) : null;
+              const vencido = fechaDate ? isVencido(p.fecha_vencimiento) : false;
+
               return(
-                <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.stock===0?"bg-red-50/40":"hover:bg-gray-50"}`}>
+                <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.stock===0?"bg-red-50/40":vencido?"bg-red-50/20":"hover:bg-gray-50"}`}>
                   <td className="py-3 px-4 font-medium text-[#1e1e1e]">{p.nombre_producto}</td>
                   <td className="py-3 px-4 font-mono text-xs text-gray-500">{p.lote}</td>
                   <td className="py-3 px-4 font-mono font-semibold">{p.stock} uds.</td>
-                  {tab==="vencer"?(
-                    <>
-                      <td className="py-3 px-4 text-xs text-gray-500">{p.fecha_vencimiento}</td>
-                      <td className="py-3 px-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${dias!==null&&dias<=7?"bg-red-100 text-red-800":dias!==null&&dias<=15?"bg-orange-100 text-orange-800":"bg-amber-100 text-amber-800"}`}>{dias} días</span>
-                      </td>
-                    </>
-                  ):(
-                    <>
-                      <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${alertCls(p.stock)}`}>{p.stock===0?"Agotado":p.stock<=10?"Crítico":"Bajo"}</span></td>
-                      <td className="py-3 px-4 text-xs text-gray-500">{p.fecha_vencimiento}</td>
-                    </>
-                  )}
+                  <td className="py-3 px-4">
+                    {vencido ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-200 text-red-900">Vencido</span>
+                    ) : p.stock === 0 || p.stock <= 20 ? (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stockCls(p.stock)}`}>{stockLabel(p.stock)}</span>
+                    ) : (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-purple-100 text-purple-800">Próx. vencer</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 text-xs text-gray-500">{p.fecha_vencimiento ?? "—"}</td>
+                  <td className="py-3 px-4">
+                    {dias !== null ? (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        dias < 0        ? "bg-red-200 text-red-900" :
+                        dias <= 7       ? "bg-red-100 text-red-800" :
+                        dias <= 15      ? "bg-orange-100 text-orange-800" :
+                                          "bg-amber-100 text-amber-800"
+                      }`}>
+                        {dias < 0 ? `Vencido hace ${Math.abs(dias)} días` : `${dias} días`}
+                      </span>
+                    ) : "—"}
+                  </td>
                 </tr>
               );
             })}
-            {displayed.length===0&&<tr><td colSpan={5} className="py-12 text-center text-gray-400">Sin alertas en esta categoría. ✓</td></tr>}
+            {displayed.length===0&&(
+              <tr><td colSpan={6} className="py-12 text-center text-gray-400">Sin alertas en esta categoría. ✓</td></tr>
+            )}
           </tbody>
         </table>
       </Card>
@@ -1336,22 +1649,62 @@ function Historial() {
 
 // ── Eliminados ────────────────────────────────────────────────────────────────
 function Eliminados() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState("");
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch]   = useState("");
+  const [tab, setTab]         = useState("todos");
 
-  async function load(){setLoading(true);try{setProducts(await eliminadosApi.getAll());}catch(e){console.error(e);}finally{setLoading(false);}}
-  useEffect(()=>{load();},[]);
-
-  const filtered=products.filter(p=>p.nombre_producto.toLowerCase().includes(search.toLowerCase()));
-
-  async function handleRestore(id:number){
-    if(!confirm("¿Restaurar este producto?"))return;
-    try{await eliminadosApi.restaurar(id);load();}catch(e){console.error(e);}
+  async function load(){
+    setLoading(true);
+    try{ setRecords(await eliminadosApi.getAll()); }
+    catch(e){ console.error(e); }
+    finally{ setLoading(false); }
   }
-  async function handlePermanent(id:number){
-    if(!confirm("⚠️ Esta acción es irreversible. ¿Eliminar permanentemente?"))return;
-    try{await eliminadosApi.eliminar(id);load();}catch(e){console.error(e);}
+  useEffect(()=>{ load(); },[]);
+
+  const tipoLabel: Record<string, string> = {
+    producto: "Producto",
+    cliente:  "Cliente",
+    proveedor:"Proveedor",
+    empleado: "Empleado",
+  };
+
+  const tipoCls: Record<string, string> = {
+    producto:  "bg-blue-50 text-blue-700",
+    cliente:   "bg-green-50 text-green-700",
+    proveedor: "bg-purple-50 text-purple-700",
+    empleado:  "bg-amber-50 text-amber-700",
+  };
+
+  const tabs = [
+    { id:"todos",     label:"Todos" },
+    { id:"producto",  label:"Productos" },
+    { id:"cliente",   label:"Clientes" },
+    { id:"proveedor", label:"Proveedores" },
+    { id:"empleado",  label:"Empleados" },
+  ];
+
+  const byTab = tab === "todos" ? records : records.filter(r => r.tipo === tab);
+  const filtered = byTab.filter(r => r.nombre.toLowerCase().includes(search.toLowerCase()));
+
+  async function handleRestore(tipo: string, id: number) {
+    if (!confirm(`¿Restaurar este ${tipoLabel[tipo].toLowerCase()}?`)) return;
+    try {
+      await eliminadosApi.restaurar(tipo, id);
+      load();
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? "Error al restaurar.");
+    }
+  }
+
+  async function handlePermanent(tipo: string, id: number) {
+    if (!confirm(`⚠️ Esta acción es irreversible. ¿Eliminar permanentemente este ${tipoLabel[tipo].toLowerCase()}?`)) return;
+    try {
+      await eliminadosApi.eliminar(tipo, id);
+      load();
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? "Error al eliminar permanentemente.");
+    }
   }
 
   if(loading) return <LoadingSpinner/>;
@@ -1360,48 +1713,72 @@ function Eliminados() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-[#1e1e1e]">Registros Eliminados</h1>
-          <p className="text-sm text-gray-500">{filtered.length} productos en papelera</p>
+          <p className="text-sm text-gray-500">{records.length} registros en papelera</p>
         </div>
         <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
       </div>
-      {products.length>0&&(
+
+      {records.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
           <AlertTriangle size={15}/>
-          Los productos aquí tienen ventas registradas. Puedes restaurarlos o eliminarlos permanentemente.
+          Los registros aquí pueden ser restaurados o eliminados permanentemente.
         </div>
       )}
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit flex-wrap">
+        {tabs.map(t => {
+          const count = t.id === "todos" ? records.length : records.filter(r => r.tipo === t.id).length;
+          return(
+            <button key={t.id} onClick={()=>setTab(t.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tab===t.id?"bg-white shadow-sm text-[#1e1e1e]":"text-gray-500 hover:text-gray-700"}`}>
+              {t.label}
+              {count > 0 && <span className={`text-xs font-bold ${tab===t.id?"text-[#0a4b7a]":"text-gray-400"}`}>({count})</span>}
+            </button>
+          );
+        })}
+      </div>
+
       <Card className="p-4">
         <div className="relative max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar producto..."
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar registro..."
             className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
         </div>
       </Card>
+
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                {["Nombre","Lote","Precio","Stock al eliminar","Vencimiento","Proveedor","Acciones"].map(h=>(
+                {["Tipo","Nombre","Detalle","Acciones"].map(h=>(
                   <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map(p=>(
-                <tr key={p.id_producto} className="border-b border-gray-50 hover:bg-red-50/30 transition-colors">
-                  <td className="py-3 px-4 font-medium text-[#1e1e1e] line-through opacity-60">{p.nombre_producto}</td>
-                  <td className="py-3 px-4 font-mono text-xs text-gray-400">{p.lote}</td>
-                  <td className="py-3 px-4 font-mono text-gray-400">${Number(p.precio).toFixed(2)}</td>
-                  <td className="py-3 px-4 text-gray-400">{p.stock}</td>
-                  <td className="py-3 px-4 text-xs text-gray-400">{p.fecha_vencimiento}</td>
-                  <td className="py-3 px-4 text-xs text-gray-400">{p.proveedor_nombre??p.id_proveedor}</td>
+              {filtered.map((r, i)=>(
+                <tr key={`${r.tipo}-${r.id}-${i}`} className="border-b border-gray-50 hover:bg-red-50/30 transition-colors">
+                  <td className="py-3 px-4">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tipoCls[r.tipo]}`}>
+                      {tipoLabel[r.tipo]}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 font-medium text-[#1e1e1e] opacity-60 line-through">{r.nombre}</td>
+                  <td className="py-3 px-4 text-xs text-gray-400">{r.detalle ?? "—"}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
-                      <button onClick={()=>handleRestore(p.id_producto)} className="flex items-center gap-1 text-xs text-green-700 bg-green-50 hover:bg-green-100 px-2 py-1 rounded-lg font-medium transition-colors">
+                      <button
+                        onClick={()=>handleRestore(r.tipo, r.id)}
+                        className="flex items-center gap-1 text-xs text-green-700 bg-green-50 hover:bg-green-100 px-2 py-1 rounded-lg font-medium transition-colors"
+                      >
                         <RotateCcw size={12}/> Restaurar
                       </button>
-                      <button onClick={()=>handlePermanent(p.id_producto)} className="flex items-center gap-1 text-xs text-[#d32f2f] bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg font-medium transition-colors">
+                      <button
+                        onClick={()=>handlePermanent(r.tipo, r.id)}
+                        className="flex items-center gap-1 text-xs text-[#d32f2f] bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg font-medium transition-colors"
+                      >
                         <Trash2 size={12}/> Eliminar
                       </button>
                     </div>
@@ -1409,8 +1786,8 @@ function Eliminados() {
                 </tr>
               ))}
               {filtered.length===0&&(
-                <tr><td colSpan={7} className="py-12 text-center text-gray-400">
-                  {products.length===0?"La papelera está vacía.":"Sin resultados para la búsqueda."}
+                <tr><td colSpan={4} className="py-12 text-center text-gray-400">
+                  {records.length===0?"La papelera está vacía.":"Sin resultados para la búsqueda."}
                 </td></tr>
               )}
             </tbody>

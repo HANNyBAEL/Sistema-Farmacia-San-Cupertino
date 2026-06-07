@@ -18,7 +18,7 @@ router.post('/', async (req, res) => {
 
     // Fecha actual en zona horaria de El Salvador desde MySQL
     const [[{ fechaHoy }]] = await sequelize.query(
-      `SELECT DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00')) as fechaHoy`
+      `SELECT DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '-06:00'), '%Y-%m-%d') as fechaHoy`
     );
 
     // 1. Insertar cabecera de la venta
