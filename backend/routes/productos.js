@@ -1,5 +1,6 @@
 import express from 'express';
 import sequelize from '../config/database.js';
+import { registrarAuditoria } from './auditoria.js';
 
 const router = express.Router();
 
@@ -10,7 +11,8 @@ router.get('/', async (req, res) => {
       `SELECT p.*,
         EXISTS(SELECT 1 FROM detalle_ventas dv WHERE dv.id_producto = p.id_producto) AS has_ventas,
         CONCAT(pr.nombre, ' ', pr.apellido) AS proveedor_nombre,
-        GROUP_CONCAT(c.nombre_categoria SEPARATOR ', ') AS categorias_nombres
+        GROUP_CONCAT(DISTINCT c.nombre_categoria ORDER BY c.nombre_categoria SEPARATOR ', ') AS categorias_nombres,
+        GROUP_CONCAT(DISTINCT pc.id_categoria ORDER BY pc.id_categoria) AS categorias_ids
        FROM productos p
        LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
        LEFT JOIN productos_categorias pc ON pc.id_producto = p.id_producto
@@ -33,16 +35,13 @@ router.get('/:id', async (req, res) => {
     const productos = await sequelize.query(
       `SELECT p.*,
         CONCAT(pr.nombre, ' ', pr.apellido) AS proveedor_nombre,
-        GROUP_CONCAT(pc.id_categoria) AS categorias_ids
+        GROUP_CONCAT(DISTINCT pc.id_categoria ORDER BY pc.id_categoria) AS categorias_ids
        FROM productos p
        LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
        LEFT JOIN productos_categorias pc ON pc.id_producto = p.id_producto
        WHERE p.id_producto = :id
        GROUP BY p.id_producto`,
-      {
-        replacements: { id: Number(req.params.id) },
-        type: sequelize.QueryTypes.SELECT
-      }
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
     );
     if (!productos.length) return res.status(404).json({ error: 'Producto no encontrado' });
     res.json(productos[0]);
@@ -54,24 +53,20 @@ router.get('/:id', async (req, res) => {
 
 // POST crear producto
 router.post('/', async (req, res) => {
-  const { nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, categorias } = req.body;
+  const { nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, categorias, codigo_barras, id_empleado, nombre_empleado } = req.body;
   const transaction = await sequelize.transaction();
   try {
     const [result] = await sequelize.query(
-      `INSERT INTO productos (nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, deleted)
-       VALUES (:nombre_producto, :descripcion, :precio, :stock, :lote, :fecha_vencimiento, :id_proveedor, 0)`,
+      `INSERT INTO productos (nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, deleted, codigo_barras)
+       VALUES (:nombre_producto, :descripcion, :precio, :stock, :lote, :fecha_vencimiento, :id_proveedor, 0, :codigo_barras)`,
       {
         replacements: {
-          nombre_producto,
-          descripcion: descripcion || null,
-          precio: Number(precio),
-          stock: Number(stock),
-          lote,
-          fecha_vencimiento,
-          id_proveedor: Number(id_proveedor)
+          nombre_producto, descripcion: descripcion || null,
+          precio: Number(precio), stock: Number(stock),
+          lote, fecha_vencimiento, id_proveedor: Number(id_proveedor),
+          codigo_barras: codigo_barras || null
         },
-        type: sequelize.QueryTypes.INSERT,
-        transaction
+        type: sequelize.QueryTypes.INSERT, transaction
       }
     );
     const id_producto = result;
@@ -80,16 +75,25 @@ router.post('/', async (req, res) => {
       for (const catId of categorias) {
         await sequelize.query(
           'INSERT INTO productos_categorias (id_producto, id_categoria) VALUES (:id_producto, :id_categoria)',
-          {
-            replacements: { id_producto, id_categoria: catId },
-            type: sequelize.QueryTypes.INSERT,
-            transaction
-          }
+          { replacements: { id_producto, id_categoria: catId }, type: sequelize.QueryTypes.INSERT, transaction }
         );
       }
     }
 
-    await transaction.commit();
+await transaction.commit();
+
+    // Comparar campo por campo y registrar cada cambio
+    const anterior = await sequelize.query(
+      'SELECT nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor FROM productos WHERE id_producto = :id',
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
+    );
+    // El SELECT se ejecuta DESPUÉS del commit, así que comparamos contra los valores del body (que son los nuevos)
+    // Para capturar el anterior, hay que leerlo ANTES del UPDATE. Mover la lectura arriba:
+    await registrarAuditoria({
+      tabla: 'productos', accion: 'EDITAR',
+      descripcion: `Producto editado: ${nombre_producto}`,
+      id_registro: Number(req.params.id), id_empleado, nombre_empleado
+    });
     console.log('✅ Producto creado:', id_producto);
     res.status(201).json({ id_producto, message: 'Producto creado' });
   } catch (error) {
@@ -101,57 +105,84 @@ router.post('/', async (req, res) => {
 
 // PUT actualizar producto
 router.put('/:id', async (req, res) => {
-  const { nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, categorias } = req.body;
+  const { nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, categorias, codigo_barras, id_empleado, nombre_empleado } = req.body;
   const transaction = await sequelize.transaction();
   try {
+    // Leer valores anteriores ANTES del UPDATE
+    const [anterior] = await sequelize.query(
+      'SELECT nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, codigo_barras FROM productos WHERE id_producto = :id',
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT, transaction }
+    );
+
     await sequelize.query(
       `UPDATE productos
-       SET nombre_producto = :nombre_producto,
-           descripcion = :descripcion,
-           precio = :precio,
-           stock = :stock,
-           lote = :lote,
-           fecha_vencimiento = :fecha_vencimiento,
-           id_proveedor = :id_proveedor
+       SET nombre_producto = :nombre_producto, descripcion = :descripcion,
+           precio = :precio, stock = :stock, lote = :lote,
+           fecha_vencimiento = :fecha_vencimiento, id_proveedor = :id_proveedor,
+           codigo_barras = :codigo_barras
        WHERE id_producto = :id`,
       {
         replacements: {
-          nombre_producto,
-          descripcion: descripcion || null,
-          precio: Number(precio),
-          stock: Number(stock),
-          lote,
-          fecha_vencimiento,
-          id_proveedor: Number(id_proveedor),
-          id: Number(req.params.id)
+          nombre_producto, descripcion: descripcion || null,
+          precio: Number(precio), stock: Number(stock),
+          lote, fecha_vencimiento, id_proveedor: Number(id_proveedor),
+          codigo_barras: codigo_barras || null, id: Number(req.params.id)
         },
-        type: sequelize.QueryTypes.UPDATE,
-        transaction
+        type: sequelize.QueryTypes.UPDATE, transaction
       }
     );
 
-    if (categorias) {
+    if (categorias !== undefined) {
       await sequelize.query(
         'DELETE FROM productos_categorias WHERE id_producto = :id',
-        {
-          replacements: { id: Number(req.params.id) },
-          type: sequelize.QueryTypes.DELETE,
-          transaction
-        }
+        { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.DELETE, transaction }
       );
-      for (const catId of categorias) {
-        await sequelize.query(
-          'INSERT INTO productos_categorias (id_producto, id_categoria) VALUES (:id_producto, :id_categoria)',
-          {
-            replacements: { id_producto: Number(req.params.id), id_categoria: catId },
-            type: sequelize.QueryTypes.INSERT,
-            transaction
-          }
-        );
+      if (categorias.length > 0) {
+        for (const catId of categorias) {
+          await sequelize.query(
+            'INSERT INTO productos_categorias (id_producto, id_categoria) VALUES (:id_producto, :id_categoria)',
+            { replacements: { id_producto: Number(req.params.id), id_categoria: catId }, type: sequelize.QueryTypes.INSERT, transaction }
+          );
+        }
       }
     }
 
     await transaction.commit();
+
+    // Detectar qué campos cambiaron y registrar uno por uno
+    const campos = [
+      { campo: 'nombre_producto',   nuevo: nombre_producto,          ant: anterior?.nombre_producto },
+      { campo: 'descripcion',       nuevo: descripcion || null,       ant: anterior?.descripcion },
+      { campo: 'precio',            nuevo: Number(precio),            ant: Number(anterior?.precio) },
+      { campo: 'stock',             nuevo: Number(stock),             ant: Number(anterior?.stock) },
+      { campo: 'lote',              nuevo: lote,                      ant: anterior?.lote },
+      { campo: 'fecha_vencimiento', nuevo: fecha_vencimiento,         ant: anterior?.fecha_vencimiento },
+      { campo: 'id_proveedor',      nuevo: Number(id_proveedor),      ant: Number(anterior?.id_proveedor) },
+      { campo: 'codigo_barras',     nuevo: codigo_barras || null,     ant: anterior?.codigo_barras },
+    ];
+
+    for (const c of campos) {
+      if (String(c.ant) !== String(c.nuevo)) {
+        await registrarAuditoria({
+          tabla: 'productos', accion: 'EDITAR',
+          descripcion: `Producto editado: ${nombre_producto}`,
+          id_registro: Number(req.params.id), id_empleado, nombre_empleado,
+          campo_modificado: c.campo,
+          valor_anterior: String(c.ant ?? ''),
+          valor_nuevo: String(c.nuevo ?? '')
+        });
+      }
+    }
+
+    // Si no cambió nada, registrar igual sin detalle
+    if (!campos.some(c => String(c.ant) !== String(c.nuevo))) {
+      await registrarAuditoria({
+        tabla: 'productos', accion: 'EDITAR',
+        descripcion: `Producto editado: ${nombre_producto}`,
+        id_registro: Number(req.params.id), id_empleado, nombre_empleado
+      });
+    }
+
     console.log('✅ Producto actualizado:', req.params.id);
     res.json({ message: 'Producto actualizado' });
   } catch (error) {
@@ -163,14 +194,22 @@ router.put('/:id', async (req, res) => {
 
 // PATCH activar/desactivar producto
 router.patch('/:id/toggle', async (req, res) => {
+  const { id_empleado, nombre_empleado } = req.body;
   try {
+    const [prod] = await sequelize.query(
+      'SELECT nombre_producto, deleted FROM productos WHERE id_producto = :id',
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
+    );
     await sequelize.query(
       'UPDATE productos SET deleted = NOT deleted WHERE id_producto = :id',
-      {
-        replacements: { id: Number(req.params.id) },
-        type: sequelize.QueryTypes.UPDATE
-      }
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
     );
+    const accion = prod.deleted ? 'ACTIVAR' : 'DESACTIVAR';
+    await registrarAuditoria({
+      tabla: 'productos', accion,
+      descripcion: `Producto ${prod.deleted ? 'activado' : 'desactivado'}: ${prod.nombre_producto}`,
+      id_registro: Number(req.params.id), id_empleado, nombre_empleado
+    });
     console.log('✅ Estado del producto actualizado:', req.params.id);
     res.json({ message: 'Estado del producto actualizado' });
   } catch (error) {
@@ -181,58 +220,59 @@ router.patch('/:id/toggle', async (req, res) => {
 
 // PATCH mover a papelera
 router.patch('/:id/papelera', async (req, res) => {
+  const { id_empleado, nombre_empleado } = req.body;
   try {
+    const [prod] = await sequelize.query(
+      'SELECT nombre_producto FROM productos WHERE id_producto = :id',
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
+    );
     await sequelize.query(
       'UPDATE productos SET papelera = 1 WHERE id_producto = :id',
       { replacements: { id: Number(req.params.id) } }
     );
+    await registrarAuditoria({
+      tabla: 'productos', accion: 'PAPELERA',
+      descripcion: `Producto movido a papelera: ${prod?.nombre_producto}`,
+      id_registro: Number(req.params.id), id_empleado, nombre_empleado
+    });
     res.json({ message: 'Producto movido a papelera' });
   } catch (error) {
+    console.error('❌ PATCH /productos/:id/papelera:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // DELETE producto: solo si NO tiene ventas
 router.delete('/:id', async (req, res) => {
+  const { id_empleado, nombre_empleado } = req.body;
   const transaction = await sequelize.transaction();
   try {
     const ventas = await sequelize.query(
       'SELECT COUNT(*) as count FROM detalle_ventas WHERE id_producto = :id',
-      {
-        replacements: { id: Number(req.params.id) },
-        type: sequelize.QueryTypes.SELECT,
-        transaction
-      }
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT, transaction }
     );
-
-    const tieneVentas = ventas[0].count > 0;
-
-    if (tieneVentas) {
+    if (ventas[0].count > 0) {
       await transaction.rollback();
-      return res.status(400).json({
-        error: 'No se puede eliminar el producto porque tiene ventas registradas.'
-      });
+      return res.status(400).json({ error: 'No se puede eliminar el producto porque tiene ventas registradas.' });
     }
-
+    const [prod] = await sequelize.query(
+      'SELECT nombre_producto FROM productos WHERE id_producto = :id',
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT, transaction }
+    );
     await sequelize.query(
       'DELETE FROM productos_categorias WHERE id_producto = :id',
-      {
-        replacements: { id: Number(req.params.id) },
-        type: sequelize.QueryTypes.DELETE,
-        transaction
-      }
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.DELETE, transaction }
     );
-
     await sequelize.query(
       'DELETE FROM productos WHERE id_producto = :id',
-      {
-        replacements: { id: Number(req.params.id) },
-        type: sequelize.QueryTypes.DELETE,
-        transaction
-      }
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.DELETE, transaction }
     );
-
     await transaction.commit();
+    await registrarAuditoria({
+      tabla: 'productos', accion: 'ELIMINAR',
+      descripcion: `Producto eliminado: ${prod?.nombre_producto}`,
+      id_registro: Number(req.params.id), id_empleado, nombre_empleado
+    });
     console.log('✅ Producto eliminado:', req.params.id);
     res.json({ message: 'Producto eliminado correctamente' });
   } catch (error) {

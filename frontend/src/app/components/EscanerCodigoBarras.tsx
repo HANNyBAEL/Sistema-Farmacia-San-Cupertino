@@ -7,9 +7,6 @@ interface Props {
   onClose: () => void;
 }
 
-const beep = new Audio('/beep.mp3');
-beep.volume = 1.0;
-
 const EscanerCodigoBarras = ({ onDetected, onClose }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
@@ -25,12 +22,10 @@ const EscanerCodigoBarras = ({ onDetected, onClose }: Props) => {
         setError("No se encontró ninguna cámara.");
         return;
       }
-      const deviceId = devices[devices.length - 1].deviceId;
+      const deviceId = devices[devices.length - 1].deviceId; // preferir cámara trasera
       setEscaneando(true);
       reader.decodeFromVideoDevice(deviceId, videoRef.current!, (result, err) => {
         if (result) {
-          beep.currentTime = 0;
-          beep.play().catch(() => {});
           onDetected(result.getText());
           reader.reset();
         }
@@ -59,6 +54,7 @@ const EscanerCodigoBarras = ({ onDetected, onClose }: Props) => {
         </div>
         <div className="relative bg-black">
           <video ref={videoRef} className="w-full" style={{ height: 280, objectFit: 'cover' }} />
+          {/* Guía visual */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="border-2 border-[#0a4b7a] rounded-lg w-56 h-28 opacity-70"/>
           </div>

@@ -4,7 +4,8 @@ import {
   Bell, BarChart2, History, Trash2, Settings, LogOut, Search,
   Plus, Edit2, X, Check, AlertTriangle, FileSpreadsheet,
   Eye, EyeOff, Filter, Download, RefreshCw, Shield,
-  TrendingUp, TrendingDown, Clock, ChevronRight, RotateCcw
+  TrendingUp, TrendingDown, Clock, ChevronRight, RotateCcw,
+  Camera
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { login as apiLogin } from "../services/auth";
@@ -17,6 +18,10 @@ import empleadosApi from "../services/empleados";
 import { getHistorial, getDetalleVenta } from "../services/historial";
 import eliminadosApi from "../services/eliminados";
 import api from "../services/api";
+import EscanerCodigoBarras from '../app/EscanerCodigoBarras';
+import { getSiguienteCorrelativo, guardarFactura } from "../services/facturas";
+import { generarFacturaPDF } from "./GenerarFactura";
+import auditoriaApi from '../services/auditoria';
 
 // ── Logo ──────────────────────────────────────────────────────────────────────
 function FarmaciaLogo({ className = "" }: { className?: string }) {
@@ -34,11 +39,13 @@ type Role = "administrador" | "farmaceutico" | "cajero";
 type Screen =
   | "dashboard" | "ventas" | "productos" | "clientes"
   | "empleados" | "proveedores" | "alertas" | "reportes"
-  | "historial" | "eliminados" | "configuracion";
+  | "historial" | "eliminados" | "configuracion"
+  | "auditoria";
 
 interface User { name: string; role: Role; id: number; }
 
 interface Product {
+  codigo_barras: string;
   papelera: any;
   has_ventas: any;
   id_producto: number;
@@ -221,6 +228,7 @@ const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: 
   { screen: "eliminados",   label: "Registros Eliminados",   icon: <Trash2 size={18}/>,           roles: ["administrador"] },
   { screen: "reportes",     label: "Reportes",               icon: <BarChart2 size={18}/>,        roles: ["administrador","farmaceutico"] },
   { screen: "configuracion",label: "Configuración",          icon: <Settings size={18}/>,         roles: ["administrador"] },
+  { screen: "auditoria", label: "Auditoría", icon: <Shield size={18} />, roles: ["administrador"] },
 ];
 
 function Sidebar({ user, current, onNav, onLogout }: { user: User; current: Screen; onNav: (s: Screen) => void; onLogout: () => void }) {
@@ -383,7 +391,7 @@ const CATEGORIAS = [
   { id: 26, nombre: "Otros" },
 ];
 
-function Productos() {
+function Productos({ user }: { user: User }) {
   const [products, setProducts]   = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -395,7 +403,7 @@ function Productos() {
   const [selectedCats, setSelectedCats] = useState<number[]>([]);
   const [form, setForm] = useState({
     nombre_producto:"", descripcion:"", precio:"", stock:"",
-    lote:"", fecha_vencimiento:"", id_proveedor:""
+    lote:"", fecha_vencimiento:"", id_proveedor:"", codigo_barras:""
   });
 
   async function load() {
@@ -409,9 +417,10 @@ function Productos() {
 
   useEffect(() => { load(); }, []);
 
+
   const filtered = products
     .filter(p =>
-      p.nombre_producto.toLowerCase().includes(search.toLowerCase()) &&
+      p.nombre_producto.toLowerCase().startsWith(search.toLowerCase()) &&
       (!filterStock ||
         (filterStock==="agotado" && p.stock===0) ||
         (filterStock==="critico" && p.stock>0 && p.stock<=10) ||
@@ -423,7 +432,7 @@ function Productos() {
   function openNew() {
     setEditProduct(null);
     setSelectedCats([]);
-    setForm({ nombre_producto:"", descripcion:"", precio:"", stock:"", lote:"", fecha_vencimiento:"", id_proveedor:"" });
+    setForm({ nombre_producto:"", descripcion:"", precio:"", stock:"", lote:"", fecha_vencimiento:"", id_proveedor:"", codigo_barras:"" });
     setFormError(""); setShowForm(true);
   }
 
@@ -440,7 +449,8 @@ function Productos() {
       stock: String(p.stock),
       lote: p.lote,
       fecha_vencimiento: p.fecha_vencimiento,
-      id_proveedor: String(p.id_proveedor)
+      id_proveedor: String(p.id_proveedor),
+      codigo_barras: p.codigo_barras ?? ""
     });
     setFormError(""); setShowForm(true);
   }
@@ -463,7 +473,10 @@ function Productos() {
       lote: form.lote,
       fecha_vencimiento: form.fecha_vencimiento,
       id_proveedor: parseInt(form.id_proveedor),
-      categorias: selectedCats
+      categorias: selectedCats,
+      codigo_barras: form.codigo_barras || null,
+      id_empleado: user.id,
+      nombre_empleado: user.name,
     };
     try {
       if (editProduct) await updateProducto(editProduct.id_producto, payload);
@@ -475,7 +488,7 @@ function Productos() {
   async function handleDelete(id: number) {
     if (!confirm("¿Mover este producto a la papelera?")) return;
     try {
-      await moverProductoAPapelera(id);
+      await api.patch(`/productos/${id}/papelera`, { id_empleado: user.id, nombre_empleado: user.name });
       load();
     } catch (e: any) {
       alert(e?.response?.data?.error ?? "Error al eliminar el producto.");
@@ -486,7 +499,7 @@ function Productos() {
     const accion = deleted ? "activar" : "desactivar";
     if (!confirm(`¿Deseas ${accion} este producto?`)) return;
     try {
-      await api.patch(`/productos/${id}/toggle`);
+      await api.patch(`/productos/${id}/toggle`, { id_empleado: user.id, nombre_empleado: user.name });
       load();
     } catch (e: any) {
       alert(e?.response?.data?.error ?? `Error al ${accion} el producto.`);
@@ -532,31 +545,31 @@ function Productos() {
               {filtered.map(p=>(
                 <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.deleted ? 'bg-gray-50 opacity-60' : 'hover:bg-[#f0f7ff]'}`}>
                   <td className="py-3 px-4 font-medium text-[#1e1e1e]">{p.nombre_producto}</td>
-                    <td className="py-3 px-4 text-gray-500 text-xs">
-                      {p.categorias_nombres ? (() => {
-                        const cats = p.categorias_nombres.split(', ');
-                        const primera = cats[0];
-                        const resto = cats.slice(1);
-                        return (
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <span className="inline-block bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">{primera}</span>
-                            {resto.length > 0 && (
-                              <div className="relative group">
-                                <button className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold hover:bg-blue-200 transition-colors">
-                                  +{resto.length}
-                                </button>
-                                <div className="absolute left-0 top-6 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-max">
-                                  <p className="text-xs font-semibold text-gray-500 mb-1.5">Otras categorías:</p>
-                                  {resto.map((cat: string, i: number) => (
-                                    <div key={i} className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded mb-1">{cat}</div>
-                                  ))}
-                                </div>
+                  <td className="py-3 px-4 text-gray-500 text-xs">
+                    {p.categorias_nombres ? (() => {
+                      const cats = p.categorias_nombres.split(', ');
+                      const primera = cats[0];
+                      const resto = cats.slice(1);
+                      return (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="inline-block bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">{primera}</span>
+                          {resto.length > 0 && (
+                            <div className="relative group">
+                              <button className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold hover:bg-blue-200 transition-colors">
+                                +{resto.length}
+                              </button>
+                              <div className="absolute left-0 top-6 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-max">
+                                <p className="text-xs font-semibold text-gray-500 mb-1.5">Otras categorías:</p>
+                                {resto.map((cat: string, i: number) => (
+                                  <div key={i} className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded mb-1">{cat}</div>
+                                ))}
                               </div>
-                            )}
-                          </div>
-                        );
-                      })() : <span className="text-gray-400">—</span>}
-                    </td>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })() : <span className="text-gray-400">—</span>}
+                  </td>
                   <td className="py-3 px-4 font-mono text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</td>
                   <td className="py-3 px-4"><span className={`text-xs px-2 py-1 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock} — {stockLabel(p.stock)}</span></td>
                   <td className="py-3 px-4 font-mono text-gray-500 text-xs">{p.lote}</td>
@@ -608,6 +621,10 @@ function Productos() {
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Lote *</label><Input value={form.lote} onChange={v=>setForm(p=>({...p,lote:v}))} placeholder="LOT-2024-XXX" /></div>
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Fecha vencimiento *</label><Input type="date" value={form.fecha_vencimiento} onChange={v=>setForm(p=>({...p,fecha_vencimiento:v}))} /></div>
               <div className="col-span-2">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Código de barras</label>
+                <Input value={form.codigo_barras} onChange={v=>setForm(p=>({...p,codigo_barras:v}))} placeholder="Ej: 7501234567890" />
+              </div>
+              <div className="col-span-2">
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor *</label>
                 <Select value={form.id_proveedor} onChange={v=>setForm(p=>({...p,id_proveedor:v}))} className="w-full">
                   <option value="">Seleccionar proveedor...</option>
@@ -652,6 +669,8 @@ function Ventas({ user }: { user: User }) {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [saleError, setSaleError] = useState("");
   const [saleDone, setSaleDone]   = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [efectivo, setEfectivo] = useState("");
 
   // Modal nuevo cliente
   const [showNewClient, setShowNewClient] = useState(false);
@@ -685,6 +704,18 @@ function Ventas({ user }: { user: User }) {
     const vencimiento = new Date(p.fecha_vencimiento + 'T00:00:00');
     if (vencimiento < hoy) { setSaleError(`"${p.nombre_producto}" está vencido y no se puede vender.`); return; }
     if (p.stock === 0) { setSaleError(`"${p.nombre_producto}" no tiene stock disponible.`); return; }
+    // Verificar si es medicamento controlado
+    const categoriasControladas = ['Controlados', 'Analgésicos Opioides', 'Ansiolíticos', 'Hipnóticos'];
+    const esControlado = p.categorias_nombres
+      ? categoriasControladas.some(cat => p.categorias_nombres!.includes(cat))
+      : false;
+
+    if (esControlado) {
+      const confirmar = confirm(
+        `⚠️ MEDICAMENTO CONTROLADO\n\n"${p.nombre_producto}" pertenece a una categoría controlada.\n\nDebe pedir y retener la receta médica del cliente antes de vender.\n\n¿Confirma que tiene la receta en mano?`
+      );
+      if (!confirmar) return;
+    }
     setSaleError("");
     setCart(prev => {
       const exists = prev.find(i => i.product.id_producto === p.id_producto);
@@ -696,6 +727,16 @@ function Ventas({ user }: { user: User }) {
     });
   }
 
+  function handleCodigoDetectado(codigo: string) {
+    setShowScanner(false);
+    const producto = products.find(p => p.codigo_barras === codigo);
+    if (!producto) {
+      setSaleError(`No se encontró ningún producto con el código: ${codigo}`);
+      return;
+    }
+    addToCart(producto);
+  }
+
   function removeFromCart(id: number) { setCart(prev => prev.filter(i => i.product.id_producto !== id)); }
   function setQty(id: number, qty: number) {
     if (qty <= 0) { removeFromCart(id); return; }
@@ -705,19 +746,83 @@ function Ventas({ user }: { user: User }) {
     setCart(prev => prev.map(i => i.product.id_producto === id ? { ...i, qty } : i));
   }
 
-  const subtotal = cart.reduce((s, i) => s + Number(i.product.precio) * i.qty, 0);
-  const iva   = subtotal * 0.13;
-  const total = subtotal + iva;
+  const total    = cart.reduce((s, i) => s + Number(i.product.precio) * i.qty, 0);
+  const subtotal = total / 1.13;
+  const iva      = total - subtotal;
 
   async function finalizarVenta() {
+    if (!efectivo || parseFloat(efectivo) < total) {
+      setSaleError("Ingrese el efectivo recibido (debe cubrir el total)."); return;
+    }
     if (cart.length === 0) { setSaleError("El carrito está vacío."); return; }
     try {
-      await createVenta({ id_cliente: selectedClient?.id_cliente ?? null, id_empleado: user.id, productos: cart.map(i => ({ id_producto: i.product.id_producto, cantidad: i.qty })) });
-      setSaleDone(true); setCart([]); setSelectedClient(null); setClientSearch("");
+      const ventaResp = await createVenta({
+        id_cliente: selectedClient?.id_cliente ?? null,
+        id_empleado: user.id,
+        productos: cart.map(i => ({ id_producto: i.product.id_producto, cantidad: i.qty }))
+      });
+
+      // Preguntar si desea factura
+      const desea = confirm("¿Desea generar factura electrónica para esta venta?");
+      if (desea) {
+        try {
+          const { numero_control } = await getSiguienteCorrelativo();
+          const codigo_generacion = crypto.randomUUID().toUpperCase();
+          const ahora = new Date();
+          const fecha_emision = ahora.toISOString().slice(0,19).replace("T"," ");
+
+          await guardarFactura({
+            numero_control,
+            codigo_generacion,
+            id_venta: ventaResp.id_venta,
+            id_cliente: selectedClient?.id_cliente ?? null,
+            fecha_emision,
+            total: ventaResp.total,
+          });
+
+          generarFacturaPDF({
+            numero_control,
+            codigo_generacion,
+            fecha_emision,
+            receptor: {
+              nombre: selectedClient
+                ? `${selectedClient.nombre} ${selectedClient.apellido}`
+                : "CONSUMIDOR FINAL",
+              dui:       (selectedClient as any)?.dui,
+              correo:    selectedClient?.correo,
+              telefono:  selectedClient?.telefono,
+              direccion: selectedClient?.direccion,
+            },
+            items: cart.map(i => ({
+              codigo:          i.product.id_producto,
+              descripcion:     i.product.nombre_producto,
+              cantidad:        i.qty,
+              precio_unitario: Number(i.product.precio),
+              subtotal:        Number(i.product.precio) * i.qty,
+            })),
+            total: ventaResp.total,
+            empleado: user.name,
+          });
+        } catch (fe) {
+          console.error("Error generando factura:", fe);
+          alert("Venta registrada pero no se pudo generar la factura.");
+        }
+      }
+
+      setSaleDone(true);
+      setEfectivo("");
+      setCart([]);
+      setSelectedClient(null);
+      setClientSearch("");
       const prods = await getProductos();
-      setProducts([...prods].sort((a: Product, b: Product) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+      setProducts([...prods].sort((a: Product, b: Product) =>
+        a.nombre_producto.localeCompare(b.nombre_producto, 'es')
+      ));
       setTimeout(() => setSaleDone(false), 3000);
-    } catch (e: any) { setSaleError(e?.response?.data?.error ?? "Error al registrar la venta."); }
+
+    } catch (e: any) {
+      setSaleError(e?.response?.data?.error ?? "Error al registrar la venta.");
+    }
   }
 
   async function guardarNuevoCliente() {
@@ -726,11 +831,9 @@ function Ventas({ user }: { user: User }) {
     }
     setSavingClient(true);
     try {
-      const nuevo = await clientesApi.create(newClientForm);
-      // Recargar clientes y seleccionar el nuevo
+      await clientesApi.create(newClientForm);
       const clts = await clientesApi.getAll();
       setClients(clts);
-      // Buscar el cliente recién creado
       const creado = clts.find((c: Client) =>
         c.nombre === newClientForm.nombre &&
         c.apellido === newClientForm.apellido &&
@@ -749,6 +852,14 @@ function Ventas({ user }: { user: User }) {
 
   return (
     <div className="flex h-full" style={{ minHeight:0 }}>
+
+      {/* Escáner de código de barras */}
+      {showScanner && (
+        <EscanerCodigoBarras
+          onDetected={handleCodigoDetectado}
+          onClose={()=>setShowScanner(false)}
+        />
+      )}
 
       {/* Modal nuevo cliente */}
       {showNewClient && (
@@ -799,7 +910,16 @@ function Ventas({ user }: { user: User }) {
 
       <div className="w-72 border-r border-gray-100 flex flex-col bg-white">
         <div className="p-4 border-b border-gray-100">
-          <h2 className="font-semibold text-[#1e1e1e] text-sm mb-3">Buscar Producto</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-[#1e1e1e] text-sm">Buscar Producto</h2>
+            <button
+              onClick={()=>setShowScanner(true)}
+              className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:bg-[#e3f2fd] px-2 py-1 rounded-lg font-medium transition-colors"
+              title="Escanear código de barras"
+            >
+              <Camera size={13}/> Escanear
+            </button>
+          </div>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre..."
@@ -894,11 +1014,33 @@ function Ventas({ user }: { user: User }) {
         <div className="p-4 flex-1">
           <h2 className="font-semibold text-[#1e1e1e] text-sm mb-4">Resumen</h2>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-            <div className="flex justify-between text-gray-600"><span>IVA (13%)</span><span>${iva.toFixed(2)}</span></div>
+            <div className="flex justify-between text-gray-600">
+              <span>Subtotal</span><span>${subtotal.toFixed(2)}</span>
+            </div>
             <div className="flex justify-between text-[#1e1e1e] font-bold text-base border-t border-gray-100 pt-2">
               <span>Total</span><span className="text-[#0a4b7a]">${total.toFixed(2)}</span>
             </div>
+            <div className="pt-2">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Efectivo recibido *</label>
+              <input
+                type="number"
+                min={0}
+                value={efectivo}
+                onChange={e => setEfectivo(e.target.value)}
+                placeholder="$0.00"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+              />
+            </div>
+            {parseFloat(efectivo) >= total && (
+              <div className="flex justify-between text-green-700 font-bold text-base bg-green-50 rounded-lg px-3 py-2">
+                <span>Cambio</span><span>${(parseFloat(efectivo) - total).toFixed(2)}</span>
+              </div>
+            )}
+            {efectivo && parseFloat(efectivo) < total && (
+              <div className="flex items-center gap-1 text-[#d32f2f] text-xs">
+                <AlertTriangle size={12} /> Monto insuficiente
+              </div>
+            )}
           </div>
         </div>
         <div className="p-4 border-t border-gray-100 space-y-2">
@@ -911,7 +1053,7 @@ function Ventas({ user }: { user: User }) {
 }
 
 // ── Clientes ──────────────────────────────────────────────────────────────────
-function Clientes() {
+function Clientes({ user }: { user: User }) {
   const [clients, setClients]   = useState<Client[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
@@ -933,22 +1075,22 @@ function Clientes() {
   function openNew(){setEditClient(null);setForm({nombre:"",apellido:"",telefono:"",correo:"",direccion:""});setFormError("");setShowForm(true);}
   function openEdit(c:Client){setEditClient(c);setForm({nombre:c.nombre,apellido:c.apellido,telefono:c.telefono,correo:c.correo,direccion:c.direccion??""});setFormError("");setShowForm(true);}
 
-  async function saveForm(){
-    if(!form.nombre||!form.apellido||!form.telefono||!form.correo){setFormError("Complete los campos obligatorios.");return;}
-    try{
-      if(editClient) await clientesApi.update(editClient.id_cliente,form);
-      else           await clientesApi.create(form);
-      setShowForm(false);load();
-    }catch(e:any){setFormError(e?.response?.data?.error??"Error al guardar.");}
+  async function saveForm() {
+    if (!form.nombre || !form.apellido || !form.telefono || !form.correo) { setFormError("Complete los campos obligatorios."); return; }
+    try {
+      if (editClient) await clientesApi.update(editClient.id_cliente, { ...form, id_empleado: user.id, nombre_empleado: user.name });
+      else            await clientesApi.create({ ...form, id_empleado: user.id, nombre_empleado: user.name });
+      setShowForm(false); load();
+    } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("¿Mover este cliente a la papelera?")) return;
+    if (!confirm("¿Eliminar este cliente permanentemente?")) return;
     try {
-      await clientesApi.moverAPapelera(id);
+      await api.delete(`/clientes/${id}`, { data: { id_empleado: user.id, nombre_empleado: user.name } });
       load();
     } catch (e: any) {
-      alert(e?.response?.data?.error ?? "Error al eliminar el cliente.");
+      alert(e?.response?.data?.error ?? "No se puede eliminar este cliente.");
     }
   }
 
@@ -956,7 +1098,7 @@ function Clientes() {
     const accion = deleted ? "activar" : "desactivar";
     if (!confirm(`¿Deseas ${accion} este cliente?`)) return;
     try {
-      await clientesApi.toggle(id);
+      await api.patch(`/clientes/${id}/toggle`, { id_empleado: user.id, nombre_empleado: user.name });
       load();
     } catch (e: any) {
       alert(e?.response?.data?.error ?? `Error al ${accion} el cliente.`);
@@ -1055,7 +1197,7 @@ function Clientes() {
 }
 
 // ── Proveedores ───────────────────────────────────────────────────────────────
-function Proveedores() {
+function Proveedores({ user }: { user: User }) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
@@ -1079,33 +1221,33 @@ function Proveedores() {
   function openNew(){ setEditSupplier(null); setForm({nombre:"",apellido:"",telefono:"",correo:"",direccion:""}); setFormError(""); setShowForm(true); }
   function openEdit(s:Supplier){ setEditSupplier(s); setForm({nombre:s.nombre,apellido:s.apellido,telefono:s.telefono??"",correo:s.correo??"",direccion:s.direccion??""}); setFormError(""); setShowForm(true); }
 
-  async function saveForm(){
-    if(!form.nombre||!form.apellido){ setFormError("Nombre y apellido son obligatorios."); return; }
-    try{
-      if(editSupplier) await proveedoresApi.update(editSupplier.id_proveedor, form);
-      else             await proveedoresApi.create(form);
+  async function saveForm() {
+    if (!form.nombre || !form.apellido) { setFormError("Nombre y apellido son obligatorios."); return; }
+    try {
+      if (editSupplier) await proveedoresApi.update(editSupplier.id_proveedor, { ...form, id_empleado: user.id, nombre_empleado: user.name });
+      else              await proveedoresApi.create({ ...form, id_empleado: user.id, nombre_empleado: user.name });
       setShowForm(false); load();
-    }catch(e:any){ setFormError(e?.response?.data?.error??"Error al guardar."); }
+    } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
   }
 
   async function handleDelete(id: number) {
     if (!confirm("¿Mover este proveedor a la papelera?")) return;
     try {
-      await proveedoresApi.moverAPapelera(id);
+      await api.patch(`/proveedores/${id}/papelera`, { id_empleado: user.id, nombre_empleado: user.name });
       load();
     } catch (e: any) {
       alert(e?.response?.data?.error ?? "Error al eliminar el proveedor.");
     }
   }
 
-  async function handleToggle(id:number, deleted:number){
+  async function handleToggle(id: number, deleted: number) {
     const accion = deleted ? "activar" : "desactivar";
-    if(!confirm(`¿Deseas ${accion} este proveedor?`)) return;
-    try{
-      await api.patch(`/proveedores/${id}/toggle`);
+    if (!confirm(`¿Deseas ${accion} este proveedor?`)) return;
+    try {
+      await api.patch(`/proveedores/${id}/toggle`, { id_empleado: user.id, nombre_empleado: user.name });
       load();
-    }catch(e:any){
-      alert(e?.response?.data?.error??`Error al ${accion} el proveedor.`);
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? `Error al ${accion} el proveedor.`);
     }
   }
 
@@ -1201,7 +1343,7 @@ function Proveedores() {
 }
 
 // ── Empleados ─────────────────────────────────────────────────────────────────
-function Empleados() {
+function Empleados({ user }: { user: User }) {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
@@ -1230,18 +1372,30 @@ function Empleados() {
     if(!form.nombre||!form.apellido||!form.correo||!form.cargo){setFormError("Complete los campos obligatorios.");return;}
     if(!editEmp&&!form.password){setFormError("La contraseña es obligatoria para nuevos empleados.");return;}
     try{
-      const payload:any={...form};
+      const payload:any={
+        ...form,
+        id_empleado_sesion: user.id,
+        nombre_empleado_sesion: user.name,
+      };
       if(!payload.password) delete payload.password;
-      if(editEmp) await empleadosApi.update(editEmp.id_empleado,payload);
+      if(editEmp) await empleadosApi.update(editEmp.id_empleado, payload);
       else        await empleadosApi.create(payload);
-      setShowForm(false);load();
+      setShowForm(false); load();
     }catch(e:any){setFormError(e?.response?.data?.error??"Error al guardar.");}
   }
 
-  async function handleToggle(emp:Empleado){
+  async function handleToggle(emp: Empleado){
     const action = emp.activo ? "desactivar" : "activar";
     if(!confirm(`¿${action.charAt(0).toUpperCase()+action.slice(1)} a ${emp.nombre}?`)) return;
-    try{await empleadosApi.update(emp.id_empleado,{...emp,activo:emp.activo?0:1});load();}catch(e){console.error(e);}
+    try{
+      await empleadosApi.update(emp.id_empleado, {
+        ...emp,
+        activo: emp.activo ? 0 : 1,
+        id_empleado_sesion: user.id,
+        nombre_empleado_sesion: user.name,
+      });
+      load();
+    }catch(e){console.error(e);}
   }
 
   if(loading) return <LoadingSpinner/>;
@@ -1798,6 +1952,154 @@ function Eliminados() {
   );
 }
 
+function Auditoria({ user }: { user: User }) {
+  const [data, setData]     = useState<{ data: any[]; total: number }>({ data: [], total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [from, setFrom]     = useState("");
+  const [to, setTo]         = useState("");
+  const [tabla, setTabla]   = useState("");
+  const [accion, setAccion] = useState("");
+  const [page, setPage]     = useState(0);
+  const LIMIT = 30;
+
+  async function load(p = 0) {
+    setLoading(true);
+    try {
+      const res = await auditoriaApi.getAll({
+        from: from || undefined,
+        to: to || undefined,
+        tabla: tabla || undefined,
+        accion: accion || undefined,
+        limit: LIMIT,
+        offset: p * LIMIT,
+      });
+      setData(res); setPage(p);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { load(0); }, []);
+
+  const totalPages = Math.ceil(data.total / LIMIT);
+
+  const accionColor: Record<string, string> = {
+    CREAR:      "bg-green-50 text-green-700",
+    EDITAR:     "bg-blue-50 text-blue-700",
+    ELIMINAR:   "bg-red-50 text-red-700",
+    DESACTIVAR: "bg-amber-50 text-amber-700",
+    ACTIVAR:    "bg-green-50 text-green-700",
+    PAPELERA:   "bg-orange-50 text-orange-700",
+    RESTAURAR:  "bg-purple-50 text-purple-700",
+  };
+
+  const tablaColor: Record<string, string> = {
+    productos:   "bg-blue-50 text-blue-700",
+    clientes:    "bg-green-50 text-green-700",
+    proveedores: "bg-purple-50 text-purple-700",
+    empleados:   "bg-amber-50 text-amber-700",
+  };
+
+  return (
+    <div className="p-6 space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-[#1e1e1e]">Auditoría del Sistema</h1>
+          <p className="text-sm text-gray-500">{data.total} registros de cambios</p>
+        </div>
+      </div>
+
+      <Card className="p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Desde</label>
+            <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Hasta</label>
+            <input type="date" value={to} onChange={e => setTo(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Tabla</label>
+            <Select value={tabla} onChange={setTabla}>
+              <option value="">Todas</option>
+              <option value="productos">Productos</option>
+              <option value="clientes">Clientes</option>
+              <option value="proveedores">Proveedores</option>
+              <option value="empleados">Empleados</option>
+            </Select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Acción</label>
+            <Select value={accion} onChange={setAccion}>
+              <option value="">Todas</option>
+              <option value="CREAR">Crear</option>
+              <option value="EDITAR">Editar</option>
+              <option value="ELIMINAR">Eliminar</option>
+              <option value="ACTIVAR">Activar</option>
+              <option value="DESACTIVAR">Desactivar</option>
+              <option value="PAPELERA">Papelera</option>
+              <option value="RESTAURAR">Restaurar</option>
+            </Select>
+          </div>
+          <Btn variant="primary" size="sm" onClick={() => load(0)}><Search size={14} /> Filtrar</Btn>
+          <Btn variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); setTabla(""); setAccion(""); setTimeout(() => load(0), 0); }}><X size={14} /> Limpiar</Btn>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                {["Fecha", "Tabla", "Acción", "Descripción", "Empleado"].map(h => (
+                  <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={5} className="py-12 text-center text-gray-400">Cargando...</td></tr>
+              ) : data.data.map((r, i) => (
+                <tr key={i} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
+                  <td className="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">
+                    {new Date(r.fecha).toLocaleString('es-SV')}
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaColor[r.tabla] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {r.tabla}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accionColor[r.accion] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {r.accion}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-gray-700">{r.descripcion}</td>
+                  <td className="py-3 px-4 text-gray-600 text-xs">{r.nombre_empleado ?? '—'}</td>
+                </tr>
+              ))}
+              {!loading && data.data.length === 0 && (
+                <tr><td colSpan={5} className="py-12 text-center text-gray-400">Sin registros de auditoría.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <span className="text-xs text-gray-500">Página {page + 1} de {totalPages}</span>
+            <div className="flex gap-2">
+              <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>← Anterior</Btn>
+              <Btn variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => load(page + 1)}>Siguiente →</Btn>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 // ── Configuración ─────────────────────────────────────────────────────────────
 function Configuracion() {
   const [stockBajo, setStockBajo]       = useState("20");
@@ -1832,7 +2134,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
     dashboard:"Dashboard", ventas:"Ventas (POS)", productos:"Productos",
     clientes:"Clientes", empleados:"Empleados", proveedores:"Proveedores",
     alertas:"Alertas de Stock", reportes:"Reportes", historial:"Historial de Ventas",
-    eliminados:"Registros Eliminados", configuracion:"Configuración",
+    eliminados:"Registros Eliminados", configuracion:"Configuración", auditoria: "Auditoría del Sistema",
   };
 
   return(
@@ -1857,14 +2159,15 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
         <main className="flex-1 overflow-auto">
           {screen==="dashboard"    && <Dashboard/>}
           {screen==="ventas"       && <Ventas user={user}/>}
-          {screen==="productos"    && <Productos/>}
-          {screen==="clientes"     && <Clientes/>}
-          {screen==="empleados"    && <Empleados/>}
-          {screen==="proveedores"  && <Proveedores/>}
+          {screen==="productos"    && <Productos user={user}/>}
+          {screen==="clientes"     && <Clientes user={user}/>}
+          {screen==="empleados"    && <Empleados user={user}/>}
+          {screen==="proveedores"  && <Proveedores user={user}/>}
           {screen==="alertas"      && <Alertas/>}
           {screen==="historial"    && <Historial/>}
           {screen==="eliminados"   && <Eliminados/>}
           {screen==="configuracion"&& <Configuracion/>}
+          {screen === "auditoria" && <Auditoria user={user} />}
           {screen==="reportes"     && <div className="p-6"><h1 className="text-xl font-bold">Reportes</h1><p className="text-gray-500 text-sm mt-2">Próximamente.</p></div>}
         </main>
       </div>
@@ -1878,3 +2181,11 @@ export default function App() {
   if(!user) return <LoginScreen onLogin={setUser}/>;
   return <AppShell user={user} onLogout={()=>{localStorage.removeItem('token');setUser(null);}}/>;
 }
+
+function setSaleError(arg0: string) {
+  throw new Error("Function not implemented.");
+}
+function addToCart(producto: any) {
+  throw new Error("Function not implemented.");
+}
+

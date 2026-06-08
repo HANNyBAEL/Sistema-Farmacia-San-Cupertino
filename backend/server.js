@@ -11,6 +11,9 @@ import proveedorRoutes from './routes/proveedores.js';
 import empleadoRoutes from './routes/empleados.js';     // ← NUEVO
 import historialRoutes from './routes/historial.js';     // ← NUEVO
 import eliminadosRoutes from './routes/eliminados.js';   // ← NUEVO
+import facturasRouter from './routes/facturas.js';
+import auditoriaRoutes from './routes/auditoria.js';
+
 
 dotenv.config();
 const app = express();
@@ -30,6 +33,9 @@ app.use('/api/proveedores', proveedorRoutes);
 app.use('/api/empleados',   empleadoRoutes);   // ← NUEVO
 app.use('/api/historial',   historialRoutes);  // ← NUEVO
 app.use('/api/eliminados',  eliminadosRoutes); // ← NUEVO
+app.use('/api/facturas', facturasRouter);
+app.use('/api/auditoria', auditoriaRoutes);
+
 
 try {
   await sequelize.authenticate();

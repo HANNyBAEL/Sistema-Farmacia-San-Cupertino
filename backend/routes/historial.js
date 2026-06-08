@@ -62,18 +62,23 @@ router.get('/venta/:id', async (req, res) => {
     const [detalle] = await sequelize.query(
       `SELECT 
          dv.id_detalle,
+         dv.id_producto,
          dv.cantidad,
          dv.precio_unitario,
          dv.cantidad * dv.precio_unitario AS subtotal,
          p.nombre_producto,
-         p.lote
+         p.lote,
+         p.codigo_barras
        FROM detalle_ventas dv
        JOIN productos p ON p.id_producto = dv.id_producto
        WHERE dv.id_venta = ?`,
       { replacements: [req.params.id] }
     );
     const [[venta]] = await sequelize.query(
-      `SELECT v.*, CONCAT(c.nombre,' ',c.apellido) AS cliente, CONCAT(e.nombre,' ',e.apellido) AS empleado
+      `SELECT v.*, 
+         CONCAT(c.nombre,' ',c.apellido) AS cliente, 
+         c.dui, c.telefono AS cliente_telefono, c.correo AS cliente_correo, c.direccion AS cliente_direccion,
+         CONCAT(e.nombre,' ',e.apellido) AS empleado
        FROM ventas v
        LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
        LEFT JOIN empleados e ON e.id_empleado = v.id_empleado
