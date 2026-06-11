@@ -8,8 +8,8 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const empleados = await sequelize.query(
-      `SELECT id_empleado, nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo
-       FROM empleados ORDER BY id_empleado DESC`,
+      `SELECT id_empleado, nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo, dui, nit, cuenta_banco, afp
+      FROM empleados ORDER BY id_empleado DESC`,
       { type: sequelize.QueryTypes.SELECT }
     );
     res.json(empleados);
@@ -22,8 +22,8 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const empleados = await sequelize.query(
-      `SELECT id_empleado, nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo
-       FROM empleados WHERE id_empleado = :id`,
+      `SELECT id_empleado, nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo, dui, nit, cuenta_banco, afp
+      FROM empleados WHERE id_empleado = :id ORDER BY id_empleado DESC`,
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
     );
     if (!empleados.length) return res.status(404).json({ error: 'Empleado no encontrado' });
@@ -41,9 +41,9 @@ router.post('/', async (req, res) => {
   try {
     const password_hash = await bcrypt.hash(password, 10);
     const [result] = await sequelize.query(
-      `INSERT INTO empleados (nombre, apellido, correo, telefono, cargo, password_hash, fecha_contratacion, activo)
-       VALUES (:nombre, :apellido, :correo, :telefono, :cargo, :password_hash, :fecha_contratacion, 1)`,
-      { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, password_hash, fecha_contratacion: fecha_contratacion||null }, type: sequelize.QueryTypes.INSERT }
+    `INSERT INTO empleados (nombre, apellido, correo, telefono, cargo, password_hash, fecha_contratacion, activo, dui, nit, cuenta_banco, afp)
+    VALUES (:nombre, :apellido, :correo, :telefono, :cargo, :password_hash, :fecha_contratacion, 1, :dui, :nit, :cuenta_banco, :afp)`,
+      { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, password_hash, fecha_contratacion: fecha_contratacion||null, dui: req.body.dui||null, nit: req.body.nit||null, cuenta_banco: req.body.cuenta_banco||null, afp: req.body.afp||null }, type: sequelize.QueryTypes.INSERT }
     );
     await registrarAuditoria({
       tabla: 'empleados', accion: 'CREAR',
@@ -60,11 +60,11 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { nombre, apellido, correo, telefono, cargo, password, fecha_contratacion, activo, id_empleado_sesion, nombre_empleado_sesion } = req.body;
+  const { nombre, apellido, correo, telefono, cargo, password, fecha_contratacion, activo, dui, nit, cuenta_banco, afp, id_empleado_sesion, nombre_empleado_sesion } = req.body;
   try {
     // Leer valores anteriores ANTES del UPDATE
     const [anterior] = await sequelize.query(
-      'SELECT nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo FROM empleados WHERE id_empleado = :id',
+      'SELECT nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo, dui, nit, cuenta_banco, afp FROM empleados WHERE id_empleado = :id',
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
     );
 
@@ -72,15 +72,16 @@ router.put('/:id', async (req, res) => {
       const password_hash = await bcrypt.hash(password, 10);
       await sequelize.query(
         `UPDATE empleados SET nombre=:nombre, apellido=:apellido, correo=:correo, telefono=:telefono,
-         cargo=:cargo, password_hash=:password_hash, fecha_contratacion=:fecha_contratacion, activo=:activo
+         cargo=:cargo, password_hash=:password_hash, fecha_contratacion=:fecha_contratacion, activo=:activo, dui=:dui, nit=:nit, cuenta_banco=:cuenta_banco, afp=:afp
          WHERE id_empleado=:id`,
-        { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, password_hash, fecha_contratacion: fecha_contratacion||null, activo: activo??1, id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
+        { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, password_hash, fecha_contratacion: fecha_contratacion||null, activo: activo??1, dui: dui||null, nit: nit||null, cuenta_banco: cuenta_banco||null, afp: afp||null, id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
       );
     } else {
       await sequelize.query(
         `UPDATE empleados SET nombre=:nombre, apellido=:apellido, correo=:correo, telefono=:telefono,
-         cargo=:cargo, fecha_contratacion=:fecha_contratacion, activo=:activo WHERE id_empleado=:id`,
-        { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, fecha_contratacion: fecha_contratacion||null, activo: activo??1, id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
+         cargo=:cargo, fecha_contratacion=:fecha_contratacion, activo=:activo, dui=:dui, nit=:nit, cuenta_banco=:cuenta_banco, afp=:afp
+         WHERE id_empleado=:id`,
+        { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, fecha_contratacion: fecha_contratacion||null, activo: activo??1, dui: dui||null, nit: nit||null, cuenta_banco: cuenta_banco||null, afp: afp||null, id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
       );
     }
 
@@ -93,6 +94,10 @@ router.put('/:id', async (req, res) => {
       { campo: 'cargo',              nuevo: cargo,                     ant: anterior?.cargo },
       { campo: 'fecha_contratacion', nuevo: fecha_contratacion || null, ant: anterior?.fecha_contratacion },
       { campo: 'activo',             nuevo: activo ?? 1,               ant: anterior?.activo },
+      { campo: 'dui',                nuevo: dui || null,               ant: anterior?.dui },
+      { campo: 'nit',                nuevo: nit || null,               ant: anterior?.nit },
+      { campo: 'cuenta_banco',       nuevo: cuenta_banco || null,      ant: anterior?.cuenta_banco },
+      { campo: 'afp',                nuevo: afp || null,               ant: anterior?.afp }
     ];
     if (password) campos.push({ campo: 'password', nuevo: '(actualizada)', ant: '(anterior)' });
 

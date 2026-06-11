@@ -1,3 +1,7 @@
 @import './fonts.css';
 @import "tailwindcss";
 @import './theme.css';
+
+html {
+  overflow-y: scroll;
+}

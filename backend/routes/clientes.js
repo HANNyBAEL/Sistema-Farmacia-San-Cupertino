@@ -36,12 +36,12 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { nombre, apellido, telefono, correo, direccion, id_empleado, nombre_empleado } = req.body;
+  const { nombre, apellido, telefono, correo, direccion, dui, id_empleado, nombre_empleado } = req.body;
   try {
     const [result] = await sequelize.query(
-      `INSERT INTO clientes (nombre, apellido, telefono, correo, direccion, deleted)
-       VALUES (:nombre, :apellido, :telefono, :correo, :direccion, 0)`,
-      { replacements: { nombre, apellido, telefono, correo, direccion: direccion || null } }
+      `INSERT INTO clientes (nombre, apellido, telefono, correo, direccion, dui, deleted)
+       VALUES (:nombre, :apellido, :telefono, :correo, :direccion, :dui, 0)`,
+      { replacements: { nombre, apellido, telefono, correo, direccion: direccion || null, dui: dui || null } }
     );
     await registrarAuditoria({
       tabla: 'clientes', accion: 'CREAR',
@@ -56,18 +56,17 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { nombre, apellido, telefono, correo, direccion, id_empleado, nombre_empleado } = req.body;
+  const { nombre, apellido, telefono, correo, direccion, dui, id_empleado, nombre_empleado } = req.body;
   try {
-    // Leer valores anteriores ANTES del UPDATE
     const [anterior] = await sequelize.query(
-      'SELECT nombre, apellido, telefono, correo, direccion FROM clientes WHERE id_cliente = :id',
+      'SELECT nombre, apellido, telefono, correo, direccion, dui FROM clientes WHERE id_cliente = :id',
       { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT }
     );
 
     await sequelize.query(
       `UPDATE clientes SET nombre=:nombre, apellido=:apellido, telefono=:telefono,
-       correo=:correo, direccion=:direccion WHERE id_cliente=:id`,
-      { replacements: { nombre, apellido, telefono, correo, direccion: direccion || null, id: req.params.id } }
+       correo=:correo, direccion=:direccion, dui=:dui WHERE id_cliente=:id`,
+      { replacements: { nombre, apellido, telefono, correo, direccion: direccion || null, dui: dui || null, id: req.params.id } }
     );
 
     const campos = [
@@ -76,10 +75,13 @@ router.put('/:id', async (req, res) => {
       { campo: 'telefono',  nuevo: telefono,          ant: anterior?.telefono },
       { campo: 'correo',    nuevo: correo,            ant: anterior?.correo },
       { campo: 'direccion', nuevo: direccion || null, ant: anterior?.direccion },
+      { campo: 'dui',       nuevo: dui || null,       ant: anterior?.dui },
     ];
 
+    let huboCambios = false;
     for (const c of campos) {
-      if (String(c.ant) !== String(c.nuevo)) {
+      if (String(c.ant ?? '') !== String(c.nuevo ?? '')) {
+        huboCambios = true;
         await registrarAuditoria({
           tabla: 'clientes', accion: 'EDITAR',
           descripcion: `Cliente editado: ${nombre} ${apellido}`,
@@ -91,10 +93,10 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    if (!campos.some(c => String(c.ant) !== String(c.nuevo))) {
+    if (!huboCambios) {
       await registrarAuditoria({
         tabla: 'clientes', accion: 'EDITAR',
-        descripcion: `Cliente editado: ${nombre} ${apellido}`,
+        descripcion: `Cliente editado sin cambios: ${nombre} ${apellido}`,
         id_registro: Number(req.params.id), id_empleado, nombre_empleado
       });
     }

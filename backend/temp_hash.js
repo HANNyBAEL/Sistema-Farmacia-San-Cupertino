@@ -8,5 +8,3 @@ await sequelize.query(
 );
 console.log('✅ Contraseña actualizada para admin@farmacia.com');
 process.exit();
-
-

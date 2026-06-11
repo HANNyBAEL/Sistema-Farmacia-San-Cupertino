@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard, ShoppingCart, Package, Users, UserCog, Truck,
   Bell, BarChart2, History, Trash2, Settings, LogOut, Search,
@@ -13,7 +13,7 @@ import { getProductos, createProducto, updateProducto, deleteProducto } from "..
 import { fetchKPIs, fetchVentasUltimos7Dias } from "../services/dashboard";
 import { createVenta } from "../services/ventas";
 import clientesApi from "../services/clientes";
-import proveedoresApi, { moverProductoAPapelera } from "../services/proveedores";
+import proveedoresApi from "../services/proveedores";
 import empleadosApi from "../services/empleados";
 import { getHistorial, getDetalleVenta } from "../services/historial";
 import eliminadosApi from "../services/eliminados";
@@ -22,25 +22,16 @@ import EscanerCodigoBarras from '../app/EscanerCodigoBarras';
 import { getSiguienteCorrelativo, guardarFactura } from "../services/facturas";
 import { generarFacturaPDF } from "./GenerarFactura";
 import auditoriaApi from '../services/auditoria';
+import logoImg from "../imports/logo.png";
 
-// ── Logo ──────────────────────────────────────────────────────────────────────
-function FarmaciaLogo({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" className={className} fill="none">
-      <rect width="64" height="64" rx="12" fill="#0a4b7a" />
-      <rect x="28" y="10" width="8" height="44" rx="4" fill="white" />
-      <rect x="10" y="28" width="44" height="8" rx="4" fill="white" />
-    </svg>
-  );
-}
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Role = "administrador" | "farmaceutico" | "cajero";
 type Screen =
   | "dashboard" | "ventas" | "productos" | "clientes"
-  | "empleados" | "proveedores" | "alertas" | "reportes"
-  | "historial" | "eliminados" | "configuracion"
-  | "auditoria";
+  | "empleados" | "proveedores" | "alertas"
+  | "historial" | "eliminados"| "auditoria";
 
 interface User { name: string; role: Role; id: number; }
 
@@ -63,6 +54,7 @@ interface Product {
 }
 
 interface Client {
+  dui: string;
   papelera: any;
   has_ventas: any;
   id_cliente: number;
@@ -86,6 +78,10 @@ interface Supplier {
 }
 
 interface Empleado {
+  dui: string;
+  nit: string;
+  afp: string;
+  cuenta_banco: string;
   id_empleado: number;
   nombre: string;
   apellido: string;
@@ -99,6 +95,14 @@ interface Empleado {
 interface CartItem { product: Product; qty: number; }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+function expiryStyle(fecha: string) {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const vence = new Date(fecha + 'T00:00:00');
+  const dias = Math.ceil((vence.getTime() - hoy.getTime()) / (1000*60*60*24));
+  if (dias < 0)  return { row: 'bg-red-50',    badge: 'bg-red-100 text-red-700 font-semibold' };
+  if (dias <= 30) return { row: 'bg-yellow-50', badge: 'bg-yellow-100 text-yellow-700 font-semibold' };
+  return { row: '', badge: 'text-gray-600' };
+}
 function stockColor(stock: number): string {
   if (stock === 0) return "text-red-600 bg-red-50";
   if (stock <= 10) return "text-red-500 bg-red-50";
@@ -184,7 +188,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
         <div className="flex flex-col items-center mb-8">
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-4">
-            <FarmaciaLogo className="w-full h-full" />
+            <img src={logoImg} alt="Farmacia San Cupertino" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-lg font-bold text-[#0a2a44] text-center">Farmacias San Cupertino</h1>
           <p className="text-xs text-gray-400 mt-0.5">Sistema de gestión</p>
@@ -226,8 +230,6 @@ const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: 
   { screen: "alertas",      label: "Alertas de Stock",       icon: <Bell size={18}/>,             roles: ["administrador","farmaceutico"] },
   { screen: "historial",    label: "Historial de Ventas",    icon: <History size={18}/>,          roles: ["administrador","farmaceutico"] },
   { screen: "eliminados",   label: "Registros Eliminados",   icon: <Trash2 size={18}/>,           roles: ["administrador"] },
-  { screen: "reportes",     label: "Reportes",               icon: <BarChart2 size={18}/>,        roles: ["administrador","farmaceutico"] },
-  { screen: "configuracion",label: "Configuración",          icon: <Settings size={18}/>,         roles: ["administrador"] },
   { screen: "auditoria", label: "Auditoría", icon: <Shield size={18} />, roles: ["administrador"] },
 ];
 
@@ -237,7 +239,7 @@ function Sidebar({ user, current, onNav, onLogout }: { user: User; current: Scre
     <aside className="flex flex-col h-full bg-[#0a2a44] w-60 flex-shrink-0">
       <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/10">
         <div className="w-9 h-9 flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-1">
-          <FarmaciaLogo className="w-full h-full" />
+          <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-white font-bold text-sm block leading-tight">Farmacias San Cupertino</span>
@@ -283,8 +285,7 @@ function Dashboard() {
     Promise.all([fetchKPIs(), fetchVentasUltimos7Dias()])
       .then(([k, s]) => {
         const processed = s.map((item: { dia: string; ventas: number }) => {
-          // ← cambiar "day" por "dia"
-          const date = new Date(item.dia + 'T12:00:00Z'); // ← cambiar "day" por "dia"
+          const date = new Date(item.dia + 'T12:00:00Z');
           const dayName = date.toLocaleDateString('es-ES', {
             weekday: 'short',
             timeZone: 'America/El_Salvador'
@@ -337,22 +338,9 @@ function Dashboard() {
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={salesData} barSize={28}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis 
-              dataKey="day" 
-              tick={{ fontSize: 12, fill: "#6b7280" }} 
-              axisLine={false} 
-              tickLine={false} 
-            />
-            <YAxis 
-              tick={{ fontSize: 12, fill: "#6b7280" }} 
-              axisLine={false} 
-              tickLine={false} 
-              tickFormatter={v => `$${v}`} 
-            />
-            <Tooltip 
-              formatter={(v: number) => [`$${v}`, "Ventas"]} 
-              contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }} 
-            />
+            <XAxis dataKey="day" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+            <Tooltip formatter={(v: number) => [`$${v}`, "Ventas"]} contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }} />
             <Bar dataKey="ventas" fill="#0a4b7a" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -391,12 +379,58 @@ const CATEGORIAS = [
   { id: 26, nombre: "Otros" },
 ];
 
+// ── Componente para celdas con texto largo que se pueden expandir ──
+function ExpandableCell({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) {
+  const [showModal, setShowModal] = useState(false);
+  if (!text || text.length === 0) return <span className="text-gray-400">—</span>;
+
+  const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
+  const isTruncated = text.length > maxLength;
+
+  return (
+    <>
+      <span
+        onClick={() => isTruncated && setShowModal(true)}
+        className={isTruncated ? 'cursor-pointer underline decoration-dotted hover:text-[#0a4b7a]' : ''}
+        title={isTruncated ? 'Haz clic para ver completo' : ''}
+      >
+        {truncated}
+        {isTruncated && <span className="ml-1 text-xs">🔍</span>}
+      </span>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold text-lg">Información completa</h3>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+            </div>
+            <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
+              {text}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Btn variant="secondary" size="sm" onClick={() => setShowModal(false)}>Cerrar</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function Productos({ user }: { user: User }) {
   const [products, setProducts]   = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
   const [filterStock, setFilterStock] = useState("");
+  const [filterCat, setFilterCat]           = useState("");
+  const [filterProveedor, setFilterProveedor] = useState("");
+  const [filterEstado, setFilterEstado]     = useState("");
+  const [filterVenc, setFilterVenc]         = useState("");
+  const [filterPrecioMin, setFilterPrecioMin] = useState("");
+  const [filterPrecioMax, setFilterPrecioMax] = useState("");
+  const [filterLote, setFilterLote]         = useState("");
   const [showForm, setShowForm]   = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [formError, setFormError] = useState("");
@@ -417,16 +451,30 @@ function Productos({ user }: { user: User }) {
 
   useEffect(() => { load(); }, []);
 
-
   const filtered = products
-    .filter(p =>
-      p.nombre_producto.toLowerCase().startsWith(search.toLowerCase()) &&
-      (!filterStock ||
-        (filterStock==="agotado" && p.stock===0) ||
-        (filterStock==="critico" && p.stock>0 && p.stock<=10) ||
-        (filterStock==="bajo"    && p.stock>10 && p.stock<=20) ||
-        (filterStock==="normal"  && p.stock>20))
-    )
+    .filter(p => {
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const vence = new Date(p.fecha_vencimiento + 'T00:00:00');
+      const dias = Math.ceil((vence.getTime() - hoy.getTime()) / (1000*60*60*24));
+      if (!p.nombre_producto.toLowerCase().startsWith(search.toLowerCase())) return false;
+      if (filterStock) {
+        if (filterStock==="agotado" && p.stock!==0) return false;
+        if (filterStock==="critico" && !(p.stock>0&&p.stock<=10)) return false;
+        if (filterStock==="bajo"    && !(p.stock>10&&p.stock<=20)) return false;
+        if (filterStock==="normal"  && p.stock<=20) return false;
+      }
+      if (filterCat && !(p.categorias_nombres ?? "").startsWith(filterCat)) return false;
+      if (filterProveedor && String(p.id_proveedor) !== filterProveedor) return false;
+      if (filterEstado === "activo"   && p.deleted) return false;
+      if (filterEstado === "inactivo" && !p.deleted) return false;
+      if (filterVenc === "vencido"  && dias >= 0) return false;
+      if (filterVenc === "proximo"  && !(dias >= 0 && dias <= 30)) return false;
+      if (filterVenc === "vigente"  && dias <= 30) return false;
+      if (filterPrecioMin && Number(p.precio) < parseFloat(filterPrecioMin)) return false;
+      if (filterPrecioMax && Number(p.precio) > parseFloat(filterPrecioMax)) return false;
+      if (filterLote && !p.lote.toLowerCase().startsWith(filterLote.toLowerCase())) return false;
+      return true;
+    })
     .sort((a, b) => a.nombre_producto.localeCompare(b.nombre_producto, 'es'));
 
   function openNew() {
@@ -506,46 +554,137 @@ function Productos({ user }: { user: User }) {
     }
   }
 
+  const hayFiltros = !!(filterStock||filterCat||filterProveedor||filterEstado||filterVenc||filterPrecioMin||filterPrecioMax||filterLote);
+  function limpiarFiltros() {
+    setFilterStock(""); setFilterCat(""); setFilterProveedor("");
+    setFilterEstado(""); setFilterVenc(""); setFilterPrecioMin("");
+    setFilterPrecioMax(""); setFilterLote("");
+  }
+
   if (loading) return <LoadingSpinner />;
 
+  // ── Componente interno para expandir texto con botón "+" ──
+  const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
+    const [show, setShow] = useState(false);
+    if (!text) return <span className="text-gray-400">—</span>;
+    const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
+    const isLong = text.length > maxLength;
+    return (
+      <>
+        <span className="inline-flex items-center gap-1">
+          {truncated}
+          {isLong && (
+            <button
+              onClick={() => setShow(true)}
+              className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+              title="Ver completo"
+            >
+              +
+            </button>
+          )}
+        </span>
+        {show && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold text-lg">Información completa</h3>
+                <button onClick={() => setShow(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+              </div>
+              <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
+                {text}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Btn variant="secondary" size="sm" onClick={() => setShow(false)}>Cerrar</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 min-w-0 overflow-x-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Productos</h1>
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
       </div>
+
       <Card className="p-4">
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-48">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre..."
-              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+        <div className="space-y-3">
+          {/* Fila 1 */}
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre..."
+                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            </div>
+            <Select value={filterStock} onChange={setFilterStock} className="w-32">
+              <option value="">Stock: Todos</option>
+              <option value="agotado">Agotado</option>
+              <option value="critico">Crítico</option>
+              <option value="bajo">Bajo</option>
+              <option value="normal">Normal</option>
+            </Select>
+            <Select value={filterCat} onChange={setFilterCat} className="w-36">
+              <option value="">Categoría: Todas</option>
+              {CATEGORIAS.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+            </Select>
+            <Select value={filterProveedor} onChange={setFilterProveedor} className="w-40">
+              <option value="">Proveedor: Todos</option>
+              {suppliers.map(s => <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>)}
+            </Select>
+            <Select value={filterVenc} onChange={setFilterVenc} className="w-36">
+              <option value="">Vencimiento: Todos</option>
+              <option value="vencido">Vencidos</option>
+              <option value="proximo">Próximos</option>
+              <option value="vigente">Vigentes</option>
+            </Select>
+            <Select value={filterEstado} onChange={setFilterEstado} className="w-28">
+              <option value="">Estado: Todos</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </Select>
           </div>
-          <Select value={filterStock} onChange={setFilterStock}>
-            <option value="">Todo el stock</option>
-            <option value="agotado">Agotado</option>
-            <option value="critico">Crítico (1–10)</option>
-            <option value="bajo">Bajo (11–20)</option>
-            <option value="normal">Normal</option>
-          </Select>
-          <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
+          {/* Fila 2 */}
+          <div className="flex flex-wrap gap-3 items-center">
+            <input value={filterLote} onChange={e=>setFilterLote(e.target.value)}
+              placeholder="Buscar lote..." className="w-36 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+            <input value={filterPrecioMin} onChange={e=>setFilterPrecioMin(e.target.value)}
+              placeholder="Precio mín $" type="number" min={0} className="w-32 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+            <input value={filterPrecioMax} onChange={e=>setFilterPrecioMax(e.target.value)}
+              placeholder="Precio máx $" type="number" min={0} className="w-32 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+            <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
+              <X size={13}/> Limpiar filtros
+            </Btn>
+          </div>
         </div>
       </Card>
+
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                {["Nombre","Categoría","Precio","Stock","Lote","Vencimiento","Proveedor","Estado","Acciones"].map(h=>(
-                  <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
-                ))}
+          <table className="w-full text-sm table-auto whitespace-nowrap">
+            <thead className="bg-gray-50">
+              <tr className="border-b border-gray-100">
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Nombre</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Categoría</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Precio</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Stock</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Lote</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Vencimiento</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Proveedor</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(p=>(
-                <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.deleted ? 'bg-gray-50 opacity-60' : 'hover:bg-[#f0f7ff]'}`}>
-                  <td className="py-3 px-4 font-medium text-[#1e1e1e]">{p.nombre_producto}</td>
-                  <td className="py-3 px-4 text-gray-500 text-xs">
+                <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${p.deleted ? 'opacity-60 bg-gray-50' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-gray-50'}`}>
+                  <td className="py-3 px-3 font-medium text-[#1e1e1e]">
+                    <Expandable text={p.nombre_producto} maxLength={40} />
+                  </td>
+                  <td className="py-3 px-3">
                     {p.categorias_nombres ? (() => {
                       const cats = p.categorias_nombres.split(', ');
                       const primera = cats[0];
@@ -570,18 +709,22 @@ function Productos({ user }: { user: User }) {
                       );
                     })() : <span className="text-gray-400">—</span>}
                   </td>
-                  <td className="py-3 px-4 font-mono text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</td>
-                  <td className="py-3 px-4"><span className={`text-xs px-2 py-1 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock} — {stockLabel(p.stock)}</span></td>
-                  <td className="py-3 px-4 font-mono text-gray-500 text-xs">{p.lote}</td>
-                  <td className="py-3 px-4 text-gray-600 text-xs">{p.fecha_vencimiento}</td>
-                  <td className="py-3 px-4 text-gray-600 text-xs">{p.proveedor_nombre ?? p.id_proveedor}</td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-3 font-mono text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</td>
+                  <td className="py-3 px-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock} — {stockLabel(p.stock)}</span></td>
+                  <td className="py-3 px-3 font-mono text-gray-500">
+                    <Expandable text={p.lote} maxLength={15} />
+                  </td>
+                  <td className={`py-3 px-3 text-xs font-mono ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
+                  <td className="py-3 px-3 text-gray-600">
+                    <Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={25} />
+                  </td>
+                  <td className="py-3 px-3">
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                       {p.deleted ? "Inactivo" : "Activo"}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
+                  <td className="py-3 px-3">
+                    <div className="flex gap-2 items-center">
                       <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
                       <button
                         onClick={()=>handleToggle(p.id_producto, p.deleted)}
@@ -598,7 +741,7 @@ function Productos({ user }: { user: User }) {
                 </tr>
               ))}
               {filtered.length===0 && (
-                <tr><td colSpan={9} className="py-12 text-center text-gray-400">Sin productos.</td></tr>
+                <tr><td colSpan={9} className="py-10 text-center text-gray-400">Sin productos.</td></tr>
               )}
             </tbody>
           </table>
@@ -636,12 +779,7 @@ function Productos({ user }: { user: User }) {
                 <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-[#f8fafc]">
                   {CATEGORIAS.map(cat => (
                     <label key={cat.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-white rounded px-1 py-0.5">
-                      <input
-                        type="checkbox"
-                        checked={selectedCats.includes(cat.id)}
-                        onChange={() => toggleCat(cat.id)}
-                        className="rounded"
-                      />
+                      <input type="checkbox" checked={selectedCats.includes(cat.id)} onChange={() => toggleCat(cat.id)} className="rounded" />
                       <span className="text-gray-700">{cat.nombre}</span>
                     </label>
                   ))}
@@ -671,10 +809,10 @@ function Ventas({ user }: { user: User }) {
   const [saleDone, setSaleDone]   = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [efectivo, setEfectivo] = useState("");
-
+  const [metodoPago, setMetodoPago] = useState<"efectivo"|"tarjeta"|"transferencia"|"applepay"|"paypal"|"western">("efectivo");
   // Modal nuevo cliente
   const [showNewClient, setShowNewClient] = useState(false);
-  const [newClientForm, setNewClientForm] = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
+  const [newClientForm, setNewClientForm] = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
   const [newClientError, setNewClientError] = useState("");
   const [savingClient, setSavingClient] = useState(false);
 
@@ -704,10 +842,9 @@ function Ventas({ user }: { user: User }) {
     const vencimiento = new Date(p.fecha_vencimiento + 'T00:00:00');
     if (vencimiento < hoy) { setSaleError(`"${p.nombre_producto}" está vencido y no se puede vender.`); return; }
     if (p.stock === 0) { setSaleError(`"${p.nombre_producto}" no tiene stock disponible.`); return; }
-    // Verificar si es medicamento controlado
     const categoriasControladas = ['Controlados', 'Analgésicos Opioides', 'Ansiolíticos', 'Hipnóticos'];
     const esControlado = p.categorias_nombres
-      ? categoriasControladas.some(cat => p.categorias_nombres!.includes(cat))
+      ? categoriasControladas.some(cat => p.categorias_nombres!.startsWith(cat))
       : false;
 
     if (esControlado) {
@@ -746,59 +883,63 @@ function Ventas({ user }: { user: User }) {
     setCart(prev => prev.map(i => i.product.id_producto === id ? { ...i, qty } : i));
   }
 
-  const total    = cart.reduce((s, i) => s + Number(i.product.precio) * i.qty, 0);
-  const subtotal = total / 1.13;
-  const iva      = total - subtotal;
+  const total = cart.reduce((s, i) => s + Number(i.product.precio) * i.qty, 0);
+  const soloEfectivo = metodoPago === "efectivo";
 
   async function finalizarVenta() {
-    if (!efectivo || parseFloat(efectivo) < total) {
+    if (soloEfectivo && (!efectivo || parseFloat(efectivo) < total)) {
       setSaleError("Ingrese el efectivo recibido (debe cubrir el total)."); return;
     }
     if (cart.length === 0) { setSaleError("El carrito está vacío."); return; }
     try {
+      // Fecha local (YYYY-MM-DD)
+      const ahora = new Date();
+      const year = ahora.getFullYear();
+      const month = String(ahora.getMonth() + 1).padStart(2, '0');
+      const day = String(ahora.getDate()).padStart(2, '0');
+      const fechaLocal = `${year}-${month}-${day}`;
+
       const ventaResp = await createVenta({
         id_cliente: selectedClient?.id_cliente ?? null,
         id_empleado: user.id,
-        productos: cart.map(i => ({ id_producto: i.product.id_producto, cantidad: i.qty }))
+        metodo_pago: metodoPago,
+        productos: cart.map(i => ({ id_producto: i.product.id_producto, cantidad: i.qty })),
+        fecha: fechaLocal
       });
 
-      // Preguntar si desea factura
       const desea = confirm("¿Desea generar factura electrónica para esta venta?");
       if (desea) {
         try {
           const { numero_control } = await getSiguienteCorrelativo();
           const codigo_generacion = crypto.randomUUID().toUpperCase();
-          const ahora = new Date();
-          const fecha_emision = ahora.toISOString().slice(0,19).replace("T"," ");
+          const fechaHoraLocal = `${year}-${month}-${day} ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
 
           await guardarFactura({
             numero_control,
             codigo_generacion,
             id_venta: ventaResp.id_venta,
             id_cliente: selectedClient?.id_cliente ?? null,
-            fecha_emision,
+            fecha_emision: fechaHoraLocal,
             total: ventaResp.total,
           });
 
           generarFacturaPDF({
             numero_control,
             codigo_generacion,
-            fecha_emision,
+            fecha_emision: fechaHoraLocal,
             receptor: {
-              nombre: selectedClient
-                ? `${selectedClient.nombre} ${selectedClient.apellido}`
-                : "CONSUMIDOR FINAL",
-              dui:       (selectedClient as any)?.dui,
-              correo:    selectedClient?.correo,
-              telefono:  selectedClient?.telefono,
+              nombre: selectedClient ? `${selectedClient.nombre} ${selectedClient.apellido}` : "CONSUMIDOR FINAL",
+              dui: (selectedClient as any)?.dui,
+              correo: selectedClient?.correo,
+              telefono: selectedClient?.telefono,
               direccion: selectedClient?.direccion,
             },
             items: cart.map(i => ({
-              codigo:          i.product.id_producto,
-              descripcion:     i.product.nombre_producto,
-              cantidad:        i.qty,
+              codigo: i.product.id_producto,
+              descripcion: i.product.nombre_producto,
+              cantidad: i.qty,
               precio_unitario: Number(i.product.precio),
-              subtotal:        Number(i.product.precio) * i.qty,
+              subtotal: Number(i.product.precio) * i.qty,
             })),
             total: ventaResp.total,
             empleado: user.name,
@@ -810,16 +951,14 @@ function Ventas({ user }: { user: User }) {
       }
 
       setSaleDone(true);
+      setMetodoPago("efectivo");
       setEfectivo("");
       setCart([]);
       setSelectedClient(null);
       setClientSearch("");
       const prods = await getProductos();
-      setProducts([...prods].sort((a: Product, b: Product) =>
-        a.nombre_producto.localeCompare(b.nombre_producto, 'es')
-      ));
+      setProducts([...prods].sort((a: Product, b: Product) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
       setTimeout(() => setSaleDone(false), 3000);
-
     } catch (e: any) {
       setSaleError(e?.response?.data?.error ?? "Error al registrar la venta.");
     }
@@ -841,7 +980,7 @@ function Ventas({ user }: { user: User }) {
       );
       if (creado) setSelectedClient(creado);
       setShowNewClient(false);
-      setNewClientForm({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
+      setNewClientForm({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
       setNewClientError("");
     } catch (e: any) {
       setNewClientError(e?.response?.data?.error ?? "Error al registrar el cliente.");
@@ -852,7 +991,6 @@ function Ventas({ user }: { user: User }) {
 
   return (
     <div className="flex h-full" style={{ minHeight:0 }}>
-
       {/* Escáner de código de barras */}
       {showScanner && (
         <EscanerCodigoBarras
@@ -876,33 +1014,17 @@ function Ventas({ user }: { user: User }) {
             )}
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
-                  <Input value={newClientForm.nombre} onChange={v=>setNewClientForm(p=>({...p,nombre:v}))} placeholder="Nombre"/>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label>
-                  <Input value={newClientForm.apellido} onChange={v=>setNewClientForm(p=>({...p,apellido:v}))} placeholder="Apellido"/>
-                </div>
+                <div><label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label><Input value={newClientForm.nombre} onChange={v=>setNewClientForm(p=>({...p,nombre:v}))} placeholder="Nombre"/></div>
+                <div><label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label><Input value={newClientForm.apellido} onChange={v=>setNewClientForm(p=>({...p,apellido:v}))} placeholder="Apellido"/></div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono *</label>
-                <Input value={newClientForm.telefono} onChange={v=>setNewClientForm(p=>({...p,telefono:v}))} placeholder="7000-0000"/>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
-                <Input type="email" value={newClientForm.correo} onChange={v=>setNewClientForm(p=>({...p,correo:v}))} placeholder="correo@ejemplo.com"/>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
-                <Input value={newClientForm.direccion} onChange={v=>setNewClientForm(p=>({...p,direccion:v}))} placeholder="Dirección opcional"/>
-              </div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">DUI <span className="text-gray-400 font-normal">(00000000-0)</span></label><Input value={newClientForm.dui} onChange={v=>setNewClientForm(p=>({...p,dui:v}))} placeholder="00000000-0"/></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono *</label><Input value={newClientForm.telefono} onChange={v=>setNewClientForm(p=>({...p,telefono:v}))} placeholder="7000-0000"/></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label><Input type="email" value={newClientForm.correo} onChange={v=>setNewClientForm(p=>({...p,correo:v}))} placeholder="correo@ejemplo.com"/></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label><Input value={newClientForm.direccion} onChange={v=>setNewClientForm(p=>({...p,direccion:v}))} placeholder="Dirección opcional"/></div>
             </div>
             <div className="flex justify-end gap-3 mt-5">
               <Btn variant="secondary" onClick={()=>{setShowNewClient(false);setNewClientError("");}}>Cancelar</Btn>
-              <Btn variant="primary" onClick={guardarNuevoCliente} disabled={savingClient}>
-                <Check size={14}/> {savingClient ? "Guardando..." : "Registrar"}
-              </Btn>
+              <Btn variant="primary" onClick={guardarNuevoCliente} disabled={savingClient}><Check size={14}/> {savingClient ? "Guardando..." : "Registrar"}</Btn>
             </div>
           </Card>
         </div>
@@ -912,24 +1034,16 @@ function Ventas({ user }: { user: User }) {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-[#1e1e1e] text-sm">Buscar Producto</h2>
-            <button
-              onClick={()=>setShowScanner(true)}
-              className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:bg-[#e3f2fd] px-2 py-1 rounded-lg font-medium transition-colors"
-              title="Escanear código de barras"
-            >
-              <Camera size={13}/> Escanear
-            </button>
+            <button onClick={()=>setShowScanner(true)} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:bg-[#e3f2fd] px-2 py-1 rounded-lg font-medium transition-colors" title="Escanear código de barras"><Camera size={13}/> Escanear</button>
           </div>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre..."
-              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {search && results.map(p=>(
-            <button key={p.id_producto} onClick={()=>addToCart(p)}
-              className="w-full text-left p-3 rounded-lg hover:bg-[#e3f2fd] transition-colors border border-transparent hover:border-[#0a4b7a]/20 mb-1">
+            <button key={p.id_producto} onClick={()=>addToCart(p)} className="w-full text-left p-3 rounded-lg hover:bg-[#e3f2fd] transition-colors border border-transparent hover:border-[#0a4b7a]/20 mb-1">
               <div className="text-sm font-medium text-[#1e1e1e]">{p.nombre_producto}</div>
               <div className="flex items-center gap-3 mt-1">
                 <span className="text-xs text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</span>
@@ -954,20 +1068,26 @@ function Ventas({ user }: { user: User }) {
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3"><ShoppingCart size={40} strokeWidth={1}/><span className="text-sm">El carrito está vacío</span></div>
           ) : (
             <table className="w-full text-sm">
-              <thead><tr className="border-b border-gray-100">{["Producto","P.Unit","Cant.","Subtotal",""].map(h=><th key={h} className="text-left py-2 px-2 text-xs text-gray-500 font-medium">{h}</th>)}</tr></thead>
+              <thead>
+                <tr className="border-b border-gray-100">
+                  {["Producto","P.Unit","Cant.","Subtotal",""].map(h => (
+                    <th key={h} className="text-left py-2 px-2 text-xs text-gray-500 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
               <tbody>
-                {cart.map(item=>(
+                {cart.map(item => (
                   <tr key={item.product.id_producto} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="py-2 px-2 font-medium text-[#1e1e1e]">{item.product.nombre_producto}</td>
                     <td className="py-2 px-2 text-gray-600">${Number(item.product.precio).toFixed(2)}</td>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-1">
-                        <button onClick={()=>setQty(item.product.id_producto,item.qty-1)} className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100">−</button>
+                        <button onClick={()=>setQty(item.product.id_producto, item.qty-1)} className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100">−</button>
                         <span className="w-8 text-center font-medium">{item.qty}</span>
-                        <button onClick={()=>setQty(item.product.id_producto,item.qty+1)} className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100">+</button>
+                        <button onClick={()=>setQty(item.product.id_producto, item.qty+1)} className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100">+</button>
                       </div>
                     </td>
-                    <td className="py-2 px-2 font-semibold text-[#0a4b7a]">${(Number(item.product.precio)*item.qty).toFixed(2)}</td>
+                    <td className="py-2 px-2 font-semibold text-[#0a4b7a]">${(Number(item.product.precio) * item.qty).toFixed(2)}</td>
                     <td className="py-2 px-2"><button onClick={()=>removeFromCart(item.product.id_producto)} className="text-gray-400 hover:text-[#d32f2f]"><X size={15}/></button></td>
                   </tr>
                 ))}
@@ -981,26 +1101,16 @@ function Ventas({ user }: { user: User }) {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-[#1e1e1e] text-sm">Cliente</h2>
-            <button
-              onClick={()=>{setShowNewClient(true);setNewClientError("");}}
-              className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:text-[#0d5c96] font-medium hover:bg-[#e3f2fd] px-2 py-1 rounded-lg transition-colors"
-              title="Registrar nuevo cliente"
-            >
-              <Plus size={12}/> Nuevo
-            </button>
+            <button onClick={()=>{setShowNewClient(true);setNewClientError("");}} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:text-[#0d5c96] font-medium hover:bg-[#e3f2fd] px-2 py-1 rounded-lg transition-colors" title="Registrar nuevo cliente"><Plus size={12}/> Nuevo</button>
           </div>
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={clientSearch} onChange={e=>setClientSearch(e.target.value)} placeholder="Buscar por correo electrónico..."
-              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <input value={clientSearch} onChange={e=>setClientSearch(e.target.value)} placeholder="Buscar por correo electrónico..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
           {clientSearch && (
             <div className="mt-1 border border-gray-100 rounded-lg overflow-hidden shadow-sm">
-              {clients.filter(c => c.correo.toLowerCase().includes(clientSearch.toLowerCase()) && !c.deleted && !c.papelera).map(c => (
-                <button key={c.id_cliente} onClick={()=>{setSelectedClient(c);setClientSearch("");}}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">
-                  {c.nombre} {c.apellido}
-                </button>
+              {clients.filter(c => c.correo.toLowerCase().startsWith(clientSearch.toLowerCase()) && !c.deleted && !c.papelera).map(c => (
+                <button key={c.id_cliente} onClick={()=>{setSelectedClient(c);setClientSearch("");}} className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">{c.nombre} {c.apellido}</button>
               ))}
             </div>
           )}
@@ -1011,37 +1121,36 @@ function Ventas({ user }: { user: User }) {
             </div>
           )}
         </div>
-        <div className="p-4 flex-1">
-          <h2 className="font-semibold text-[#1e1e1e] text-sm mb-4">Resumen</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-gray-600">
-              <span>Subtotal</span><span>${subtotal.toFixed(2)}</span>
+        <div className="p-4 flex-1 space-y-4">
+          <h2 className="font-semibold text-[#1e1e1e] text-sm">Resumen</h2>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-2">Método de pago</label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {([
+                { id:"efectivo",     label:"💵 Efectivo"       },
+                { id:"tarjeta",      label:"💳 Tarjeta"        },
+                { id:"transferencia",label:"🏦 Transferencia"  },
+                { id:"applepay",     label:" Apple Pay"      },
+                { id:"paypal",       label:"🅿️ PayPal"         },
+                { id:"western",      label:"🌐 Western Union"  },
+              ] as const).map(m => (
+                <button key={m.id} onClick={() => { setMetodoPago(m.id); setEfectivo(""); }} className={`text-xs px-2 py-1.5 rounded-lg border font-medium transition-colors text-left ${metodoPago === m.id ? 'bg-[#0a4b7a] text-white border-[#0a4b7a]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#0a4b7a] hover:text-[#0a4b7a]'}`}>{m.label}</button>
+              ))}
             </div>
-            <div className="flex justify-between text-[#1e1e1e] font-bold text-base border-t border-gray-100 pt-2">
-              <span>Total</span><span className="text-[#0a4b7a]">${total.toFixed(2)}</span>
-            </div>
-            <div className="pt-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Efectivo recibido *</label>
-              <input
-                type="number"
-                min={0}
-                value={efectivo}
-                onChange={e => setEfectivo(e.target.value)}
-                placeholder="$0.00"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
-              />
-            </div>
-            {parseFloat(efectivo) >= total && (
-              <div className="flex justify-between text-green-700 font-bold text-base bg-green-50 rounded-lg px-3 py-2">
-                <span>Cambio</span><span>${(parseFloat(efectivo) - total).toFixed(2)}</span>
-              </div>
-            )}
-            {efectivo && parseFloat(efectivo) < total && (
-              <div className="flex items-center gap-1 text-[#d32f2f] text-xs">
-                <AlertTriangle size={12} /> Monto insuficiente
-              </div>
-            )}
           </div>
+          {metodoPago === "tarjeta" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">💳 El cliente paga con tarjeta en el datáfono. No se requiere ingreso de monto.</div>}
+          {metodoPago === "transferencia" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🏦 El cliente realiza una transferencia bancaria. Confirme el comprobante antes de finalizar.</div>}
+          {metodoPago === "applepay" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">El cliente paga con Apple Pay desde su dispositivo. No se requiere ingreso de monto.</div>}
+          {metodoPago === "paypal" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🅿️ El cliente paga vía PayPal. Confirme el pago recibido antes de finalizar.</div>}
+          {metodoPago === "western" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🌐 El cliente paga vía Western Union. Verifique el número de transferencia antes de finalizar.</div>}
+          <div className="flex justify-between text-[#1e1e1e] font-bold text-base border-t border-gray-100 pt-2"><span>Total</span><span className="text-[#0a4b7a]">${total.toFixed(2)}</span></div>
+          {soloEfectivo && (
+            <div className="space-y-2">
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Efectivo recibido *</label><input type="number" min={0} value={efectivo} onChange={e => setEfectivo(e.target.value)} placeholder="$0.00" className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" /></div>
+              {parseFloat(efectivo) >= total && <div className="flex justify-between text-green-700 font-bold text-base bg-green-50 rounded-lg px-3 py-2"><span>Cambio</span><span>${(parseFloat(efectivo) - total).toFixed(2)}</span></div>}
+              {efectivo && parseFloat(efectivo) < total && <div className="flex items-center gap-1 text-[#d32f2f] text-xs"><AlertTriangle size={12}/> Monto insuficiente</div>}
+            </div>
+          )}
         </div>
         <div className="p-4 border-t border-gray-100 space-y-2">
           <Btn variant="primary" className="w-full justify-center" onClick={finalizarVenta} disabled={cart.length===0}><Check size={15}/> Finalizar venta</Btn>
@@ -1057,9 +1166,14 @@ function Clientes({ user }: { user: User }) {
   const [clients, setClients]   = useState<Client[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
+  const [filterDui, setFilterDui]       = useState("");
+  const [filterTel, setFilterTel]       = useState("");
+  const [filterCorreo, setFilterCorreo] = useState("");
+  const [filterDir, setFilterDir]       = useState("");
+  const [filterEstado, setFilterEstado] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editClient, setEditClient] = useState<Client | null>(null);
-  const [form, setForm]         = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
+  const [form, setForm]         = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
   const [formError, setFormError] = useState("");
 
   async function load() {
@@ -1068,15 +1182,40 @@ function Clientes({ user }: { user: User }) {
   }
   useEffect(()=>{load();},[]);
 
-  const filtered = clients.filter(c=>
-    `${c.nombre} ${c.apellido}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = clients.filter(c => {
+    if (search && !`${c.nombre} ${c.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
+    if (filterDui    && !(c.dui ?? "").toLowerCase().startsWith(filterDui.toLowerCase())) return false;
+    if (filterTel    && !c.telefono.toLowerCase().startsWith(filterTel.toLowerCase())) return false;
+    if (filterCorreo && !c.correo.toLowerCase().startsWith(filterCorreo.toLowerCase())) return false;
+    if (filterDir    && !(c.direccion ?? "").toLowerCase().startsWith(filterDir.toLowerCase())) return false;
+    if (filterEstado === "activo"   &&  c.deleted) return false;
+    if (filterEstado === "inactivo" && !c.deleted) return false;
+    return true;
+  });
 
-  function openNew(){setEditClient(null);setForm({nombre:"",apellido:"",telefono:"",correo:"",direccion:""});setFormError("");setShowForm(true);}
-  function openEdit(c:Client){setEditClient(c);setForm({nombre:c.nombre,apellido:c.apellido,telefono:c.telefono,correo:c.correo,direccion:c.direccion??""});setFormError("");setShowForm(true);}
+  const hayFiltros = !!(filterDui||filterTel||filterCorreo||filterDir||filterEstado);
+  function limpiarFiltros() {
+    setFilterDui(""); setFilterTel(""); setFilterCorreo("");
+    setFilterDir(""); setFilterEstado("");
+  }
+
+  function openNew(){
+    setEditClient(null);
+    setForm({nombre:"",apellido:"",telefono:"",correo:"",direccion:"",dui:""});
+    setFormError("");
+    setShowForm(true);
+  }
+  function openEdit(c:Client){
+    setEditClient(c);
+    setForm({nombre:c.nombre,apellido:c.apellido,telefono:c.telefono,correo:c.correo,direccion:c.direccion??"",dui:c.dui??""});
+    setFormError("");
+    setShowForm(true);
+  }
 
   async function saveForm() {
-    if (!form.nombre || !form.apellido || !form.telefono || !form.correo) { setFormError("Complete los campos obligatorios."); return; }
+    if (!form.nombre || !form.apellido || !form.telefono || !form.correo) {
+      setFormError("Complete los campos obligatorios."); return;
+    }
     try {
       if (editClient) await clientesApi.update(editClient.id_cliente, { ...form, id_empleado: user.id, nombre_empleado: user.name });
       else            await clientesApi.create({ ...form, id_empleado: user.id, nombre_empleado: user.name });
@@ -1106,6 +1245,47 @@ function Clientes({ user }: { user: User }) {
   }
 
   if(loading) return <LoadingSpinner/>;
+
+  // ── Componente interno para expandir texto con botón "+" ──
+  const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
+    const [show, setShow] = useState(false);
+    if (!text) return <span className="text-gray-400">—</span>;
+    const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
+    const isLong = text.length > maxLength;
+    return (
+      <>
+        <span className="inline-flex items-center gap-1">
+          {truncated}
+          {isLong && (
+            <button
+              onClick={() => setShow(true)}
+              className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+              title="Ver completo"
+            >
+              +
+            </button>
+          )}
+        </span>
+        {show && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold text-lg">Información completa</h3>
+                <button onClick={() => setShow(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+              </div>
+              <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
+                {text}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Btn variant="secondary" size="sm" onClick={() => setShow(false)}>Cerrar</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
   return(
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1115,59 +1295,100 @@ function Clientes({ user }: { user: User }) {
           <Btn variant="primary"   size="sm" onClick={openNew}><Plus size={14}/> Nuevo cliente</Btn>
         </div>
       </div>
+
       <Card className="p-4">
-        <div className="relative max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre..."
-            className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre ..."
+                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
+            </div>
+            <Select value={filterEstado} onChange={setFilterEstado} className="w-28">
+              <option value="">Estado: Todos</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </Select>
+            <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
+              <X size={13}/> Limpiar filtros
+            </Btn>
+          </div>
+          <div className="flex flex-wrap gap-3 items-center">
+            <input value={filterDui} onChange={e=>setFilterDui(e.target.value)}
+              placeholder="Filtrar DUI..." className="w-36 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+            <input value={filterTel} onChange={e=>setFilterTel(e.target.value)}
+              placeholder="Filtrar teléfono..." className="w-36 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+            <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)}
+              placeholder="Filtrar correo..." className="w-48 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+            <input value={filterDir} onChange={e=>setFilterDir(e.target.value)}
+              placeholder="Filtrar dirección..." className="w-48 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+          </div>
         </div>
       </Card>
+
       <Card className="overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              {["Nombre","Teléfono","Correo","Dirección","Estado","Acciones"].map(h=>(
-                <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(c=>(
-              <tr key={c.id_cliente} className={`border-b border-gray-50 transition-colors ${c.deleted ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50'}`}>
-                <td className="py-3 px-4 font-medium text-[#1e1e1e]">{c.nombre} {c.apellido}</td>
-                <td className="py-3 px-4 text-gray-600">{c.telefono}</td>
-                <td className="py-3 px-4 text-gray-600">{c.correo}</td>
-                <td className="py-3 px-4 text-gray-600 text-xs">{c.direccion??"—"}</td>
-                <td className="py-3 px-4">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${c.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                    {c.deleted ? "Inactivo" : "Activo"}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex gap-2 items-center">
-                    <button onClick={()=>openEdit(c)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                    <button
-                      onClick={()=>handleToggle(c.id_cliente, c.deleted ?? 0)}
-                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${
-                        c.deleted
-                          ? 'text-green-700 bg-green-50 hover:bg-green-100'
-                          : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
-                      }`}
-                      title={c.deleted ? "Activar cliente" : "Desactivar cliente"}
-                    >
-                      {c.deleted ? "Activar" : "Desactivar"}
-                    </button>
-                    {!c.has_ventas && (
-                      <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Eliminar permanentemente"><Trash2 size={14}/></button>
-                    )}
-                  </div>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm table-auto whitespace-nowrap">
+            <thead className="bg-gray-50">
+              <tr className="border-b border-gray-100">
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Nombre</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">DUI</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Teléfono</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Correo</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Dirección</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
               </tr>
-            ))}
-            {filtered.length===0&&(<tr><td colSpan={6} className="py-10 text-center text-gray-400">Sin clientes.</td></tr>)}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map(c => (
+                <tr key={c.id_cliente} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${c.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
+                  <td className="py-3 px-3 font-medium text-[#1e1e1e]">
+                    <Expandable text={`${c.nombre} ${c.apellido}`} maxLength={30} />
+                  </td>
+                  <td className="py-3 px-3 text-gray-600">
+                    {c.dui ? <Expandable text={c.dui} maxLength={12} /> : <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="py-3 px-3 text-gray-600">
+                    <Expandable text={c.telefono} maxLength={12} />
+                  </td>
+                  <td className="py-3 px-3 text-gray-600">
+                    <Expandable text={c.correo} maxLength={30} />
+                  </td>
+                  <td className="py-3 px-3 text-gray-600">
+                    <Expandable text={c.direccion ?? "—"} maxLength={35} />
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${c.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                      {c.deleted ? "Inactivo" : "Activo"}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3">
+                    <div className="flex gap-2 items-center">
+                      <button onClick={()=>openEdit(c)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                      <button
+                        onClick={()=>handleToggle(c.id_cliente, c.deleted ?? 0)}
+                        className={`p-1 rounded text-xs font-semibold px-2 py-1 ${c.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                        title={c.deleted ? "Activar cliente" : "Desactivar cliente"}
+                      >
+                        {c.deleted ? "Activar" : "Desactivar"}
+                      </button>
+                      {!c.has_ventas && (
+                        <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Eliminar permanentemente"><Trash2 size={14}/></button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} className="py-10 text-center text-gray-400">Sin clientes. </td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </Card>
+
       {showForm&&(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6">
@@ -1181,6 +1402,7 @@ function Clientes({ user }: { user: User }) {
                 <div><label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label><Input value={form.nombre} onChange={v=>setForm(p=>({...p,nombre:v}))}/></div>
                 <div><label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label><Input value={form.apellido} onChange={v=>setForm(p=>({...p,apellido:v}))}/></div>
               </div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">DUI <span className="text-gray-400 font-normal">(00000000-0)</span></label><Input value={form.dui} onChange={v=>setForm(p=>({...p,dui:v}))} placeholder="00000000-0"/></div>
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono *</label><Input value={form.telefono} onChange={v=>setForm(p=>({...p,telefono:v}))}/></div>
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Correo *</label><Input type="email" value={form.correo} onChange={v=>setForm(p=>({...p,correo:v}))}/></div>
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label><Input value={form.direccion} onChange={v=>setForm(p=>({...p,direccion:v}))}/></div>
@@ -1215,7 +1437,7 @@ function Proveedores({ user }: { user: User }) {
   useEffect(()=>{ load(); },[]);
 
   const filtered = suppliers.filter(s=>
-    `${s.nombre} ${s.apellido}`.toLowerCase().includes(search.toLowerCase())
+    `${s.nombre} ${s.apellido}`.toLowerCase().startsWith(search.toLowerCase())
   );
 
   function openNew(){ setEditSupplier(null); setForm({nombre:"",apellido:"",telefono:"",correo:"",direccion:""}); setFormError(""); setShowForm(true); }
@@ -1252,6 +1474,47 @@ function Proveedores({ user }: { user: User }) {
   }
 
   if(loading) return <LoadingSpinner/>;
+
+  // ── Componente interno para expandir texto con botón "+" ──
+  const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
+    const [show, setShow] = useState(false);
+    if (!text) return <span className="text-gray-400">—</span>;
+    const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
+    const isLong = text.length > maxLength;
+    return (
+      <>
+        <span className="inline-flex items-center gap-1">
+          {truncated}
+          {isLong && (
+            <button
+              onClick={() => setShow(true)}
+              className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+              title="Ver completo"
+            >
+              +
+            </button>
+          )}
+        </span>
+        {show && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold text-lg">Información completa</h3>
+                <button onClick={() => setShow(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+              </div>
+              <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
+                {text}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Btn variant="secondary" size="sm" onClick={() => setShow(false)}>Cerrar</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
   return(
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1261,6 +1524,7 @@ function Proveedores({ user }: { user: User }) {
           <Btn variant="primary"   size="sm" onClick={openNew}><Plus size={14}/> Nuevo proveedor</Btn>
         </div>
       </div>
+
       <Card className="p-4">
         <div className="relative max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
@@ -1268,52 +1532,67 @@ function Proveedores({ user }: { user: User }) {
             className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
         </div>
       </Card>
+
       <Card className="overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              {["Nombre","Teléfono","Correo","Dirección","Estado","Acciones"].map(h=>(
-                <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(s=>(
-              <tr key={s.id_proveedor} className={`border-b border-gray-50 transition-colors ${s.deleted ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50'}`}>
-                <td className="py-3 px-4 font-medium text-[#1e1e1e]">{s.nombre} {s.apellido}</td>
-                <td className="py-3 px-4 text-gray-600">{s.telefono??"—"}</td>
-                <td className="py-3 px-4 text-gray-600">{s.correo??"—"}</td>
-                <td className="py-3 px-4 text-gray-600 text-xs">{s.direccion??"—"}</td>
-                <td className="py-3 px-4">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                    {s.deleted ? "Inactivo" : "Activo"}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex gap-2 items-center">
-                    <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                    <button
-                      onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
-                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${
-                        s.deleted
-                          ? 'text-green-700 bg-green-50 hover:bg-green-100'
-                          : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
-                      }`}
-                      title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
-                    >
-                      {s.deleted ? "Activar" : "Desactivar"}
-                    </button>
-                    {!s.has_productos && (
-                      <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Eliminar permanentemente"><Trash2 size={14}/></button>
-                    )}
-                  </div>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm table-auto whitespace-nowrap">
+            <thead className="bg-gray-50">
+              <tr className="border-b border-gray-100">
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Nombre</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Teléfono</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Correo</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Dirección</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
               </tr>
-            ))}
-            {filtered.length===0&&<tr><td colSpan={6} className="py-10 text-center text-gray-400">Sin proveedores.</td></tr>}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map(s=>(
+                <tr key={s.id_proveedor} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${s.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
+                  <td className="py-3 px-3 font-medium text-[#1e1e1e]">
+                    <Expandable text={`${s.nombre} ${s.apellido}`} maxLength={30} />
+                  </td>
+                  <td className="py-3 px-3 text-gray-600">
+                    <Expandable text={s.telefono ?? "—"} maxLength={12} />
+                  </td>
+                  <td className="py-3 px-3 text-gray-600">
+                    <Expandable text={s.correo ?? "—"} maxLength={30} />
+                  </td>
+                  <td className="py-3 px-3 text-gray-600">
+                    <Expandable text={s.direccion ?? "—"} maxLength={35} />
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                      {s.deleted ? "Inactivo" : "Activo"}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3">
+                    <div className="flex gap-2 items-center">
+                      <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                      <button
+                        onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
+                        className={`p-1 rounded text-xs font-semibold px-2 py-1 ${s.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                        title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
+                      >
+                        {s.deleted ? "Activar" : "Desactivar"}
+                      </button>
+                      {!s.has_productos && (
+                        <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length===0 && (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-gray-400">Sin proveedores.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </Card>
+
       {showForm&&(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6">
@@ -1348,10 +1627,14 @@ function Empleados({ user }: { user: User }) {
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
   const [filterCargo, setFilterCargo] = useState("");
+  const [filterEstado, setFilterEstado] = useState("");
+  const [filterDui, setFilterDui]       = useState("");
+  const [filterNit, setFilterNit]       = useState("");
+  const [filterAfp, setFilterAfp]       = useState("");
   const [showForm, setShowForm]   = useState(false);
   const [editEmp, setEditEmp]     = useState<Empleado | null>(null);
   const [formError, setFormError] = useState("");
-  const [form, setForm]           = useState({ nombre:"", apellido:"", correo:"", telefono:"", cargo:"cajero", password:"", fecha_contratacion:"" });
+  const [form, setForm] = useState({ nombre:"", apellido:"", correo:"", telefono:"", cargo:"cajero", password:"", fecha_contratacion:"", dui:"", nit:"", cuenta_banco:"", afp:"" });
 
   const CARGOS = ["administrador","farmaceutico","cajero"];
   const CARGO_COLOR: Record<string,string> = { administrador:"bg-[#e3f2fd] text-[#0a4b7a]", farmaceutico:"bg-[#e8f5e9] text-green-800", cajero:"bg-[#fff3e0] text-amber-800" };
@@ -1360,13 +1643,19 @@ function Empleados({ user }: { user: User }) {
   async function load(){setLoading(true);try{setEmpleados(await empleadosApi.getAll());}catch(e){console.error(e);}finally{setLoading(false);}}
   useEffect(()=>{load();},[]);
 
-  const filtered = empleados.filter(e =>
-    `${e.nombre} ${e.apellido}`.toLowerCase().includes(search.toLowerCase()) &&
-    (!filterCargo || e.cargo === filterCargo)
-  );
+  const filtered = empleados.filter(e => {
+    if (search && !`${e.nombre} ${e.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
+    if (filterCargo  && e.cargo !== filterCargo) return false;
+    if (filterEstado === "activo"   && !e.activo) return false;
+    if (filterEstado === "inactivo" &&  e.activo) return false;
+    if (filterDui && !(e.dui ?? "").toLowerCase().startsWith(filterDui.toLowerCase())) return false;
+    if (filterNit && !(e.nit ?? "").toLowerCase().startsWith(filterNit.toLowerCase())) return false;
+    if (filterAfp && !(e.afp ?? "").toLowerCase().startsWith(filterAfp.toLowerCase())) return false;
+    return true;
+  });
 
-  function openNew(){setEditEmp(null);setForm({nombre:"",apellido:"",correo:"",telefono:"",cargo:"cajero",password:"",fecha_contratacion:""});setFormError("");setShowForm(true);}
-  function openEdit(emp:Empleado){setEditEmp(emp);setForm({nombre:emp.nombre,apellido:emp.apellido,correo:emp.correo,telefono:emp.telefono??"",cargo:emp.cargo,password:"",fecha_contratacion:emp.fecha_contratacion??""});setFormError("");setShowForm(true);}
+  function openNew(){setEditEmp(null);setForm({nombre:"",apellido:"",correo:"",telefono:"",cargo:"cajero",password:"",fecha_contratacion:"",dui:"",nit:"",cuenta_banco:"",afp:""});setFormError("");setShowForm(true);}
+  function openEdit(emp:Empleado){setEditEmp(emp);setForm({nombre:emp.nombre,apellido:emp.apellido,correo:emp.correo,telefono:emp.telefono??"",cargo:emp.cargo,password:"",fecha_contratacion:emp.fecha_contratacion??"",dui:emp.dui??"",nit:emp.nit??"",cuenta_banco:emp.cuenta_banco??"",afp:emp.afp??""});setFormError("");setShowForm(true);}
 
   async function saveForm(){
     if(!form.nombre||!form.apellido||!form.correo||!form.cargo){setFormError("Complete los campos obligatorios.");return;}
@@ -1398,7 +1687,52 @@ function Empleados({ user }: { user: User }) {
     }catch(e){console.error(e);}
   }
 
+  const hayFiltros = !!(filterCargo||filterEstado||filterDui||filterNit||filterAfp);
+  function limpiarFiltros() {
+    setFilterCargo(""); setFilterEstado(""); setFilterDui(""); setFilterNit(""); setFilterAfp("");
+  }
   if(loading) return <LoadingSpinner/>;
+
+  // ── Componente interno para expandir texto con botón "+" ──
+  const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
+    const [show, setShow] = useState(false);
+    if (!text) return <span className="text-gray-400">—</span>;
+    const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
+    const isLong = text.length > maxLength;
+    return (
+      <>
+        <span className="inline-flex items-center gap-1">
+          {truncated}
+          {isLong && (
+            <button
+              onClick={() => setShow(true)}
+              className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+              title="Ver completo"
+            >
+              +
+            </button>
+          )}
+        </span>
+        {show && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold text-lg">Información completa</h3>
+                <button onClick={() => setShow(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+              </div>
+              <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
+                {text}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Btn variant="secondary" size="sm" onClick={() => setShow(false)}>Cerrar</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
   return(
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1411,68 +1745,110 @@ function Empleados({ user }: { user: User }) {
           <Btn variant="primary"   size="sm" onClick={openNew}><Plus size={14}/> Nuevo empleado</Btn>
         </div>
       </div>
+
       <Card className="p-4">
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-48">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre..."
-              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre..."
+                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
+            </div>
+            <Select value={filterCargo} onChange={setFilterCargo} className="w-32">
+              <option value="">Cargo: Todos</option>
+              {CARGOS.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
+            </Select>
+            <Select value={filterEstado} onChange={setFilterEstado} className="w-28">
+              <option value="">Estado: Todos</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </Select>
+            <Select value={filterAfp} onChange={setFilterAfp} className="w-32">
+              <option value="">AFP: Todas</option>
+              <option value="CRECER">CRECER</option>
+              <option value="CONFÍA">CONFÍA</option>
+            </Select>
+            <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
+              <X size={13}/> Limpiar filtros
+            </Btn>
           </div>
-          <Select value={filterCargo} onChange={setFilterCargo}>
-            <option value="">Todos los cargos</option>
-            {CARGOS.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
-          </Select>
+          <div className="flex flex-wrap gap-3 items-center">
+            <input value={filterDui} onChange={e=>setFilterDui(e.target.value)}
+              placeholder="Filtrar DUI..." className="w-36 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+            <input value={filterNit} onChange={e=>setFilterNit(e.target.value)}
+              placeholder="Filtrar NIT..." className="w-40 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+          </div>
         </div>
       </Card>
+
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                {["Empleado","Correo","Teléfono","Cargo","Contratación","Estado","Acciones"].map(h=>(
-                  <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
-                ))}
+          <table className="w-full text-sm table-auto whitespace-nowrap">
+            <thead className="bg-gray-50">
+              <tr className="border-b border-gray-100">
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Empleado</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Correo</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Teléfono</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">DUI</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">NIT</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Cuenta Bancaria</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">AFP</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Cargo</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Contratación</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
+                <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(emp=>(
-                <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors ${!emp.activo?"opacity-50":""}`}>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
-                        {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
+              {filtered.map(emp=>{
+                const fullName = `${emp.nombre} ${emp.apellido}`;
+                return (
+                  <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold">
+                          {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
+                        </div>
+                        <Expandable text={fullName} maxLength={25} />
                       </div>
-                      <span className="font-medium text-[#1e1e1e]">{emp.nombre} {emp.apellido}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-gray-600">{emp.correo}</td>
-                  <td className="py-3 px-4 text-gray-600">{emp.telefono??"—"}</td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo]??"bg-gray-100 text-gray-600"}`}>
-                      {CARGO_ICON[emp.cargo]} {emp.cargo}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-gray-500 text-xs">{emp.fecha_contratacion??"—"}</td>
-                  <td className="py-3 px-4">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo?"bg-green-50 text-green-700":"bg-gray-100 text-gray-500"}`}>
-                      {emp.activo?"Activo":"Inactivo"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <button onClick={()=>openEdit(emp)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                      <button onClick={()=>handleToggle(emp)} className={`p-1 rounded ${emp.activo?"text-[#d32f2f] hover:bg-red-50":"text-green-600 hover:bg-green-50"}`} title={emp.activo?"Desactivar":"Activar"}>
-                        {emp.activo?<X size={14}/>:<Check size={14}/>}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length===0&&<tr><td colSpan={7} className="py-12 text-center text-gray-400">Sin empleados registrados.</td></tr>}
+                    </td>
+                    <td className="py-3 px-3"><Expandable text={emp.correo} maxLength={30} /></td>
+                    <td className="py-3 px-3"><Expandable text={emp.telefono} maxLength={12} /></td>
+                    <td className="py-3 px-3"><Expandable text={emp.dui} maxLength={12} /></td>
+                    <td className="py-3 px-3"><Expandable text={emp.nit} maxLength={14} /></td>
+                    <td className="py-3 px-3"><Expandable text={emp.cuenta_banco} maxLength={16} /></td>
+                    <td className="py-3 px-3"><Expandable text={emp.afp} maxLength={10} /></td>
+                    <td className="py-3 px-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-gray-100 text-gray-600'}`}>
+                        {CARGO_ICON[emp.cargo]} {emp.cargo}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-gray-500">{emp.fecha_contratacion || "—"}</td>
+                    <td className="py-3 px-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {emp.activo ? "Activo" : "Inactivo"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-2">
+                        <button onClick={()=>openEdit(emp)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                        <button onClick={()=>handleToggle(emp)} className={`p-1 rounded ${emp.activo ? 'text-[#d32f2f] hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`} title={emp.activo ? "Desactivar" : "Activar"}>
+                          {emp.activo ? <X size={14}/> : <Check size={14}/>}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filtered.length===0 && (
+                <tr><td colSpan={11} className="py-10 text-center text-gray-400">Sin empleados registrados. </td></tr>
+              )}
             </tbody>
           </table>
         </div>
       </Card>
+
       {showForm&&(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
@@ -1486,6 +1862,16 @@ function Empleados({ user }: { user: User }) {
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label><Input value={form.apellido} onChange={v=>setForm(p=>({...p,apellido:v}))}/></div>
               <div className="col-span-2"><label className="block text-xs font-semibold text-gray-600 mb-1">Correo *</label><Input type="email" value={form.correo} onChange={v=>setForm(p=>({...p,correo:v}))}/></div>
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label><Input value={form.telefono} onChange={v=>setForm(p=>({...p,telefono:v}))}/></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">DUI <span className="text-gray-400 font-normal">(00000000-0)</span></label><Input value={form.dui} onChange={v=>setForm(p=>({...p,dui:v}))} placeholder="00000000-0"/></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">NIT</label><Input value={form.nit} onChange={v=>setForm(p=>({...p,nit:v}))} placeholder="0000-000000-000-0"/></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Cuenta Bancaria</label><Input value={form.cuenta_banco} onChange={v=>setForm(p=>({...p,cuenta_banco:v}))} placeholder="Número de cuenta"/></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">AFP</label>
+                <Select value={form.afp} onChange={v=>setForm(p=>({...p,afp:v}))} className="w-full">
+                  <option value="">Sin AFP</option>
+                  <option value="CRECER">CRECER</option>
+                  <option value="CONFÍA">CONFÍA</option>
+                </Select>
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Cargo *</label>
                 <Select value={form.cargo} onChange={v=>setForm(p=>({...p,cargo:v}))} className="w-full">
@@ -1675,125 +2061,279 @@ function Alertas() {
 
 // ── Historial de Ventas ───────────────────────────────────────────────────────
 function Historial() {
-  const [data, setData]         = useState<{ventas:any[];total:number}>({ventas:[],total:0});
-  const [loading, setLoading]   = useState(true);
-  const [from, setFrom]         = useState("");
-  const [to, setTo]             = useState("");
-  const [page, setPage]         = useState(0);
-  const [detalle, setDetalle]   = useState<any>(null);
+  const [data, setData]       = useState<{ ventas: any[]; total: number }>({ ventas: [], total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [page, setPage]       = useState(0);
+  const [detalle, setDetalle] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // filtros
+  const [from,      setFrom]      = useState("");
+  const [to,        setTo]        = useState("");
+  const [cliente,   setCliente]   = useState("");
+  const [empleado,  setEmpleado]  = useState("");
+  const [totalMin,  setTotalMin]  = useState("");
+  const [totalMax,  setTotalMax]  = useState("");
+
   const LIMIT = 20;
 
-  async function load(p=0){
+  async function load(p = 0) {
     setLoading(true);
-    try{
-      const res=await getHistorial({from:from||undefined,to:to||undefined,limit:LIMIT,offset:p*LIMIT});
-      setData(res);setPage(p);
-    }catch(e){console.error(e);}finally{setLoading(false);}
+    try {
+      const res = await getHistorial({
+        from:      from      || undefined,
+        to:        to        || undefined,
+        cliente:   cliente   || undefined,
+        empleado:  empleado  || undefined,
+        total_min: totalMin  || undefined,
+        total_max: totalMax  || undefined,
+        limit:     LIMIT,
+        offset:    p * LIMIT,
+      });
+      setData(res);
+      setPage(p);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
-  useEffect(()=>{load(0);},[]);
 
-  async function verDetalle(venta:any){
+  function limpiar() {
+    setFrom(""); setTo(""); setCliente(""); setEmpleado(""); setTotalMin(""); setTotalMax("");
+    setTimeout(() => load(0), 0);
+  }
+
+  useEffect(() => { load(0); }, []);
+
+  async function verDetalle(venta: any) {
+    setDetalle({ venta, detalle: null });
     setDetailLoading(true);
-    try{const d=await getDetalleVenta(venta.id_venta);setDetalle(d);}catch(e){console.error(e);}finally{setDetailLoading(false);}
+    try {
+      const d = await getDetalleVenta(venta.id_venta);
+      setDetalle(d);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDetailLoading(false);
+    }
   }
 
-  const totalPages=Math.ceil(data.total/LIMIT);
+  const totalPages = Math.ceil(data.total / LIMIT);
 
-  return(
+  const inputCls = "px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] w-full";
+  const labelCls = "block text-xs font-semibold text-gray-600 mb-1";
+
+  // ── Componente interno para expandir texto con botón "+" ──
+  const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
+    const [show, setShow] = useState(false);
+    if (!text) return <span className="text-gray-400">—</span>;
+    const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
+    const isLong = text.length > maxLength;
+    return (
+      <>
+        <span className="inline-flex items-center gap-1">
+          {truncated}
+          {isLong && (
+            <button
+              onClick={() => setShow(true)}
+              className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+              title="Ver completo"
+            >
+              +
+            </button>
+          )}
+        </span>
+        {show && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold text-lg">Información completa</h3>
+                <button onClick={() => setShow(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+              </div>
+              <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
+                {text}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Btn variant="secondary" size="sm" onClick={() => setShow(false)}>Cerrar</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  return (
     <div className="p-6 space-y-4">
+      {/* encabezado */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-[#1e1e1e]">Historial de Ventas</h1>
           <p className="text-sm text-gray-500">{data.total} ventas registradas</p>
         </div>
       </div>
+
+      {/* panel de filtros */}
       <Card className="p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Desde</label>
-            <input type="date" value={from} onChange={e=>setFrom(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="w-36">
+              <label className={labelCls}>Desde</label>
+              <input type="date" value={from} onChange={e=>setFrom(e.target.value)} className={inputCls} />
+            </div>
+            <div className="w-36">
+              <label className={labelCls}>Hasta</label>
+              <input type="date" value={to} onChange={e=>setTo(e.target.value)} className={inputCls} />
+            </div>
+            <div className="flex-1 min-w-[180px]">
+              <label className={labelCls}>Cliente</label>
+              <input type="text" placeholder="Nombre cliente..." value={cliente}
+                onChange={e=>setCliente(e.target.value)} onKeyDown={e=>e.key==="Enter"&&load(0)}
+                className={inputCls} />
+            </div>
+            <div className="flex-1 min-w-[180px]">
+              <label className={labelCls}>Empleado</label>
+              <input type="text" placeholder="Nombre empleado..." value={empleado}
+                onChange={e=>setEmpleado(e.target.value)} onKeyDown={e=>e.key==="Enter"&&load(0)}
+                className={inputCls} />
+            </div>
+            <div className="w-28">
+              <label className={labelCls}>Total mín. ($)</label>
+              <input type="number" min="0" step="0.01" placeholder="0.00" value={totalMin}
+                onChange={e=>setTotalMin(e.target.value)} className={inputCls} />
+            </div>
+            <div className="w-28">
+              <label className={labelCls}>Total máx. ($)</label>
+              <input type="number" min="0" step="0.01" placeholder="999.99" value={totalMax}
+                onChange={e=>setTotalMax(e.target.value)} className={inputCls} />
+            </div>
+            <div className="flex gap-2 pb-0.5">
+              <Btn variant="primary" size="sm" onClick={()=>load(0)}><Search size={14}/> Filtrar</Btn>
+              <Btn variant="ghost" size="sm" onClick={limpiar}><X size={14}/> Limpiar</Btn>
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Hasta</label>
-            <input type="date" value={to} onChange={e=>setTo(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
-          </div>
-          <Btn variant="primary" size="sm" onClick={()=>load(0)}><Search size={14}/> Filtrar</Btn>
-          <Btn variant="ghost" size="sm" onClick={()=>{setFrom("");setTo("");setTimeout(()=>load(0),0);}}><X size={14}/> Limpiar</Btn>
         </div>
       </Card>
+
+      {/* tabla */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                {["# Venta","Fecha","Cliente","Empleado","Total","Detalle"].map(h=>(
-                  <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
+          <table className="w-full text-sm table-auto whitespace-nowrap">
+            <thead className="bg-gray-50">
+              <tr className="border-b border-gray-100">
+                {["# Venta", "Fecha", "Cliente", "Empleado", "Total", "Detalle"].map(h => (
+                  <th key={h} className="text-left py-3 px-3 text-xs text-gray-500 font-semibold">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {loading?(
+              {loading ? (
                 <tr><td colSpan={6} className="py-12 text-center text-gray-400">Cargando...</td></tr>
-              ):data.ventas.map(v=>(
+              ) : data.ventas.map(v => (
                 <tr key={v.id_venta} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
-                  <td className="py-3 px-4 font-mono text-xs text-[#0a4b7a] font-semibold">#{v.id_venta}</td>
-                  <td className="py-3 px-4 text-gray-600 text-xs">{v.fecha}</td>
-                  <td className="py-3 px-4 text-gray-700">{v.cliente??<span className="text-gray-400 italic">Consumidor final</span>}</td>
-                  <td className="py-3 px-4 text-gray-700">{v.empleado}</td>
-                  <td className="py-3 px-4 font-mono font-semibold text-[#0a4b7a]">${Number(v.total).toFixed(2)}</td>
-                  <td className="py-3 px-4">
-                    <button onClick={()=>verDetalle(v)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Ver detalle"><Eye size={14}/></button>
+                  <td className="py-3 px-3 font-mono text-xs text-[#0a4b7a] font-semibold">#{v.id_venta}</td>
+                  <td className="py-3 px-3 text-gray-600 text-xs">{v.fecha}</td>
+                  <td className="py-3 px-3 text-gray-700">
+                    <Expandable text={v.cliente ?? "Consumidor final"} maxLength={30} />
+                  </td>
+                  <td className="py-3 px-3 text-gray-700">
+                    <Expandable text={v.empleado ?? "—"} maxLength={30} />
+                  </td>
+                  <td className="py-3 px-3 font-mono font-semibold text-[#0a4b7a]">${Number(v.total).toFixed(2)}</td>
+                  <td className="py-3 px-3">
+                    <button
+                      onClick={() => verDetalle(v)}
+                      className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]"
+                      title="Ver detalle"
+                    >
+                      <Eye size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}
-              {!loading&&data.ventas.length===0&&<tr><td colSpan={6} className="py-12 text-center text-gray-400">Sin ventas en el período.</td></tr>}
+              {!loading && data.ventas.length === 0 && (
+                <tr><td colSpan={6} className="py-12 text-center text-gray-400">Sin ventas en el período.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
-        {totalPages>1&&(
+
+        {/* paginación */}
+        {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-            <span className="text-xs text-gray-500">Página {page+1} de {totalPages}</span>
+            <span className="text-xs text-gray-500">Página {page + 1} de {totalPages}</span>
             <div className="flex gap-2">
-              <Btn variant="secondary" size="sm" disabled={page===0} onClick={()=>load(page-1)}>← Anterior</Btn>
-              <Btn variant="secondary" size="sm" disabled={page>=totalPages-1} onClick={()=>load(page+1)}>Siguiente →</Btn>
+              <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>← Anterior</Btn>
+              <Btn variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => load(page + 1)}>Siguiente →</Btn>
             </div>
           </div>
         )}
       </Card>
-      {detalle&&(
+
+      {/* modal detalle (sin cambios, ya está bien estructurado) */}
+      {detalle && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-xl max-h-[85vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-4">
+          <Card className="w-full max-w-xl max-h-[85vh] overflow-y-auto p-0">
+            <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100">
               <div>
-                <h2 className="text-lg font-bold text-[#1e1e1e]">Detalle de Venta #{detalle.venta?.id_venta}</h2>
-                <p className="text-xs text-gray-500">{detalle.venta?.fecha} · {detalle.venta?.empleado}</p>
+                <h2 className="text-lg font-bold text-[#1e1e1e]">
+                  Detalle de Venta <span className="text-[#0a4b7a]">#{detalle.venta?.id_venta}</span>
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">{detalle.venta?.fecha}</p>
               </div>
-              <button onClick={()=>setDetalle(null)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+              <button onClick={() => setDetalle(null)} className="text-gray-400 hover:text-gray-600 mt-1"><X size={20}/></button>
             </div>
-            {detalle.venta?.cliente&&<div className="mb-4 bg-[#f0f7ff] rounded-lg px-3 py-2 text-xs text-[#0a4b7a]">Cliente: <strong>{detalle.venta.cliente}</strong></div>}
-            <table className="w-full text-sm mb-4">
-              <thead><tr className="border-b border-gray-100 bg-gray-50">{["Producto","Lote","Cant.","P.Unit","Subtotal"].map(h=><th key={h} className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">{h}</th>)}</tr></thead>
-              <tbody>
-                {detailLoading?<tr><td colSpan={5} className="py-6 text-center text-gray-400">Cargando...</td></tr>
-                :detalle.detalle?.map((d:any)=>(
-                  <tr key={d.id_detalle} className="border-b border-gray-50">
-                    <td className="py-2 px-3 font-medium text-[#1e1e1e]">{d.nombre_producto}</td>
-                    <td className="py-2 px-3 font-mono text-xs text-gray-500">{d.lote}</td>
-                    <td className="py-2 px-3 text-gray-600">{d.cantidad}</td>
-                    <td className="py-2 px-3 font-mono text-gray-600">${Number(d.precio_unitario).toFixed(2)}</td>
-                    <td className="py-2 px-3 font-mono font-semibold text-[#0a4b7a]">${Number(d.subtotal).toFixed(2)}</td>
+            <div className="grid grid-cols-2 gap-3 px-6 py-4 bg-[#f8fafc] border-b border-gray-100">
+              <div>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Cliente</p>
+                <p className="text-sm font-semibold text-[#1e1e1e]">
+                  {detalle.venta?.cliente ?? <span className="text-gray-400 font-normal italic">Consumidor final</span>}
+                </p>
+                {detalle.venta?.dui && <p className="text-xs text-gray-500 mt-0.5">DUI: {detalle.venta.dui}</p>}
+                {detalle.venta?.cliente_telefono && <p className="text-xs text-gray-500">Tel: {detalle.venta.cliente_telefono}</p>}
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Atendido por</p>
+                <p className="text-sm font-semibold text-[#1e1e1e]">{detalle.venta?.empleado}</p>
+              </div>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Productos comprados</p>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    {["Producto", "Cant.", "P. Unit.", "Subtotal"].map(h => (
+                      <th key={h} className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="flex justify-between items-center border-t border-gray-100 pt-3">
-              <span className="text-sm font-semibold text-[#1e1e1e]">Total</span>
-              <span className="text-lg font-bold text-[#0a4b7a]">${Number(detalle.venta?.total).toFixed(2)}</span>
+                </thead>
+                <tbody>
+                  {detailLoading ? (
+                    <tr><td colSpan={4} className="py-8 text-center text-gray-400">Cargando productos...</td></tr>
+                  ) : detalle.detalle?.map((d: any) => (
+                    <tr key={d.id_detalle_venta} className="border-b border-gray-50 hover:bg-[#f0f7ff]">
+                      <td className="py-2 px-3">
+                        <p className="font-medium text-[#1e1e1e]">{d.nombre_producto}</p>
+                        {d.lote && <p className="text-xs text-gray-400">Lote: {d.lote}</p>}
+                      </td>
+                      <td className="py-2 px-3 text-gray-600 text-center">{d.cantidad}</td>
+                      <td className="py-2 px-3 font-mono text-gray-600">${Number(d.precio_unitario).toFixed(2)}</td>
+                      <td className="py-2 px-3 font-mono font-semibold text-[#0a4b7a]">${Number(d.subtotal).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="flex justify-end mt-4"><Btn variant="secondary" onClick={()=>setDetalle(null)}>Cerrar</Btn></div>
+            <div className="px-6 pb-4">
+              <div className="flex items-center justify-between bg-[#0a4b7a] rounded-xl px-5 py-3">
+                <div><p className="text-xs text-blue-200 font-semibold uppercase tracking-wide">Total pagado</p></div>
+                <span className="text-2xl font-bold text-white font-mono">${Number(detalle.venta?.total).toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="flex justify-end px-6 pb-5">
+              <Btn variant="secondary" onClick={() => setDetalle(null)}>Cerrar</Btn>
+            </div>
           </Card>
         </div>
       )}
@@ -1839,7 +2379,7 @@ function Eliminados() {
   ];
 
   const byTab = tab === "todos" ? records : records.filter(r => r.tipo === tab);
-  const filtered = byTab.filter(r => r.nombre.toLowerCase().includes(search.toLowerCase()));
+  const filtered = byTab.filter(r => r.nombre.toLowerCase().startsWith(search.toLowerCase()));
 
   async function handleRestore(tipo: string, id: number) {
     if (!confirm(`¿Restaurar este ${tipoLabel[tipo].toLowerCase()}?`)) return;
@@ -2053,18 +2593,18 @@ function Auditoria({ user }: { user: User }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                {["Fecha", "Tabla", "Acción", "Descripción", "Empleado"].map(h => (
+                {["Fecha", "Tabla", "Acción", "Descripción", "Campo", "Valor anterior", "Valor nuevo", "Empleado"].map(h => (
                   <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="py-12 text-center text-gray-400">Cargando...</td></tr>
+                <tr><td colSpan={8} className="py-12 text-center text-gray-400">Cargando...</td></tr>
               ) : data.data.map((r, i) => (
                 <tr key={i} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
                   <td className="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">
-                    {new Date(r.fecha).toLocaleString('es-SV')}
+                    {r.fecha}
                   </td>
                   <td className="py-3 px-4">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaColor[r.tabla] ?? 'bg-gray-100 text-gray-600'}`}>
@@ -2077,11 +2617,24 @@ function Auditoria({ user }: { user: User }) {
                     </span>
                   </td>
                   <td className="py-3 px-4 text-gray-700">{r.descripcion}</td>
+                  <td className="py-3 px-4 text-xs text-gray-500 font-mono">
+                    {r.campo_modificado ?? '—'}
+                  </td>
+                  <td className="py-3 px-4 text-xs">
+                    {r.valor_anterior
+                      ? <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded font-mono">{r.valor_anterior}</span>
+                      : <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="py-3 px-4 text-xs">
+                    {r.valor_nuevo
+                      ? <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded font-mono">{r.valor_nuevo}</span>
+                      : <span className="text-gray-400">—</span>}
+                  </td>
                   <td className="py-3 px-4 text-gray-600 text-xs">{r.nombre_empleado ?? '—'}</td>
                 </tr>
               ))}
               {!loading && data.data.length === 0 && (
-                <tr><td colSpan={5} className="py-12 text-center text-gray-400">Sin registros de auditoría.</td></tr>
+                <tr><td colSpan={8} className="py-12 text-center text-gray-400">Sin registros de auditoría.</td></tr>
               )}
             </tbody>
           </table>
@@ -2133,8 +2686,8 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
   const screenTitle: Record<Screen,string> = {
     dashboard:"Dashboard", ventas:"Ventas (POS)", productos:"Productos",
     clientes:"Clientes", empleados:"Empleados", proveedores:"Proveedores",
-    alertas:"Alertas de Stock", reportes:"Reportes", historial:"Historial de Ventas",
-    eliminados:"Registros Eliminados", configuracion:"Configuración", auditoria: "Auditoría del Sistema",
+    alertas:"Alertas de Stock", historial:"Historial de Ventas",
+    eliminados:"Registros Eliminados", auditoria: "Auditoría del Sistema",
   };
 
   return(
@@ -2156,7 +2709,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
             </button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-y-scroll">
           {screen==="dashboard"    && <Dashboard/>}
           {screen==="ventas"       && <Ventas user={user}/>}
           {screen==="productos"    && <Productos user={user}/>}
@@ -2166,9 +2719,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
           {screen==="alertas"      && <Alertas/>}
           {screen==="historial"    && <Historial/>}
           {screen==="eliminados"   && <Eliminados/>}
-          {screen==="configuracion"&& <Configuracion/>}
           {screen === "auditoria" && <Auditoria user={user} />}
-          {screen==="reportes"     && <div className="p-6"><h1 className="text-xl font-bold">Reportes</h1><p className="text-gray-500 text-sm mt-2">Próximamente.</p></div>}
         </main>
       </div>
     </div>
@@ -2181,11 +2732,3 @@ export default function App() {
   if(!user) return <LoginScreen onLogin={setUser}/>;
   return <AppShell user={user} onLogout={()=>{localStorage.removeItem('token');setUser(null);}}/>;
 }
-
-function setSaleError(arg0: string) {
-  throw new Error("Function not implemented.");
-}
-function addToCart(producto: any) {
-  throw new Error("Function not implemented.");
-}
-

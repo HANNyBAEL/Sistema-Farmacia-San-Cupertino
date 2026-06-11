@@ -4,11 +4,12 @@ import sequelize from '../config/database.js';
 const router = express.Router();
 
 router.post('/', async (req, res) => {
-  const { id_cliente, id_empleado, productos } = req.body;
+  // Extraer también 'fecha' del cuerpo de la petición
+  const { id_cliente, id_empleado, productos, fecha } = req.body;
   const transaction = await sequelize.transaction();
 
   try {
-    console.log('📥 Recibido:', { id_cliente, id_empleado, cantidadProductos: productos?.length });
+    console.log('📥 Recibido:', { id_cliente, id_empleado, cantidadProductos: productos?.length, fecha });
 
     if (!id_empleado) throw new Error('Falta el id_empleado');
     if (!productos || productos.length === 0) throw new Error('No hay productos en la venta');
@@ -16,17 +17,23 @@ router.post('/', async (req, res) => {
     const clienteId = id_cliente ? Number(id_cliente) : null;
     const empleadoId = Number(id_empleado);
 
-    // Fecha actual en zona horaria de El Salvador desde MySQL
-    const [[{ fechaHoy }]] = await sequelize.query(
-      `SELECT DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '-06:00'), '%Y-%m-%d') as fechaHoy`
-    );
+    // Usar la fecha enviada desde el frontend (ya en hora local)
+    let fechaVenta = fecha;
+    if (!fechaVenta) {
+      // Fallback: calcular con CONVERT_TZ (solo por si acaso)
+      const [[{ hoyLocal }]] = await sequelize.query(
+        `SELECT DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00')) as hoyLocal`
+      );
+      fechaVenta = hoyLocal;
+      console.warn('⚠️ No se recibió fecha en la petición. Usando fecha calculada:', fechaVenta);
+    }
 
     // 1. Insertar cabecera de la venta
     const [ventaResult] = await sequelize.query(
       `INSERT INTO ventas (fecha, total, id_cliente, id_empleado)
-       VALUES (:fechaHoy, 0, :clienteId, :empleadoId)`,
+       VALUES (:fecha, 0, :clienteId, :empleadoId)`,
       {
-        replacements: { fechaHoy, clienteId, empleadoId },
+        replacements: { fecha: fechaVenta, clienteId, empleadoId },
         type: sequelize.QueryTypes.INSERT,
         transaction
       }

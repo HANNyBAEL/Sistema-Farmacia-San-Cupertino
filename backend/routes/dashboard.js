@@ -5,50 +5,29 @@ const router = express.Router();
 
 router.get('/kpis', async (req, res) => {
   try {
-    // Obtener fecha de hoy en El Salvador como string
-    const [[{ hoy }]] = await sequelize.query(
-      `SELECT DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '-06:00'), '%Y-%m-%d') as hoy`
-    );
+    // Obtener fecha local actual del servidor MySQL (asumiendo que está configurado en UTC-6 o que CURDATE() da la fecha correcta)
+    const [[{ hoyLocal }]] = await sequelize.query(`SELECT CURDATE() as hoyLocal`);
 
-    const [[{ totalProductos }]] = await sequelize.query(
-      'SELECT COUNT(*) as totalProductos FROM productos'
-    );
+    const [[{ totalProductos }]] = await sequelize.query(`SELECT COUNT(*) as totalProductos FROM productos`);
+    const [[{ stockBajo }]] = await sequelize.query(`SELECT COUNT(*) as stockBajo FROM productos WHERE stock BETWEEN 1 AND 20`);
+    const [[{ agotados }]] = await sequelize.query(`SELECT COUNT(*) as agotados FROM productos WHERE stock = 0`);
+    const [[{ stockCritico }]] = await sequelize.query(`SELECT COUNT(*) as stockCritico FROM productos WHERE stock BETWEEN 1 AND 10`);
+    const [[{ proveedoresActivos }]] = await sequelize.query(`SELECT COUNT(*) as proveedoresActivos FROM proveedores`);
+    const [[{ empleadosActivos }]] = await sequelize.query(`SELECT COUNT(*) as empleadosActivos FROM empleados`);
 
-    const [[{ stockBajo }]] = await sequelize.query(
-      'SELECT COUNT(*) as stockBajo FROM productos WHERE stock BETWEEN 1 AND 20'
-    );
-
-    const [[{ agotados }]] = await sequelize.query(
-      'SELECT COUNT(*) as agotados FROM productos WHERE stock = 0'
-    );
-
+    // Comparar directamente con la columna fecha (tipo DATE)
     const [[{ ventasHoy }]] = await sequelize.query(
-      `SELECT COUNT(*) as ventasHoy FROM ventas WHERE fecha = :hoy`,
-      { replacements: { hoy } }
+      `SELECT COUNT(*) as ventasHoy FROM ventas WHERE fecha = :hoyLocal`,
+      { replacements: { hoyLocal } }
     );
-
     const [[{ ingresosHoy }]] = await sequelize.query(
-      `SELECT COALESCE(SUM(total), 0) as ingresosHoy FROM ventas WHERE fecha = :hoy`,
-      { replacements: { hoy } }
+      `SELECT COALESCE(SUM(total), 0) as ingresosHoy FROM ventas WHERE fecha = :hoyLocal`,
+      { replacements: { hoyLocal } }
     );
 
     const [[{ porVencer }]] = await sequelize.query(
-      `SELECT COUNT(*) as porVencer 
-       FROM productos 
-       WHERE fecha_vencimiento BETWEEN :hoy AND DATE_ADD(:hoy, INTERVAL 30 DAY)`,
-      { replacements: { hoy } }
-    );
-
-    const [[{ proveedoresActivos }]] = await sequelize.query(
-      'SELECT COUNT(*) as proveedoresActivos FROM proveedores'
-    );
-
-    const [[{ empleadosActivos }]] = await sequelize.query(
-      'SELECT COUNT(*) as empleadosActivos FROM empleados'
-    );
-
-    const [[{ stockCritico }]] = await sequelize.query(
-      'SELECT COUNT(*) as stockCritico FROM productos WHERE stock BETWEEN 1 AND 10'
+      `SELECT COUNT(*) as porVencer FROM productos WHERE fecha_vencimiento BETWEEN :hoy AND DATE_ADD(:hoy, INTERVAL 30 DAY)`,
+      { replacements: { hoy: hoyLocal } }
     );
 
     res.json({
@@ -70,31 +49,28 @@ router.get('/kpis', async (req, res) => {
 
 router.get('/ventas-ultimos-7-dias', async (req, res) => {
   try {
-    // Obtener fecha de hoy en El Salvador como string
-    const [[{ hoy }]] = await sequelize.query(
-      `SELECT DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '-06:00'), '%Y-%m-%d') as hoy`
+    const [[{ hoyLocal }]] = await sequelize.query(`SELECT CURDATE() as hoyLocal`);
+
+    const rows = await sequelize.query(
+      `SELECT 
+         fecha as dia,
+         COALESCE(SUM(total), 0) as ventas
+       FROM ventas
+       WHERE fecha >= DATE_SUB(:hoyLocal, INTERVAL 6 DAY)
+       GROUP BY fecha
+       ORDER BY fecha ASC`,
+      { replacements: { hoyLocal }, type: sequelize.QueryTypes.SELECT }
     );
 
-    const [rows] = await sequelize.query(`
-      SELECT 
-        fecha as dia,
-        COALESCE(SUM(total), 0) as ventas
-      FROM ventas
-      WHERE fecha >= DATE_SUB(:hoy, INTERVAL 6 DAY)
-      GROUP BY fecha
-      ORDER BY fecha ASC
-    `, { replacements: { hoy } });
-
-    // Rellenar los 7 días usando la fecha de El Salvador
+    // Generar los últimos 7 días (en formato YYYY-MM-DD)
     const result = [];
+    const hoyDate = new Date(hoyLocal + 'T00:00:00');
     for (let i = 6; i >= 0; i--) {
-      const base = new Date(hoy + 'T00:00:00');
-      base.setDate(base.getDate() - i);
-      const fechaStr = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}-${String(base.getDate()).padStart(2, '0')}`;
+      const d = new Date(hoyDate);
+      d.setDate(hoyDate.getDate() - i);
+      const fechaStr = d.toISOString().slice(0, 10);
       const found = rows.find(r => {
-        const diaStr = r.dia instanceof Date
-          ? r.dia.toISOString().slice(0, 10)
-          : String(r.dia).slice(0, 10);
+        const diaStr = r.dia instanceof Date ? r.dia.toISOString().slice(0,10) : String(r.dia).slice(0,10);
         return diaStr === fechaStr;
       });
       result.push({
@@ -102,7 +78,6 @@ router.get('/ventas-ultimos-7-dias', async (req, res) => {
         ventas: found ? parseFloat(found.ventas) : 0
       });
     }
-
     res.json(result);
   } catch (error) {
     console.error('Error en /api/dashboard/ventas-ultimos-7-dias:', error);

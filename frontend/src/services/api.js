@@ -1,7 +1,8 @@
 import axios from 'axios';
 
+// Usa ruta relativa para que Vite redirija las peticiones a través del proxy
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // URL del backend
+  baseURL: '/api',
 });
 
 // Interceptor para adjuntar token JWT (si es necesario)
