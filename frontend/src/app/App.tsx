@@ -610,53 +610,95 @@ function Productos({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
       </div>
 
+      {/* Filtros rediseñados al estilo Auditoría */}
       <Card className="p-4">
-        <div className="space-y-3">
-          {/* Fila 1 */}
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="relative flex-1 min-w-[200px]">
+        <div className="flex flex-wrap gap-4">
+          {/* Buscar por nombre */}
+          <div className="min-w-[180px] flex-1">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
+            <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre..."
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre..."
                 className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
-            <Select value={filterStock} onChange={setFilterStock} className="w-32">
-              <option value="">Stock: Todos</option>
+          </div>
+
+          {/* Stock */}
+          <div className="min-w-[130px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Stock</label>
+            <Select value={filterStock} onChange={setFilterStock} className="w-full">
+              <option value="">Todos</option>
               <option value="agotado">Agotado</option>
               <option value="critico">Crítico</option>
               <option value="bajo">Bajo</option>
               <option value="normal">Normal</option>
             </Select>
-            <Select value={filterCat} onChange={setFilterCat} className="w-36">
-              <option value="">Categoría: Todas</option>
+          </div>
+
+          {/* Categoría */}
+          <div className="min-w-[150px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Categoría</label>
+            <Select value={filterCat} onChange={setFilterCat} className="w-full">
+              <option value="">Todas</option>
               {CATEGORIAS.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
             </Select>
-            <Select value={filterProveedor} onChange={setFilterProveedor} className="w-40">
-              <option value="">Proveedor: Todos</option>
+          </div>
+
+          {/* Proveedor */}
+          <div className="min-w-[160px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor</label>
+            <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
+              <option value="">Todos</option>
               {suppliers.map(s => <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>)}
             </Select>
-            <Select value={filterVenc} onChange={setFilterVenc} className="w-36">
-              <option value="">Vencimiento: Todos</option>
+          </div>
+
+          {/* Vencimiento */}
+          <div className="min-w-[140px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Vencimiento</label>
+            <Select value={filterVenc} onChange={setFilterVenc} className="w-full">
+              <option value="">Todos</option>
               <option value="vencido">Vencidos</option>
-              <option value="proximo">Próximos</option>
+              <option value="proximo">Próximos (≤30 días)</option>
               <option value="vigente">Vigentes</option>
             </Select>
-            <Select value={filterEstado} onChange={setFilterEstado} className="w-28">
-              <option value="">Estado: Todos</option>
+          </div>
+
+          {/* Estado */}
+          <div className="min-w-[120px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+            <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
+              <option value="">Todos</option>
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
-          {/* Fila 2 */}
-          <div className="flex flex-wrap gap-3 items-center">
-            <input value={filterLote} onChange={e=>setFilterLote(e.target.value)}
-              placeholder="Buscar lote..." className="w-36 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
-            <input value={filterPrecioMin} onChange={e=>setFilterPrecioMin(e.target.value)}
-              placeholder="Precio mín $" type="number" min={0} className="w-32 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
-            <input value={filterPrecioMax} onChange={e=>setFilterPrecioMax(e.target.value)}
-              placeholder="Precio máx $" type="number" min={0} className="w-32 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
-            <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
-              <X size={13}/> Limpiar filtros
+
+          {/* Lote */}
+          <div className="min-w-[140px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Lote</label>
+            <input value={filterLote} onChange={e=>setFilterLote(e.target.value)} placeholder="N° de lote..."
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Precio mínimo */}
+          <div className="min-w-[130px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Precio mín ($)</label>
+            <input value={filterPrecioMin} onChange={e=>setFilterPrecioMin(e.target.value)} type="number" min={0} placeholder="0.00"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Precio máximo */}
+          <div className="min-w-[130px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Precio máx ($)</label>
+            <input value={filterPrecioMax} onChange={e=>setFilterPrecioMax(e.target.value)} type="number" min={0} placeholder="9999.99"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Botón limpiar - igual que en Auditoría */}
+          <div className="flex items-end">
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
+              <X size={14} /> Limpiar filtros
             </Btn>
           </div>
         </div>
@@ -676,7 +718,7 @@ function Productos({ user }: { user: User }) {
                 <th className="text-left py-3 px-3 font-semibold text-gray-500">Proveedor</th>
                 <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
                 <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
-              </tr>
+               </tr>
             </thead>
             <tbody>
               {filtered.map(p=>(
@@ -815,6 +857,14 @@ function Ventas({ user }: { user: User }) {
   const [newClientForm, setNewClientForm] = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
   const [newClientError, setNewClientError] = useState("");
   const [savingClient, setSavingClient] = useState(false);
+  // Modal personalizado para medicamento controlado
+  const [controlledModal, setControlledModal] = useState<{ show: boolean; product: Product | null; onConfirm: () => void }>({ show: false, product: null, onConfirm: () => {} });
+  // Modal para cliente no seleccionado (solo advertencia)
+  const [noClientModal, setNoClientModal] = useState(false);
+  // Toast de error general
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
+  const cartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     Promise.all([getProductos(), clientesApi.getAll()])
@@ -825,39 +875,78 @@ function Ventas({ user }: { user: User }) {
       .catch(console.error);
   }, []);
 
+  // Scroll automático
+  useEffect(() => {
+    if (cartContainerRef.current) {
+      const lastRow = cartContainerRef.current.querySelector('tbody tr:last-child');
+      if (lastRow) lastRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [cart]);
+
+  // Limpiar toast después de 3 segundos
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  // Búsqueda de productos por nombre o código
   const results = products
     .filter(p => {
-      if (p.stock <= 0) return false;
-      if (p.papelera) return false;
-      const term = search.toLowerCase();
+      if (p.stock <= 0 || p.papelera) return false;
+      const term = search.toLowerCase().trim();
+      if (!term) return false;
       const name = p.nombre_producto.toLowerCase();
-      return name.startsWith(term) || name.split(' ').some(word => word.startsWith(term));
+      const codigo = p.codigo_barras?.toLowerCase() || "";
+      return name.startsWith(term) || name.split(' ').some(word => word.startsWith(term)) || codigo.startsWith(term);
     })
     .slice(0, 6);
 
+  // Agregar al carrito con modal para controlados
   function addToCart(p: Product) {
-    if (p.papelera) { setSaleError(`"${p.nombre_producto}" no está disponible.`); return; }
-    if (p.deleted === 1) { setSaleError(`"${p.nombre_producto}" está desactivado y no se puede vender.`); return; }
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    if (p.papelera || p.deleted === 1) {
+      setToast({ message: `"${p.nombre_producto}" no está disponible.`, type: 'error' });
+      return;
+    }
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
     const vencimiento = new Date(p.fecha_vencimiento + 'T00:00:00');
-    if (vencimiento < hoy) { setSaleError(`"${p.nombre_producto}" está vencido y no se puede vender.`); return; }
-    if (p.stock === 0) { setSaleError(`"${p.nombre_producto}" no tiene stock disponible.`); return; }
+    if (vencimiento < hoy) {
+      setToast({ message: `"${p.nombre_producto}" está vencido.`, type: 'error' });
+      return;
+    }
+    if (p.stock === 0) {
+      setToast({ message: `"${p.nombre_producto}" sin stock.`, type: 'error' });
+      return;
+    }
     const categoriasControladas = ['Controlados', 'Analgésicos Opioides', 'Ansiolíticos', 'Hipnóticos'];
     const esControlado = p.categorias_nombres
       ? categoriasControladas.some(cat => p.categorias_nombres!.startsWith(cat))
       : false;
 
     if (esControlado) {
-      const confirmar = confirm(
-        `⚠️ MEDICAMENTO CONTROLADO\n\n"${p.nombre_producto}" pertenece a una categoría controlada.\n\nDebe pedir y retener la receta médica del cliente antes de vender.\n\n¿Confirma que tiene la receta en mano?`
-      );
-      if (!confirmar) return;
+      setControlledModal({
+        show: true,
+        product: p,
+        onConfirm: () => {
+          addToCartConfirmed(p);
+          setControlledModal({ show: false, product: null, onConfirm: () => {} });
+        }
+      });
+    } else {
+      addToCartConfirmed(p);
     }
+  }
+
+  function addToCartConfirmed(p: Product) {
     setSaleError("");
     setCart(prev => {
       const exists = prev.find(i => i.product.id_producto === p.id_producto);
       if (exists) {
-        if (exists.qty >= p.stock) { setSaleError(`Solo quedan ${p.stock} unidades de "${p.nombre_producto}".`); return prev; }
+        if (exists.qty >= p.stock) {
+          setToast({ message: `Solo quedan ${p.stock} unidades.`, type: 'error' });
+          return prev;
+        }
         return prev.map(i => i.product.id_producto === p.id_producto ? { ...i, qty: i.qty+1 } : i);
       }
       return [...prev, { product: p, qty: 1 }];
@@ -868,7 +957,7 @@ function Ventas({ user }: { user: User }) {
     setShowScanner(false);
     const producto = products.find(p => p.codigo_barras === codigo);
     if (!producto) {
-      setSaleError(`No se encontró ningún producto con el código: ${codigo}`);
+      setToast({ message: `Código no encontrado: ${codigo}`, type: 'error' });
       return;
     }
     addToCart(producto);
@@ -878,7 +967,10 @@ function Ventas({ user }: { user: User }) {
   function setQty(id: number, qty: number) {
     if (qty <= 0) { removeFromCart(id); return; }
     const item = cart.find(i => i.product.id_producto === id);
-    if (item && qty > item.product.stock) { setSaleError(`Solo quedan ${item.product.stock} unidades.`); return; }
+    if (item && qty > item.product.stock) {
+      setToast({ message: `Solo quedan ${item.product.stock} unidades.`, type: 'error' });
+      return;
+    }
     setSaleError("");
     setCart(prev => prev.map(i => i.product.id_producto === id ? { ...i, qty } : i));
   }
@@ -887,12 +979,24 @@ function Ventas({ user }: { user: User }) {
   const soloEfectivo = metodoPago === "efectivo";
 
   async function finalizarVenta() {
-    if (soloEfectivo && (!efectivo || parseFloat(efectivo) < total)) {
-      setSaleError("Ingrese el efectivo recibido (debe cubrir el total)."); return;
+    if (cart.length === 0) {
+      setToast({ message: "El carrito está vacío.", type: 'error' });
+      return;
     }
-    if (cart.length === 0) { setSaleError("El carrito está vacío."); return; }
+    if (soloEfectivo && (!efectivo || parseFloat(efectivo) < total)) {
+      setToast({ message: "El efectivo recibido debe cubrir el total.", type: 'error' });
+      return;
+    }
+    // Validar cliente: si no hay cliente seleccionado, mostrar modal de advertencia
+    if (!selectedClient) {
+      setNoClientModal(true);
+      return;
+    }
+    await procesarVenta(selectedClient.id_cliente);
+  }
+
+  async function procesarVenta(id_cliente: number) {
     try {
-      // Fecha local (YYYY-MM-DD)
       const ahora = new Date();
       const year = ahora.getFullYear();
       const month = String(ahora.getMonth() + 1).padStart(2, '0');
@@ -900,7 +1004,7 @@ function Ventas({ user }: { user: User }) {
       const fechaLocal = `${year}-${month}-${day}`;
 
       const ventaResp = await createVenta({
-        id_cliente: selectedClient?.id_cliente ?? null,
+        id_cliente: id_cliente,
         id_empleado: user.id,
         metodo_pago: metodoPago,
         productos: cart.map(i => ({ id_producto: i.product.id_producto, cantidad: i.qty })),
@@ -913,26 +1017,24 @@ function Ventas({ user }: { user: User }) {
           const { numero_control } = await getSiguienteCorrelativo();
           const codigo_generacion = crypto.randomUUID().toUpperCase();
           const fechaHoraLocal = `${year}-${month}-${day} ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
-
           await guardarFactura({
             numero_control,
             codigo_generacion,
             id_venta: ventaResp.id_venta,
-            id_cliente: selectedClient?.id_cliente ?? null,
+            id_cliente: id_cliente,
             fecha_emision: fechaHoraLocal,
             total: ventaResp.total,
           });
-
           generarFacturaPDF({
             numero_control,
             codigo_generacion,
             fecha_emision: fechaHoraLocal,
             receptor: {
-              nombre: selectedClient ? `${selectedClient.nombre} ${selectedClient.apellido}` : "CONSUMIDOR FINAL",
-              dui: (selectedClient as any)?.dui,
-              correo: selectedClient?.correo,
-              telefono: selectedClient?.telefono,
-              direccion: selectedClient?.direccion,
+              nombre: `${selectedClient!.nombre} ${selectedClient!.apellido}`,
+              dui: selectedClient!.dui,
+              correo: selectedClient!.correo,
+              telefono: selectedClient!.telefono,
+              direccion: selectedClient!.direccion,
             },
             items: cart.map(i => ({
               codigo: i.product.id_producto,
@@ -946,7 +1048,7 @@ function Ventas({ user }: { user: User }) {
           });
         } catch (fe) {
           console.error("Error generando factura:", fe);
-          alert("Venta registrada pero no se pudo generar la factura.");
+          setToast({ message: "Venta registrada pero no se pudo generar la factura.", type: 'error' });
         }
       }
 
@@ -957,10 +1059,10 @@ function Ventas({ user }: { user: User }) {
       setSelectedClient(null);
       setClientSearch("");
       const prods = await getProductos();
-      setProducts([...prods].sort((a: Product, b: Product) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+      setProducts([...prods].sort((a, b) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
       setTimeout(() => setSaleDone(false), 3000);
     } catch (e: any) {
-      setSaleError(e?.response?.data?.error ?? "Error al registrar la venta.");
+      setToast({ message: e?.response?.data?.error ?? "Error al registrar la venta.", type: 'error' });
     }
   }
 
@@ -991,6 +1093,66 @@ function Ventas({ user }: { user: User }) {
 
   return (
     <div className="flex h-full" style={{ minHeight:0 }}>
+      {/* Toast flotante */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'}`}>
+            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
+            {toast.message}
+          </div>
+        </div>
+      )}
+
+      {/* Modal medicamento controlado */}
+      {controlledModal.show && controlledModal.product && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                <AlertTriangle size={20} />
+              </div>
+              <h2 className="text-lg font-bold text-[#1e1e1e]">Medicamento Controlado</h2>
+            </div>
+            <p className="text-gray-700 mb-2">
+              <strong>{controlledModal.product.nombre_producto}</strong> pertenece a una categoría controlada.
+            </p>
+            <p className="text-gray-600 text-sm mb-4">
+              Debe pedir y retener la receta médica del cliente antes de vender.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Btn variant="secondary" onClick={() => setControlledModal({ show: false, product: null, onConfirm: () => {} })}>
+                Cancelar
+              </Btn>
+              <Btn variant="primary" onClick={controlledModal.onConfirm}>
+                Sí, tengo la receta
+              </Btn>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal cliente no seleccionado (solo advertencia) */}
+      {noClientModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                <Users size={20} />
+              </div>
+              <h2 className="text-lg font-bold text-[#1e1e1e]">Cliente no seleccionado</h2>
+            </div>
+            <p className="text-gray-700 mb-4">
+              Debes seleccionar un cliente antes de finalizar la venta.
+            </p>
+            <div className="flex justify-end">
+              <Btn variant="primary" onClick={() => setNoClientModal(false)}>
+                Aceptar
+              </Btn>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Escáner de código de barras */}
       {showScanner && (
         <EscanerCodigoBarras
@@ -1030,15 +1192,16 @@ function Ventas({ user }: { user: User }) {
         </div>
       )}
 
+      {/* Panel izquierdo: búsqueda productos */}
       <div className="w-72 border-r border-gray-100 flex flex-col bg-white">
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-[#1e1e1e] text-sm">Buscar Producto</h2>
-            <button onClick={()=>setShowScanner(true)} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:bg-[#e3f2fd] px-2 py-1 rounded-lg font-medium transition-colors" title="Escanear código de barras"><Camera size={13}/> Escanear</button>
+            <button onClick={()=>setShowScanner(true)} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:bg-[#e3f2fd] px-2 py-1 rounded-lg font-medium transition-colors"><Camera size={13}/> Escanear</button>
           </div>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o código de barras..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
@@ -1048,6 +1211,7 @@ function Ventas({ user }: { user: User }) {
               <div className="flex items-center gap-3 mt-1">
                 <span className="text-xs text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${stockColor(p.stock)}`}>Stock: {p.stock}</span>
+                {p.codigo_barras && <span className="text-xs text-gray-400">Código: {p.codigo_barras}</span>}
               </div>
             </button>
           ))}
@@ -1056,6 +1220,7 @@ function Ventas({ user }: { user: User }) {
         </div>
       </div>
 
+      {/* Panel central: carrito */}
       <div className="flex-1 flex flex-col" style={{ minWidth:0 }}>
         <div className="p-4 border-b border-gray-100 bg-white flex items-center justify-between">
           <h2 className="font-semibold text-[#1e1e1e] text-sm">Carrito</h2>
@@ -1063,16 +1228,14 @@ function Ventas({ user }: { user: User }) {
         </div>
         {saleDone && <div className="mx-4 mt-4 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2"><Check size={16}/> Venta registrada exitosamente.</div>}
         {saleError && <div className="mx-4 mt-4 bg-red-50 border border-red-200 text-[#d32f2f] rounded-lg px-4 py-3 text-sm flex items-center gap-2"><AlertTriangle size={14}/>{saleError}</div>}
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-4" ref={cartContainerRef}>
           {cart.length===0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3"><ShoppingCart size={40} strokeWidth={1}/><span className="text-sm">El carrito está vacío</span></div>
           ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["Producto","P.Unit","Cant.","Subtotal",""].map(h => (
-                    <th key={h} className="text-left py-2 px-2 text-xs text-gray-500 font-medium">{h}</th>
-                  ))}
+                  {["Producto","P.Unit","Cant.","Subtotal",""].map(h => <th key={h} className="text-left py-2 px-2 text-xs text-gray-500 font-medium">{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -1097,20 +1260,23 @@ function Ventas({ user }: { user: User }) {
         </div>
       </div>
 
+      {/* Panel derecho: cliente y pago */}
       <div className="w-64 border-l border-gray-100 flex flex-col bg-white">
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-[#1e1e1e] text-sm">Cliente</h2>
-            <button onClick={()=>{setShowNewClient(true);setNewClientError("");}} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:text-[#0d5c96] font-medium hover:bg-[#e3f2fd] px-2 py-1 rounded-lg transition-colors" title="Registrar nuevo cliente"><Plus size={12}/> Nuevo</button>
+            <button onClick={()=>{setShowNewClient(true);setNewClientError("");}} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:text-[#0d5c96] font-medium hover:bg-[#e3f2fd] px-2 py-1 rounded-lg transition-colors"><Plus size={12}/> Nuevo</button>
           </div>
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={clientSearch} onChange={e=>setClientSearch(e.target.value)} placeholder="Buscar por correo electrónico..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <input value={clientSearch} onChange={e=>setClientSearch(e.target.value)} placeholder="Buscar por DUI..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
           {clientSearch && (
             <div className="mt-1 border border-gray-100 rounded-lg overflow-hidden shadow-sm">
-              {clients.filter(c => c.correo.toLowerCase().startsWith(clientSearch.toLowerCase()) && !c.deleted && !c.papelera).map(c => (
-                <button key={c.id_cliente} onClick={()=>{setSelectedClient(c);setClientSearch("");}} className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">{c.nombre} {c.apellido}</button>
+              {clients.filter(c => (c.dui ?? "").toLowerCase().startsWith(clientSearch.toLowerCase()) && !c.deleted && !c.papelera).map(c => (
+                <button key={c.id_cliente} onClick={()=>{setSelectedClient(c);setClientSearch("");}} className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">
+                  {c.nombre} {c.apellido} {c.dui && <span className="text-gray-400 ml-1">({c.dui})</span>}
+                </button>
               ))}
             </div>
           )}
@@ -1127,22 +1293,22 @@ function Ventas({ user }: { user: User }) {
             <label className="block text-xs font-semibold text-gray-600 mb-2">Método de pago</label>
             <div className="grid grid-cols-2 gap-1.5">
               {([
-                { id:"efectivo",     label:"💵 Efectivo"       },
-                { id:"tarjeta",      label:"💳 Tarjeta"        },
-                { id:"transferencia",label:"🏦 Transferencia"  },
-                { id:"applepay",     label:" Apple Pay"      },
-                { id:"paypal",       label:"🅿️ PayPal"         },
-                { id:"western",      label:"🌐 Western Union"  },
+                { id:"efectivo", label:"💵 Efectivo" },
+                { id:"tarjeta", label:"💳 Tarjeta" },
+                { id:"transferencia", label:"🏦 Transferencia" },
+                { id:"applepay", label:" Apple Pay" },
+                { id:"paypal", label:"🅿️ PayPal" },
+                { id:"western", label:"🌐 Western Union" },
               ] as const).map(m => (
                 <button key={m.id} onClick={() => { setMetodoPago(m.id); setEfectivo(""); }} className={`text-xs px-2 py-1.5 rounded-lg border font-medium transition-colors text-left ${metodoPago === m.id ? 'bg-[#0a4b7a] text-white border-[#0a4b7a]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#0a4b7a] hover:text-[#0a4b7a]'}`}>{m.label}</button>
               ))}
             </div>
           </div>
-          {metodoPago === "tarjeta" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">💳 El cliente paga con tarjeta en el datáfono. No se requiere ingreso de monto.</div>}
-          {metodoPago === "transferencia" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🏦 El cliente realiza una transferencia bancaria. Confirme el comprobante antes de finalizar.</div>}
-          {metodoPago === "applepay" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">El cliente paga con Apple Pay desde su dispositivo. No se requiere ingreso de monto.</div>}
-          {metodoPago === "paypal" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🅿️ El cliente paga vía PayPal. Confirme el pago recibido antes de finalizar.</div>}
-          {metodoPago === "western" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🌐 El cliente paga vía Western Union. Verifique el número de transferencia antes de finalizar.</div>}
+          {metodoPago === "tarjeta" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">💳 El cliente paga con tarjeta en el datáfono.</div>}
+          {metodoPago === "transferencia" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🏦 Transferencia bancaria. Confirme comprobante.</div>}
+          {metodoPago === "applepay" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">Apple Pay desde su dispositivo.</div>}
+          {metodoPago === "paypal" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🅿️ PayPal. Confirme pago recibido.</div>}
+          {metodoPago === "western" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🌐 Western Union. Verifique número de transferencia.</div>}
           <div className="flex justify-between text-[#1e1e1e] font-bold text-base border-t border-gray-100 pt-2"><span>Total</span><span className="text-[#0a4b7a]">${total.toFixed(2)}</span></div>
           {soloEfectivo && (
             <div className="space-y-2">
@@ -1290,39 +1456,65 @@ function Clientes({ user }: { user: User }) {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Clientes</h1>
-        <div className="flex gap-2">
-          <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
-          <Btn variant="primary"   size="sm" onClick={openNew}><Plus size={14}/> Nuevo cliente</Btn>
-        </div>
+        <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo cliente</Btn>
       </div>
 
+      {/* Filtros rediseñados al estilo Auditoría */}
       <Card className="p-4">
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre ..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
+        <div className="flex flex-wrap gap-4">
+          {/* Buscar por nombre */}
+          <div className="min-w-[200px] flex-1">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre completo..."
+                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
-            <Select value={filterEstado} onChange={setFilterEstado} className="w-28">
-              <option value="">Estado: Todos</option>
+          </div>
+
+          {/* DUI */}
+          <div className="min-w-[150px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">DUI</label>
+            <input value={filterDui} onChange={e=>setFilterDui(e.target.value)} placeholder="00000000-0"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Teléfono */}
+          <div className="min-w-[150px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
+            <input value={filterTel} onChange={e=>setFilterTel(e.target.value)} placeholder="Número..."
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Correo */}
+          <div className="min-w-[200px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+            <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Dirección */}
+          <div className="min-w-[200px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+            <input value={filterDir} onChange={e=>setFilterDir(e.target.value)} placeholder="Calle, colonia..."
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Estado */}
+          <div className="min-w-[130px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+            <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
+              <option value="">Todos</option>
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
             </Select>
-            <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
-              <X size={13}/> Limpiar filtros
-            </Btn>
           </div>
-          <div className="flex flex-wrap gap-3 items-center">
-            <input value={filterDui} onChange={e=>setFilterDui(e.target.value)}
-              placeholder="Filtrar DUI..." className="w-36 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
-            <input value={filterTel} onChange={e=>setFilterTel(e.target.value)}
-              placeholder="Filtrar teléfono..." className="w-36 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
-            <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)}
-              placeholder="Filtrar correo..." className="w-48 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
-            <input value={filterDir} onChange={e=>setFilterDir(e.target.value)}
-              placeholder="Filtrar dirección..." className="w-48 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+
+          {/* Botón limpiar */}
+          <div className="flex items-end">
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
+              <X size={14} /> Limpiar filtros
+            </Btn>
           </div>
         </div>
       </Card>
@@ -1339,7 +1531,7 @@ function Clientes({ user }: { user: User }) {
                 <th className="text-left py-3 px-3 font-semibold text-gray-500">Dirección</th>
                 <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
                 <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
-              </tr>
+               </tr>
             </thead>
             <tbody>
               {filtered.map(c => (
@@ -1631,6 +1823,9 @@ function Empleados({ user }: { user: User }) {
   const [filterDui, setFilterDui]       = useState("");
   const [filterNit, setFilterNit]       = useState("");
   const [filterAfp, setFilterAfp]       = useState("");
+  const [filterCorreo, setFilterCorreo] = useState("");
+  const [filterCuenta, setFilterCuenta] = useState("");
+  const [filterFechaCont, setFilterFechaCont] = useState("");
   const [showForm, setShowForm]   = useState(false);
   const [editEmp, setEditEmp]     = useState<Empleado | null>(null);
   const [formError, setFormError] = useState("");
@@ -1651,6 +1846,9 @@ function Empleados({ user }: { user: User }) {
     if (filterDui && !(e.dui ?? "").toLowerCase().startsWith(filterDui.toLowerCase())) return false;
     if (filterNit && !(e.nit ?? "").toLowerCase().startsWith(filterNit.toLowerCase())) return false;
     if (filterAfp && !(e.afp ?? "").toLowerCase().startsWith(filterAfp.toLowerCase())) return false;
+    if (filterCorreo && !e.correo.toLowerCase().startsWith(filterCorreo.toLowerCase())) return false;
+    if (filterCuenta && !(e.cuenta_banco ?? "").toLowerCase().startsWith(filterCuenta.toLowerCase())) return false;
+    if (filterFechaCont && !(e.fecha_contratacion ?? "").startsWith(filterFechaCont)) return false;
     return true;
   });
 
@@ -1687,10 +1885,18 @@ function Empleados({ user }: { user: User }) {
     }catch(e){console.error(e);}
   }
 
-  const hayFiltros = !!(filterCargo||filterEstado||filterDui||filterNit||filterAfp);
+  const hayFiltros = !!(filterCargo||filterEstado||filterDui||filterNit||filterAfp||filterCorreo||filterCuenta||filterFechaCont);
   function limpiarFiltros() {
-    setFilterCargo(""); setFilterEstado(""); setFilterDui(""); setFilterNit(""); setFilterAfp("");
+    setFilterCargo("");
+    setFilterEstado("");
+    setFilterDui("");
+    setFilterNit("");
+    setFilterAfp("");
+    setFilterCorreo("");
+    setFilterCuenta("");
+    setFilterFechaCont("");
   }
+
   if(loading) return <LoadingSpinner/>;
 
   // ── Componente interno para expandir texto con botón "+" ──
@@ -1740,44 +1946,91 @@ function Empleados({ user }: { user: User }) {
           <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Empleados</h1>
           <p className="text-sm text-gray-500">{filtered.length} empleados encontrados</p>
         </div>
-        <div className="flex gap-2">
-          <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
-          <Btn variant="primary"   size="sm" onClick={openNew}><Plus size={14}/> Nuevo empleado</Btn>
-        </div>
+        <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo empleado</Btn>
       </div>
 
+      {/* Filtros rediseñados al estilo Auditoría */}
       <Card className="p-4">
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
+        <div className="flex flex-wrap gap-4">
+          {/* Buscar por nombre */}
+          <div className="min-w-[200px] flex-1">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre completo..."
+                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
-            <Select value={filterCargo} onChange={setFilterCargo} className="w-32">
-              <option value="">Cargo: Todos</option>
+          </div>
+
+          {/* Cargo */}
+          <div className="min-w-[150px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Cargo</label>
+            <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
+              <option value="">Todos</option>
               {CARGOS.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
             </Select>
-            <Select value={filterEstado} onChange={setFilterEstado} className="w-28">
-              <option value="">Estado: Todos</option>
+          </div>
+
+          {/* Estado */}
+          <div className="min-w-[130px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+            <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
+              <option value="">Todos</option>
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
             </Select>
-            <Select value={filterAfp} onChange={setFilterAfp} className="w-32">
-              <option value="">AFP: Todas</option>
+          </div>
+
+          {/* AFP */}
+          <div className="min-w-[140px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">AFP</label>
+            <Select value={filterAfp} onChange={setFilterAfp} className="w-full">
+              <option value="">Todas</option>
               <option value="CRECER">CRECER</option>
               <option value="CONFÍA">CONFÍA</option>
             </Select>
-            <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
-              <X size={13}/> Limpiar filtros
-            </Btn>
           </div>
-          <div className="flex flex-wrap gap-3 items-center">
-            <input value={filterDui} onChange={e=>setFilterDui(e.target.value)}
-              placeholder="Filtrar DUI..." className="w-36 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
-            <input value={filterNit} onChange={e=>setFilterNit(e.target.value)}
-              placeholder="Filtrar NIT..." className="w-40 px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"/>
+
+          {/* DUI */}
+          <div className="min-w-[150px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">DUI</label>
+            <input value={filterDui} onChange={e=>setFilterDui(e.target.value)} placeholder="00000000-0"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* NIT */}
+          <div className="min-w-[180px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">NIT</label>
+            <input value={filterNit} onChange={e=>setFilterNit(e.target.value)} placeholder="0000-000000-000-0"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Correo */}
+          <div className="min-w-[200px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+            <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Cuenta Bancaria */}
+          <div className="min-w-[180px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Cuenta Bancaria</label>
+            <input value={filterCuenta} onChange={e=>setFilterCuenta(e.target.value)} placeholder="Número de cuenta"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Fecha contratación */}
+          <div className="min-w-[150px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha contratación</label>
+            <input type="date" value={filterFechaCont} onChange={e=>setFilterFechaCont(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+          </div>
+
+          {/* Botón limpiar */}
+          <div className="flex items-end">
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
+              <X size={14} /> Limpiar filtros
+            </Btn>
           </div>
         </div>
       </Card>
@@ -2502,6 +2755,20 @@ function Auditoria({ user }: { user: User }) {
   const [page, setPage]     = useState(0);
   const LIMIT = 30;
 
+  // Función para formatear fecha ISO a dd/mm/aaaa hh:mm:ss
+  const formatFecha = (isoString: string) => {
+    if (!isoString) return "—";
+    const fecha = new Date(isoString);
+    if (isNaN(fecha.getTime())) return isoString;
+    const dia = fecha.getDate().toString().padStart(2, '0');
+    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+    const anio = fecha.getFullYear();
+    const horas = fecha.getHours().toString().padStart(2, '0');
+    const minutos = fecha.getMinutes().toString().padStart(2, '0');
+    const segundos = fecha.getSeconds().toString().padStart(2, '0');
+    return `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
+  };
+
   async function load(p = 0) {
     setLoading(true);
     try {
@@ -2513,12 +2780,26 @@ function Auditoria({ user }: { user: User }) {
         limit: LIMIT,
         offset: p * LIMIT,
       });
-      setData(res); setPage(p);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      setData(res);
+      setPage(p);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { load(0); }, []);
+  // Búsqueda automática con debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      load(0);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [from, to, tabla, accion]);
+
+  useEffect(() => {
+    load(0);
+  }, []);
 
   const totalPages = Math.ceil(data.total / LIMIT);
 
@@ -2583,8 +2864,9 @@ function Auditoria({ user }: { user: User }) {
               <option value="RESTAURAR">Restaurar</option>
             </Select>
           </div>
-          <Btn variant="primary" size="sm" onClick={() => load(0)}><Search size={14} /> Filtrar</Btn>
-          <Btn variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); setTabla(""); setAccion(""); setTimeout(() => load(0), 0); }}><X size={14} /> Limpiar</Btn>
+          <Btn variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); setTabla(""); setAccion(""); }}>
+            <X size={14} /> Limpiar
+          </Btn>
         </div>
       </Card>
 
@@ -2596,16 +2878,14 @@ function Auditoria({ user }: { user: User }) {
                 {["Fecha", "Tabla", "Acción", "Descripción", "Campo", "Valor anterior", "Valor nuevo", "Empleado"].map(h => (
                   <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
                 ))}
-              </tr>
+               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan={8} className="py-12 text-center text-gray-400">Cargando...</td></tr>
               ) : data.data.map((r, i) => (
                 <tr key={i} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
-                  <td className="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">
-                    {r.fecha}
-                  </td>
+                  <td className="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">{formatFecha(r.fecha)}</td>
                   <td className="py-3 px-4">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaColor[r.tabla] ?? 'bg-gray-100 text-gray-600'}`}>
                       {r.tabla}
@@ -2617,9 +2897,7 @@ function Auditoria({ user }: { user: User }) {
                     </span>
                   </td>
                   <td className="py-3 px-4 text-gray-700">{r.descripcion}</td>
-                  <td className="py-3 px-4 text-xs text-gray-500 font-mono">
-                    {r.campo_modificado ?? '—'}
-                  </td>
+                  <td className="py-3 px-4 text-xs text-gray-500 font-mono">{r.campo_modificado ?? '—'}</td>
                   <td className="py-3 px-4 text-xs">
                     {r.valor_anterior
                       ? <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded font-mono">{r.valor_anterior}</span>
