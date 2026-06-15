@@ -428,9 +428,6 @@ function Productos({ user }: { user: User }) {
   const [filterProveedor, setFilterProveedor] = useState("");
   const [filterEstado, setFilterEstado]     = useState("");
   const [filterVenc, setFilterVenc]         = useState("");
-  const [filterPrecioMin, setFilterPrecioMin] = useState("");
-  const [filterPrecioMax, setFilterPrecioMax] = useState("");
-  const [filterLote, setFilterLote]         = useState("");
   const [showForm, setShowForm]   = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [formError, setFormError] = useState("");
@@ -456,7 +453,14 @@ function Productos({ user }: { user: User }) {
       const hoy = new Date(); hoy.setHours(0,0,0,0);
       const vence = new Date(p.fecha_vencimiento + 'T00:00:00');
       const dias = Math.ceil((vence.getTime() - hoy.getTime()) / (1000*60*60*24));
-      if (!p.nombre_producto.toLowerCase().startsWith(search.toLowerCase())) return false;
+      
+      if (search) {
+        const term = search.toLowerCase();
+        const nameMatch = p.nombre_producto.toLowerCase().startsWith(term);
+        const codeMatch = (p.codigo_barras ?? "").toLowerCase().startsWith(term);
+        if (!nameMatch && !codeMatch) return false;
+      }
+      
       if (filterStock) {
         if (filterStock==="agotado" && p.stock!==0) return false;
         if (filterStock==="critico" && !(p.stock>0&&p.stock<=10)) return false;
@@ -470,9 +474,6 @@ function Productos({ user }: { user: User }) {
       if (filterVenc === "vencido"  && dias >= 0) return false;
       if (filterVenc === "proximo"  && !(dias >= 0 && dias <= 30)) return false;
       if (filterVenc === "vigente"  && dias <= 30) return false;
-      if (filterPrecioMin && Number(p.precio) < parseFloat(filterPrecioMin)) return false;
-      if (filterPrecioMax && Number(p.precio) > parseFloat(filterPrecioMax)) return false;
-      if (filterLote && !p.lote.toLowerCase().startsWith(filterLote.toLowerCase())) return false;
       return true;
     })
     .sort((a, b) => a.nombre_producto.localeCompare(b.nombre_producto, 'es'));
@@ -554,16 +555,14 @@ function Productos({ user }: { user: User }) {
     }
   }
 
-  const hayFiltros = !!(filterStock||filterCat||filterProveedor||filterEstado||filterVenc||filterPrecioMin||filterPrecioMax||filterLote);
+  const hayFiltros = !!(filterStock||filterCat||filterProveedor||filterEstado||filterVenc);
   function limpiarFiltros() {
     setFilterStock(""); setFilterCat(""); setFilterProveedor("");
-    setFilterEstado(""); setFilterVenc(""); setFilterPrecioMin("");
-    setFilterPrecioMax(""); setFilterLote("");
+    setFilterEstado(""); setFilterVenc("");
   }
 
   if (loading) return <LoadingSpinner />;
 
-  // ── Componente interno para expandir texto con botón "+" ──
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
     if (!text) return <span className="text-gray-400">—</span>;
@@ -610,20 +609,18 @@ function Productos({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
       </div>
 
-      {/* Filtros rediseñados al estilo Auditoría */}
+      {/* Filtros: buscador por nombre o código de barras */}
       <Card className="p-4">
         <div className="flex flex-wrap gap-4">
-          {/* Buscar por nombre */}
-          <div className="min-w-[180px] flex-1">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
+          <div className="min-w-[200px] flex-1">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre o código</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre..."
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o código de barras..."
                 className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
 
-          {/* Stock */}
           <div className="min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Stock</label>
             <Select value={filterStock} onChange={setFilterStock} className="w-full">
@@ -635,7 +632,6 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          {/* Categoría */}
           <div className="min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Categoría</label>
             <Select value={filterCat} onChange={setFilterCat} className="w-full">
@@ -644,7 +640,6 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          {/* Proveedor */}
           <div className="min-w-[160px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor</label>
             <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
@@ -653,7 +648,6 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          {/* Vencimiento */}
           <div className="min-w-[140px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Vencimiento</label>
             <Select value={filterVenc} onChange={setFilterVenc} className="w-full">
@@ -664,7 +658,6 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          {/* Estado */}
           <div className="min-w-[120px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
@@ -674,28 +667,6 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          {/* Lote */}
-          <div className="min-w-[140px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Lote</label>
-            <input value={filterLote} onChange={e=>setFilterLote(e.target.value)} placeholder="N° de lote..."
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
-          </div>
-
-          {/* Precio mínimo */}
-          <div className="min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Precio mín ($)</label>
-            <input value={filterPrecioMin} onChange={e=>setFilterPrecioMin(e.target.value)} type="number" min={0} placeholder="0.00"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
-          </div>
-
-          {/* Precio máximo */}
-          <div className="min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Precio máx ($)</label>
-            <input value={filterPrecioMax} onChange={e=>setFilterPrecioMax(e.target.value)} type="number" min={0} placeholder="9999.99"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
-          </div>
-
-          {/* Botón limpiar - igual que en Auditoría */}
           <div className="flex items-end">
             <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
               <X size={14} /> Limpiar filtros
@@ -705,89 +676,99 @@ function Productos({ user }: { user: User }) {
       </Card>
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm table-auto whitespace-nowrap">
-            <thead className="bg-gray-50">
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Nombre</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Categoría</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Precio</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Stock</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Lote</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Vencimiento</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Proveedor</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
-               </tr>
-            </thead>
-            <tbody>
-              {filtered.map(p=>(
-                <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${p.deleted ? 'opacity-60 bg-gray-50' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-gray-50'}`}>
-                  <td className="py-3 px-3 font-medium text-[#1e1e1e]">
-                    <Expandable text={p.nombre_producto} maxLength={40} />
-                  </td>
-                  <td className="py-3 px-3">
-                    {p.categorias_nombres ? (() => {
-                      const cats = p.categorias_nombres.split(', ');
-                      const primera = cats[0];
-                      const resto = cats.slice(1);
-                      return (
-                        <div className="flex items-center gap-1 flex-wrap">
-                          <span className="inline-block bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">{primera}</span>
-                          {resto.length > 0 && (
-                            <div className="relative group">
-                              <button className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold hover:bg-blue-200 transition-colors">
-                                +{resto.length}
-                              </button>
-                              <div className="absolute left-0 top-6 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-max">
-                                <p className="text-xs font-semibold text-gray-500 mb-1.5">Otras categorías:</p>
-                                {resto.map((cat: string, i: number) => (
-                                  <div key={i} className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded mb-1">{cat}</div>
-                                ))}
-                              </div>
+        {/* Eliminado overflow-x-auto */}
+        <table className="w-full table-fixed text-sm">
+          {/* Definir anchos de columna para evitar movimiento */}
+          <colgroup>
+            <col className="w-[18%]" />
+            <col className="w-[12%]" />
+            <col className="w-[8%]" />
+            <col className="w-[8%]" />
+            <col className="w-[8%]" />
+            <col className="w-[10%]" />
+            <col className="w-[8%]" />
+            <col className="w-[12%]" />
+            <col className="w-[6%]" />
+            <col className="w-[10%]" />
+          </colgroup>
+          <thead className="bg-gray-50">
+            <tr className="border-b border-gray-100">
+              <th className="text-left py-3 px-3 font-semibold text-gray-500">Nombre</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500">Categoría</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500">Precio</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500">Stock</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500">Lote</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500">Código de barras</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500">Vencimiento</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500">Proveedor</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
+             </tr>
+          </thead>
+          <tbody>
+            {filtered.map(p=>(
+              <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${p.deleted ? 'opacity-60 bg-gray-50' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-gray-50'}`}>
+                <td className="py-3 px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                  <Expandable text={p.nombre_producto} maxLength={40} />
+                 </td>
+                <td className="py-3 px-3 break-words whitespace-normal">
+                  {p.categorias_nombres ? (() => {
+                    const cats = p.categorias_nombres.split(', ');
+                    const primera = cats[0];
+                    const resto = cats.slice(1);
+                    return (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="inline-block bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">{primera}</span>
+                        {resto.length > 0 && (
+                          <div className="relative group">
+                            <button className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold hover:bg-blue-200 transition-colors">
+                              +{resto.length}
+                            </button>
+                            <div className="absolute left-0 top-6 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-max">
+                              <p className="text-xs font-semibold text-gray-500 mb-1.5">Otras categorías:</p>
+                              {resto.map((cat: string, i: number) => (
+                                <div key={i} className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded mb-1">{cat}</div>
+                              ))}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })() : <span className="text-gray-400">—</span>}
-                  </td>
-                  <td className="py-3 px-3 font-mono text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</td>
-                  <td className="py-3 px-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock} — {stockLabel(p.stock)}</span></td>
-                  <td className="py-3 px-3 font-mono text-gray-500">
-                    <Expandable text={p.lote} maxLength={15} />
-                  </td>
-                  <td className={`py-3 px-3 text-xs font-mono ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
-                  <td className="py-3 px-3 text-gray-600">
-                    <Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={25} />
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                      {p.deleted ? "Inactivo" : "Activo"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <div className="flex gap-2 items-center">
-                      <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                      <button
-                        onClick={()=>handleToggle(p.id_producto, p.deleted)}
-                        className={`p-1 rounded text-xs font-semibold px-2 py-1 ${p.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
-                        title={p.deleted ? "Activar producto" : "Desactivar producto"}
-                      >
-                        {p.deleted ? "Activar" : "Desactivar"}
-                      </button>
-                      {!p.has_ventas && (
-                        <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length===0 && (
-                <tr><td colSpan={9} className="py-10 text-center text-gray-400">Sin productos.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })() : <span className="text-gray-400">—</span>}
+                 </td>
+                <td className="py-3 px-3 font-mono text-[#0a4b7a] font-semibold break-words whitespace-normal">${Number(p.precio).toFixed(2)}</td>
+                <td className="py-3 px-3 break-words whitespace-normal"><span className={`text-xs px-2 py-1 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock} — {stockLabel(p.stock)}</span></td>
+                <td className="py-3 px-3 font-mono text-gray-500 break-words whitespace-normal"><Expandable text={p.lote} maxLength={15} /></td>
+                <td className="py-3 px-3 font-mono text-gray-500 break-words whitespace-normal"><Expandable text={p.codigo_barras} maxLength={20} /></td>
+                <td className={`py-3 px-3 text-xs font-mono break-words whitespace-normal ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={25} /></td>
+                <td className="py-3 px-3 break-words whitespace-normal">
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                    {p.deleted ? "Inactivo" : "Activo"}
+                  </span>
+                </td>
+                <td className="py-3 px-3 break-words whitespace-normal">
+                  <div className="flex gap-2 items-center">
+                    <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                    <button
+                      onClick={()=>handleToggle(p.id_producto, p.deleted)}
+                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${p.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                      title={p.deleted ? "Activar producto" : "Desactivar producto"}
+                    >
+                      {p.deleted ? "Activar" : "Desactivar"}
+                    </button>
+                    {!p.has_ventas && (
+                      <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {filtered.length===0 && (
+              <tr><td colSpan={10} className="py-10 text-center text-gray-400">Sin productos.</td></tr>
+            )}
+          </tbody>
+        </table>
       </Card>
 
       {showForm && (
@@ -804,11 +785,8 @@ function Productos({ user }: { user: User }) {
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Precio ($) *</label><Input type="number" value={form.precio} onChange={v=>setForm(p=>({...p,precio:v}))} placeholder="0.00" /></div>
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Stock *</label><Input type="number" value={form.stock} onChange={v=>setForm(p=>({...p,stock:v}))} placeholder="0" /></div>
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Lote *</label><Input value={form.lote} onChange={v=>setForm(p=>({...p,lote:v}))} placeholder="LOT-2024-XXX" /></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Código de barras</label><Input value={form.codigo_barras} onChange={v=>setForm(p=>({...p,codigo_barras:v}))} placeholder="Ej: 7501234567890" /></div>
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Fecha vencimiento *</label><Input type="date" value={form.fecha_vencimiento} onChange={v=>setForm(p=>({...p,fecha_vencimiento:v}))} /></div>
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Código de barras</label>
-                <Input value={form.codigo_barras} onChange={v=>setForm(p=>({...p,codigo_barras:v}))} placeholder="Ej: 7501234567890" />
-              </div>
               <div className="col-span-2">
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor *</label>
                 <Select value={form.id_proveedor} onChange={v=>setForm(p=>({...p,id_proveedor:v}))} className="w-full">
@@ -1412,7 +1390,7 @@ function Clientes({ user }: { user: User }) {
 
   if(loading) return <LoadingSpinner/>;
 
-  // ── Componente interno para expandir texto con botón "+" ──
+  // Componente interno para expandir texto
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
     if (!text) return <span className="text-gray-400">—</span>;
@@ -1459,10 +1437,9 @@ function Clientes({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo cliente</Btn>
       </div>
 
-      {/* Filtros rediseñados al estilo Auditoría */}
+      {/* Filtros */}
       <Card className="p-4">
         <div className="flex flex-wrap gap-4">
-          {/* Buscar por nombre */}
           <div className="min-w-[200px] flex-1">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
             <div className="relative">
@@ -1471,36 +1448,26 @@ function Clientes({ user }: { user: User }) {
                 className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
-
-          {/* DUI */}
           <div className="min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">DUI</label>
             <input value={filterDui} onChange={e=>setFilterDui(e.target.value)} placeholder="00000000-0"
               className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
           </div>
-
-          {/* Teléfono */}
           <div className="min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
             <input value={filterTel} onChange={e=>setFilterTel(e.target.value)} placeholder="Número..."
               className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
           </div>
-
-          {/* Correo */}
           <div className="min-w-[200px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
             <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
               className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
           </div>
-
-          {/* Dirección */}
           <div className="min-w-[200px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
             <input value={filterDir} onChange={e=>setFilterDir(e.target.value)} placeholder="Calle, colonia..."
               className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
           </div>
-
-          {/* Estado */}
           <div className="min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
@@ -1509,8 +1476,6 @@ function Clientes({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
-
-          {/* Botón limpiar */}
           <div className="flex items-end">
             <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
               <X size={14} /> Limpiar filtros
@@ -1520,65 +1485,75 @@ function Clientes({ user }: { user: User }) {
       </Card>
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm table-auto whitespace-nowrap">
-            <thead className="bg-gray-50">
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Nombre</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">DUI</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Teléfono</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Correo</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Dirección</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
+        {/* Tabla estática: sin overflow-x-auto, con table-fixed y quiebre de texto */}
+        <table className="w-full table-fixed text-sm">
+          <colgroup>
+            <col className="w-[20%]" />   {/* Nombre */}
+            <col className="w-[10%]" />   {/* DUI */}
+            <col className="w-[10%]" />   {/* Teléfono */}
+            <col className="w-[20%]" />   {/* Correo */}
+            <col className="w-[20%]" />   {/* Dirección */}
+            <col className="w-[8%]" />    {/* Estado */}
+            <col className="w-[12%]" />   {/* Acciones */}
+          </colgroup>
+          <thead className="bg-gray-50">
+            <tr className="border-b border-gray-100">
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Nombre</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">DUI</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Teléfono</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Correo</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Dirección</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Estado</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Acciones</th>
+             </tr>
+          </thead>
+          <tbody>
+            {filtered.map(c => (
+              <tr key={c.id_cliente} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${c.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
+                <td className="py-3 px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                  <Expandable text={`${c.nombre} ${c.apellido}`} maxLength={30} />
+                 </td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
+                  {c.dui ? <Expandable text={c.dui} maxLength={12} /> : <span className="text-gray-400">—</span>}
+                 </td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
+                  <Expandable text={c.telefono} maxLength={12} />
+                 </td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
+                  <Expandable text={c.correo} maxLength={30} />
+                 </td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
+                  <Expandable text={c.direccion ?? "—"} maxLength={35} />
+                 </td>
+                <td className="py-3 px-3 break-words whitespace-normal">
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${c.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                    {c.deleted ? "Inactivo" : "Activo"}
+                  </span>
+                 </td>
+                <td className="py-3 px-3 break-words whitespace-normal">
+                  <div className="flex gap-2 items-center">
+                    <button onClick={()=>openEdit(c)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                    <button
+                      onClick={()=>handleToggle(c.id_cliente, c.deleted ?? 0)}
+                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${c.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                      title={c.deleted ? "Activar cliente" : "Desactivar cliente"}
+                    >
+                      {c.deleted ? "Activar" : "Desactivar"}
+                    </button>
+                    {!c.has_ventas && (
+                      <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Eliminar permanentemente"><Trash2 size={14}/></button>
+                    )}
+                  </div>
+                 </td>
                </tr>
-            </thead>
-            <tbody>
-              {filtered.map(c => (
-                <tr key={c.id_cliente} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${c.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                  <td className="py-3 px-3 font-medium text-[#1e1e1e]">
-                    <Expandable text={`${c.nombre} ${c.apellido}`} maxLength={30} />
-                  </td>
-                  <td className="py-3 px-3 text-gray-600">
-                    {c.dui ? <Expandable text={c.dui} maxLength={12} /> : <span className="text-gray-400">—</span>}
-                  </td>
-                  <td className="py-3 px-3 text-gray-600">
-                    <Expandable text={c.telefono} maxLength={12} />
-                  </td>
-                  <td className="py-3 px-3 text-gray-600">
-                    <Expandable text={c.correo} maxLength={30} />
-                  </td>
-                  <td className="py-3 px-3 text-gray-600">
-                    <Expandable text={c.direccion ?? "—"} maxLength={35} />
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${c.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                      {c.deleted ? "Inactivo" : "Activo"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <div className="flex gap-2 items-center">
-                      <button onClick={()=>openEdit(c)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                      <button
-                        onClick={()=>handleToggle(c.id_cliente, c.deleted ?? 0)}
-                        className={`p-1 rounded text-xs font-semibold px-2 py-1 ${c.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
-                        title={c.deleted ? "Activar cliente" : "Desactivar cliente"}
-                      >
-                        {c.deleted ? "Activar" : "Desactivar"}
-                      </button>
-                      {!c.has_ventas && (
-                        <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Eliminar permanentemente"><Trash2 size={14}/></button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={7} className="py-10 text-center text-gray-400">Sin clientes. </td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={7} className="py-10 text-center text-gray-400">Sin clientes.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </Card>
 
       {showForm&&(
@@ -1628,7 +1603,7 @@ function Proveedores({ user }: { user: User }) {
   }
   useEffect(()=>{ load(); },[]);
 
-  const filtered = suppliers.filter(s=>
+  const filtered = suppliers.filter(s =>
     `${s.nombre} ${s.apellido}`.toLowerCase().startsWith(search.toLowerCase())
   );
 
@@ -1667,7 +1642,6 @@ function Proveedores({ user }: { user: User }) {
 
   if(loading) return <LoadingSpinner/>;
 
-  // ── Componente interno para expandir texto con botón "+" ──
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
     if (!text) return <span className="text-gray-400">—</span>;
@@ -1711,99 +1685,129 @@ function Proveedores({ user }: { user: User }) {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Proveedores</h1>
-        <div className="flex gap-2">
-          <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
-          <Btn variant="primary"   size="sm" onClick={openNew}><Plus size={14}/> Nuevo proveedor</Btn>
-        </div>
+        <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo proveedor</Btn>
       </div>
 
+      {/* Filtro con etiqueta */}
       <Card className="p-4">
-        <div className="relative max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar proveedor..."
-            className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
+        <div className="min-w-[200px]">
+          <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar proveedor</label>
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Nombre completo..."
+              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+            />
+          </div>
         </div>
       </Card>
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm table-auto whitespace-nowrap">
-            <thead className="bg-gray-50">
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Nombre</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Teléfono</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Correo</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Dirección</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
+        <table className="w-full table-fixed text-sm">
+          <colgroup>
+            <col className="w-[25%]" />
+            <col className="w-[15%]" />
+            <col className="w-[20%]" />
+            <col className="w-[20%]" />
+            <col className="w-[8%]" />
+            <col className="w-[11%]" />
+          </colgroup>
+          <thead className="bg-gray-50">
+            <tr className="border-b border-gray-100">
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Nombre</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Teléfono</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Correo</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Dirección</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Estado</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Acciones</th>
+             </tr>
+          </thead>
+          <tbody>
+            {filtered.map(s => (
+              <tr key={s.id_proveedor} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${s.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
+                <td className="py-3 px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                  <Expandable text={`${s.nombre} ${s.apellido}`} maxLength={30} />
+                 </td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
+                  <Expandable text={s.telefono ?? "—"} maxLength={12} />
+                 </td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
+                  <Expandable text={s.correo ?? "—"} maxLength={30} />
+                 </td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
+                  <Expandable text={s.direccion ?? "—"} maxLength={35} />
+                 </td>
+                <td className="py-3 px-3 break-words whitespace-normal">
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                    {s.deleted ? "Inactivo" : "Activo"}
+                  </span>
+                 </td>
+                <td className="py-3 px-3 break-words whitespace-normal">
+                  <div className="flex gap-2 items-center">
+                    <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                    <button
+                      onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
+                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${s.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                      title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
+                    >
+                      {s.deleted ? "Activar" : "Desactivar"}
+                    </button>
+                    {!s.has_productos && (
+                      <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
+                    )}
+                  </div>
+                 </td>
+               </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-10 text-center text-gray-400">Sin proveedores.</td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map(s=>(
-                <tr key={s.id_proveedor} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${s.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                  <td className="py-3 px-3 font-medium text-[#1e1e1e]">
-                    <Expandable text={`${s.nombre} ${s.apellido}`} maxLength={30} />
-                  </td>
-                  <td className="py-3 px-3 text-gray-600">
-                    <Expandable text={s.telefono ?? "—"} maxLength={12} />
-                  </td>
-                  <td className="py-3 px-3 text-gray-600">
-                    <Expandable text={s.correo ?? "—"} maxLength={30} />
-                  </td>
-                  <td className="py-3 px-3 text-gray-600">
-                    <Expandable text={s.direccion ?? "—"} maxLength={35} />
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                      {s.deleted ? "Inactivo" : "Activo"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <div className="flex gap-2 items-center">
-                      <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                      <button
-                        onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
-                        className={`p-1 rounded text-xs font-semibold px-2 py-1 ${s.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
-                        title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
-                      >
-                        {s.deleted ? "Activar" : "Desactivar"}
-                      </button>
-                      {!s.has_productos && (
-                        <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length===0 && (
-                <tr>
-                  <td colSpan={6} className="py-10 text-center text-gray-400">Sin proveedores.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            )}
+          </tbody>
+        </table>
       </Card>
 
-      {showForm&&(
+      {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-[#1e1e1e]">{editSupplier?"Editar Proveedor":"Nuevo Proveedor"}</h2>
-              <button onClick={()=>setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+              <h2 className="text-lg font-bold text-[#1e1e1e]">{editSupplier ? "Editar Proveedor" : "Nuevo Proveedor"}</h2>
+              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
             </div>
-            {formError&&<div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
+            {formError && (
+              <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+                <AlertTriangle size={14}/>{formError}
+              </div>
+            )}
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label><Input value={form.nombre} onChange={v=>setForm(p=>({...p,nombre:v}))}/></div>
-                <div><label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label><Input value={form.apellido} onChange={v=>setForm(p=>({...p,apellido:v}))}/></div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                  <Input value={form.nombre} onChange={v => setForm(p => ({...p, nombre: v}))} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label>
+                  <Input value={form.apellido} onChange={v => setForm(p => ({...p, apellido: v}))} />
+                </div>
               </div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label><Input value={form.telefono} onChange={v=>setForm(p=>({...p,telefono:v}))}/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label><Input type="email" value={form.correo} onChange={v=>setForm(p=>({...p,correo:v}))}/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label><Input value={form.direccion} onChange={v=>setForm(p=>({...p,direccion:v}))}/></div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
+                <Input value={form.telefono} onChange={v => setForm(p => ({...p, telefono: v}))} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+                <Input type="email" value={form.correo} onChange={v => setForm(p => ({...p, correo: v}))} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+                <Input value={form.direccion} onChange={v => setForm(p => ({...p, direccion: v}))} />
+              </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <Btn variant="secondary" onClick={()=>setShowForm(false)}>Cancelar</Btn>
+              <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
               <Btn variant="primary" onClick={saveForm}><Check size={14}/> Guardar</Btn>
             </div>
           </Card>
@@ -1820,12 +1824,6 @@ function Empleados({ user }: { user: User }) {
   const [search, setSearch]       = useState("");
   const [filterCargo, setFilterCargo] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
-  const [filterDui, setFilterDui]       = useState("");
-  const [filterNit, setFilterNit]       = useState("");
-  const [filterAfp, setFilterAfp]       = useState("");
-  const [filterCorreo, setFilterCorreo] = useState("");
-  const [filterCuenta, setFilterCuenta] = useState("");
-  const [filterFechaCont, setFilterFechaCont] = useState("");
   const [showForm, setShowForm]   = useState(false);
   const [editEmp, setEditEmp]     = useState<Empleado | null>(null);
   const [formError, setFormError] = useState("");
@@ -1843,12 +1841,6 @@ function Empleados({ user }: { user: User }) {
     if (filterCargo  && e.cargo !== filterCargo) return false;
     if (filterEstado === "activo"   && !e.activo) return false;
     if (filterEstado === "inactivo" &&  e.activo) return false;
-    if (filterDui && !(e.dui ?? "").toLowerCase().startsWith(filterDui.toLowerCase())) return false;
-    if (filterNit && !(e.nit ?? "").toLowerCase().startsWith(filterNit.toLowerCase())) return false;
-    if (filterAfp && !(e.afp ?? "").toLowerCase().startsWith(filterAfp.toLowerCase())) return false;
-    if (filterCorreo && !e.correo.toLowerCase().startsWith(filterCorreo.toLowerCase())) return false;
-    if (filterCuenta && !(e.cuenta_banco ?? "").toLowerCase().startsWith(filterCuenta.toLowerCase())) return false;
-    if (filterFechaCont && !(e.fecha_contratacion ?? "").startsWith(filterFechaCont)) return false;
     return true;
   });
 
@@ -1885,21 +1877,14 @@ function Empleados({ user }: { user: User }) {
     }catch(e){console.error(e);}
   }
 
-  const hayFiltros = !!(filterCargo||filterEstado||filterDui||filterNit||filterAfp||filterCorreo||filterCuenta||filterFechaCont);
+  const hayFiltros = !!(filterCargo||filterEstado);
   function limpiarFiltros() {
     setFilterCargo("");
     setFilterEstado("");
-    setFilterDui("");
-    setFilterNit("");
-    setFilterAfp("");
-    setFilterCorreo("");
-    setFilterCuenta("");
-    setFilterFechaCont("");
   }
 
   if(loading) return <LoadingSpinner/>;
 
-  // ── Componente interno para expandir texto con botón "+" ──
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
     if (!text) return <span className="text-gray-400">—</span>;
@@ -1949,10 +1934,9 @@ function Empleados({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo empleado</Btn>
       </div>
 
-      {/* Filtros rediseñados al estilo Auditoría */}
+      {/* Filtros */}
       <Card className="p-4">
         <div className="flex flex-wrap gap-4">
-          {/* Buscar por nombre */}
           <div className="min-w-[200px] flex-1">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
             <div className="relative">
@@ -1961,8 +1945,6 @@ function Empleados({ user }: { user: User }) {
                 className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
-
-          {/* Cargo */}
           <div className="min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Cargo</label>
             <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
@@ -1970,8 +1952,6 @@ function Empleados({ user }: { user: User }) {
               {CARGOS.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
             </Select>
           </div>
-
-          {/* Estado */}
           <div className="min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
@@ -1980,53 +1960,6 @@ function Empleados({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
-
-          {/* AFP */}
-          <div className="min-w-[140px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">AFP</label>
-            <Select value={filterAfp} onChange={setFilterAfp} className="w-full">
-              <option value="">Todas</option>
-              <option value="CRECER">CRECER</option>
-              <option value="CONFÍA">CONFÍA</option>
-            </Select>
-          </div>
-
-          {/* DUI */}
-          <div className="min-w-[150px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">DUI</label>
-            <input value={filterDui} onChange={e=>setFilterDui(e.target.value)} placeholder="00000000-0"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
-          </div>
-
-          {/* NIT */}
-          <div className="min-w-[180px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">NIT</label>
-            <input value={filterNit} onChange={e=>setFilterNit(e.target.value)} placeholder="0000-000000-000-0"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
-          </div>
-
-          {/* Correo */}
-          <div className="min-w-[200px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
-            <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
-          </div>
-
-          {/* Cuenta Bancaria */}
-          <div className="min-w-[180px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Cuenta Bancaria</label>
-            <input value={filterCuenta} onChange={e=>setFilterCuenta(e.target.value)} placeholder="Número de cuenta"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
-          </div>
-
-          {/* Fecha contratación */}
-          <div className="min-w-[150px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha contratación</label>
-            <input type="date" value={filterFechaCont} onChange={e=>setFilterFechaCont(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
-          </div>
-
-          {/* Botón limpiar */}
           <div className="flex items-end">
             <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
               <X size={14} /> Limpiar filtros
@@ -2037,68 +1970,77 @@ function Empleados({ user }: { user: User }) {
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm table-auto whitespace-nowrap">
+          <table className="w-full text-sm table-fixed min-w-[1000px]">
+            <colgroup>
+              <col className="w-[14%]" />   {/* Empleado */}
+              <col className="w-[18%]" />   {/* Correo */}
+              <col className="w-[10%]" />   {/* Teléfono */}
+              <col className="w-[10%]" />   {/* DUI */}
+              <col className="w-[12%]" />   {/* NIT */}
+              <col className="w-[10%]" />   {/* Cargo */}
+              <col className="w-[10%]" />   {/* Contratación */}
+              <col className="w-[8%]" />    {/* Estado */}
+              <col className="w-[8%]" />    {/* Acciones */}
+            </colgroup>
             <thead className="bg-gray-50">
               <tr className="border-b border-gray-100">
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Empleado</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Correo</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Teléfono</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">DUI</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">NIT</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Cuenta Bancaria</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">AFP</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Cargo</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Contratación</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
-              </tr>
+                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Empleado</th>
+                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Correo</th>
+                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
+                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">DUI</th>
+                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">NIT</th>
+                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Cargo</th>
+                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Contratación</th>
+                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Estado</th>
+                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Acciones</th>
+               </tr>
             </thead>
             <tbody>
               {filtered.map(emp=>{
                 const fullName = `${emp.nombre} ${emp.apellido}`;
                 return (
                   <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
-                    <td className="py-3 px-3">
+                    <td className="py-2 px-2 break-words whitespace-normal">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold">
+                        <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
                           {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
                         </div>
-                        <Expandable text={fullName} maxLength={25} />
+                        <Expandable text={fullName} maxLength={20} />
                       </div>
-                    </td>
-                    <td className="py-3 px-3"><Expandable text={emp.correo} maxLength={30} /></td>
-                    <td className="py-3 px-3"><Expandable text={emp.telefono} maxLength={12} /></td>
-                    <td className="py-3 px-3"><Expandable text={emp.dui} maxLength={12} /></td>
-                    <td className="py-3 px-3"><Expandable text={emp.nit} maxLength={14} /></td>
-                    <td className="py-3 px-3"><Expandable text={emp.cuenta_banco} maxLength={16} /></td>
-                    <td className="py-3 px-3"><Expandable text={emp.afp} maxLength={10} /></td>
-                    <td className="py-3 px-3">
+                     </td>
+                    <td className="py-2 px-2 break-words whitespace-normal"><Expandable text={emp.correo} maxLength={20} /></td>
+                    <td className="py-2 px-2 break-words whitespace-normal"><Expandable text={emp.telefono} maxLength={12} /></td>
+                    <td className="py-2 px-2 break-words whitespace-normal"><Expandable text={emp.dui} maxLength={12} /></td>
+                    <td className="py-2 px-2 break-words whitespace-normal"><Expandable text={emp.nit} maxLength={14} /></td>
+                    <td className="py-2 px-2 break-words whitespace-normal">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-gray-100 text-gray-600'}`}>
                         {CARGO_ICON[emp.cargo]} {emp.cargo}
                       </span>
-                    </td>
-                    <td className="py-3 px-3 text-gray-500">{emp.fecha_contratacion || "—"}</td>
-                    <td className="py-3 px-3">
+                     </td>
+                    <td className="py-2 px-2 text-gray-500 text-xs break-words whitespace-normal">{emp.fecha_contratacion || "—"}</td>
+                    <td className="py-2 px-2 break-words whitespace-normal">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                         {emp.activo ? "Activo" : "Inactivo"}
                       </span>
-                    </td>
-                    <td className="py-3 px-3">
+                     </td>
+                    <td className="py-2 px-2 break-words whitespace-normal">
                       <div className="flex items-center gap-2">
                         <button onClick={()=>openEdit(emp)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
                         <button onClick={()=>handleToggle(emp)} className={`p-1 rounded ${emp.activo ? 'text-[#d32f2f] hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`} title={emp.activo ? "Desactivar" : "Activar"}>
                           {emp.activo ? <X size={14}/> : <Check size={14}/>}
                         </button>
                       </div>
-                    </td>
-                  </tr>
+                     </td>
+                   </tr>
                 );
               })}
               {filtered.length===0 && (
-                <tr><td colSpan={11} className="py-10 text-center text-gray-400">Sin empleados registrados. </td></tr>
+                <tr>
+                  <td colSpan={9} className="py-10 text-center text-gray-400">Sin empleados registrados.</td>
+                </tr>
               )}
             </tbody>
-          </table>
+           </table>
         </div>
       </Card>
 
@@ -2320,13 +2262,11 @@ function Historial() {
   const [detalle, setDetalle] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // filtros
+  // filtros (sin total min/max)
   const [from,      setFrom]      = useState("");
   const [to,        setTo]        = useState("");
   const [cliente,   setCliente]   = useState("");
   const [empleado,  setEmpleado]  = useState("");
-  const [totalMin,  setTotalMin]  = useState("");
-  const [totalMax,  setTotalMax]  = useState("");
 
   const LIMIT = 20;
 
@@ -2338,8 +2278,6 @@ function Historial() {
         to:        to        || undefined,
         cliente:   cliente   || undefined,
         empleado:  empleado  || undefined,
-        total_min: totalMin  || undefined,
-        total_max: totalMax  || undefined,
         limit:     LIMIT,
         offset:    p * LIMIT,
       });
@@ -2352,12 +2290,25 @@ function Historial() {
     }
   }
 
-  function limpiar() {
-    setFrom(""); setTo(""); setCliente(""); setEmpleado(""); setTotalMin(""); setTotalMax("");
-    setTimeout(() => load(0), 0);
-  }
+  // Búsqueda automática con debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      load(0);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [from, to, cliente, empleado]);
 
-  useEffect(() => { load(0); }, []);
+  // Carga inicial
+  useEffect(() => {
+    load(0);
+  }, []);
+
+  function limpiar() {
+    setFrom("");
+    setTo("");
+    setCliente("");
+    setEmpleado("");
+  }
 
   async function verDetalle(venta: any) {
     setDetalle({ venta, detalle: null });
@@ -2377,7 +2328,6 @@ function Historial() {
   const inputCls = "px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] w-full";
   const labelCls = "block text-xs font-semibold text-gray-600 mb-1";
 
-  // ── Componente interno para expandir texto con botón "+" ──
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
     if (!text) return <span className="text-gray-400">—</span>;
@@ -2427,74 +2377,70 @@ function Historial() {
         </div>
       </div>
 
-      {/* panel de filtros */}
+      {/* panel de filtros (sin total min/max ni botón Filtrar) */}
       <Card className="p-4">
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="w-36">
-              <label className={labelCls}>Desde</label>
-              <input type="date" value={from} onChange={e=>setFrom(e.target.value)} className={inputCls} />
-            </div>
-            <div className="w-36">
-              <label className={labelCls}>Hasta</label>
-              <input type="date" value={to} onChange={e=>setTo(e.target.value)} className={inputCls} />
-            </div>
-            <div className="flex-1 min-w-[180px]">
-              <label className={labelCls}>Cliente</label>
-              <input type="text" placeholder="Nombre cliente..." value={cliente}
-                onChange={e=>setCliente(e.target.value)} onKeyDown={e=>e.key==="Enter"&&load(0)}
-                className={inputCls} />
-            </div>
-            <div className="flex-1 min-w-[180px]">
-              <label className={labelCls}>Empleado</label>
-              <input type="text" placeholder="Nombre empleado..." value={empleado}
-                onChange={e=>setEmpleado(e.target.value)} onKeyDown={e=>e.key==="Enter"&&load(0)}
-                className={inputCls} />
-            </div>
-            <div className="w-28">
-              <label className={labelCls}>Total mín. ($)</label>
-              <input type="number" min="0" step="0.01" placeholder="0.00" value={totalMin}
-                onChange={e=>setTotalMin(e.target.value)} className={inputCls} />
-            </div>
-            <div className="w-28">
-              <label className={labelCls}>Total máx. ($)</label>
-              <input type="number" min="0" step="0.01" placeholder="999.99" value={totalMax}
-                onChange={e=>setTotalMax(e.target.value)} className={inputCls} />
-            </div>
-            <div className="flex gap-2 pb-0.5">
-              <Btn variant="primary" size="sm" onClick={()=>load(0)}><Search size={14}/> Filtrar</Btn>
-              <Btn variant="ghost" size="sm" onClick={limpiar}><X size={14}/> Limpiar</Btn>
-            </div>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="w-36">
+            <label className={labelCls}>Desde</label>
+            <input type="date" value={from} onChange={e=>setFrom(e.target.value)} className={inputCls} />
+          </div>
+          <div className="w-36">
+            <label className={labelCls}>Hasta</label>
+            <input type="date" value={to} onChange={e=>setTo(e.target.value)} className={inputCls} />
+          </div>
+          <div className="flex-1 min-w-[180px]">
+            <label className={labelCls}>Cliente</label>
+            <input type="text" placeholder="Nombre cliente..." value={cliente}
+              onChange={e=>setCliente(e.target.value)} className={inputCls} />
+          </div>
+          <div className="flex-1 min-w-[180px]">
+            <label className={labelCls}>Empleado</label>
+            <input type="text" placeholder="Nombre empleado..." value={empleado}
+              onChange={e=>setEmpleado(e.target.value)} className={inputCls} />
+          </div>
+          <div className="flex items-end pb-0.5">
+            <Btn variant="ghost" size="sm" onClick={limpiar}><X size={14}/> Limpiar filtros</Btn>
           </div>
         </div>
       </Card>
 
-      {/* tabla */}
+      {/* tabla estática */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm table-auto whitespace-nowrap">
+          <table className="w-full text-sm table-fixed min-w-[700px]">
+            <colgroup>
+              <col className="w-[10%]" />   {/* # Venta */}
+              <col className="w-[15%]" />   {/* Fecha */}
+              <col className="w-[30%]" />   {/* Cliente */}
+              <col className="w-[25%]" />   {/* Empleado */}
+              <col className="w-[10%]" />   {/* Total */}
+              <col className="w-[10%]" />   {/* Detalle */}
+            </colgroup>
             <thead className="bg-gray-50">
               <tr className="border-b border-gray-100">
-                {["# Venta", "Fecha", "Cliente", "Empleado", "Total", "Detalle"].map(h => (
-                  <th key={h} className="text-left py-3 px-3 text-xs text-gray-500 font-semibold">{h}</th>
-                ))}
-              </tr>
+                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words"># Venta</th>
+                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Fecha</th>
+                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Cliente</th>
+                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Empleado</th>
+                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Total</th>
+                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Detalle</th>
+               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan={6} className="py-12 text-center text-gray-400">Cargando...</td></tr>
               ) : data.ventas.map(v => (
                 <tr key={v.id_venta} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
-                  <td className="py-3 px-3 font-mono text-xs text-[#0a4b7a] font-semibold">#{v.id_venta}</td>
-                  <td className="py-3 px-3 text-gray-600 text-xs">{v.fecha}</td>
-                  <td className="py-3 px-3 text-gray-700">
+                  <td className="py-3 px-3 font-mono text-xs text-[#0a4b7a] font-semibold break-words whitespace-normal">#{v.id_venta}</td>
+                  <td className="py-3 px-3 text-gray-600 text-xs break-words whitespace-normal">{v.fecha}</td>
+                  <td className="py-3 px-3 text-gray-700 break-words whitespace-normal">
                     <Expandable text={v.cliente ?? "Consumidor final"} maxLength={30} />
                   </td>
-                  <td className="py-3 px-3 text-gray-700">
+                  <td className="py-3 px-3 text-gray-700 break-words whitespace-normal">
                     <Expandable text={v.empleado ?? "—"} maxLength={30} />
                   </td>
-                  <td className="py-3 px-3 font-mono font-semibold text-[#0a4b7a]">${Number(v.total).toFixed(2)}</td>
-                  <td className="py-3 px-3">
+                  <td className="py-3 px-3 font-mono font-semibold text-[#0a4b7a] break-words whitespace-normal">${Number(v.total).toFixed(2)}</td>
+                  <td className="py-3 px-3 break-words whitespace-normal">
                     <button
                       onClick={() => verDetalle(v)}
                       className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]"
@@ -2502,8 +2448,8 @@ function Historial() {
                     >
                       <Eye size={14} />
                     </button>
-                  </td>
-                </tr>
+                   </td>
+                 </tr>
               ))}
               {!loading && data.ventas.length === 0 && (
                 <tr><td colSpan={6} className="py-12 text-center text-gray-400">Sin ventas en el período.</td></tr>
@@ -2746,16 +2692,15 @@ function Eliminados() {
 }
 
 function Auditoria({ user }: { user: User }) {
-  const [data, setData]     = useState<{ data: any[]; total: number }>({ data: [], total: 0 });
+  const [data, setData] = useState<{ data: any[]; total: number }>({ data: [], total: 0 });
   const [loading, setLoading] = useState(true);
-  const [from, setFrom]     = useState("");
-  const [to, setTo]         = useState("");
-  const [tabla, setTabla]   = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [tabla, setTabla] = useState("");
   const [accion, setAccion] = useState("");
-  const [page, setPage]     = useState(0);
+  const [page, setPage] = useState(0);
   const LIMIT = 30;
 
-  // Función para formatear fecha ISO a dd/mm/aaaa hh:mm:ss
   const formatFecha = (isoString: string) => {
     if (!isoString) return "—";
     const fecha = new Date(isoString);
@@ -2780,70 +2725,64 @@ function Auditoria({ user }: { user: User }) {
         limit: LIMIT,
         offset: p * LIMIT,
       });
-      setData(res);
+      const sortedData = [...res.data].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+      setData({ data: sortedData, total: res.total });
       setPage(p);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }
 
-  // Búsqueda automática con debounce
   useEffect(() => {
-    const handler = setTimeout(() => {
-      load(0);
-    }, 300);
+    const handler = setTimeout(() => load(0), 300);
     return () => clearTimeout(handler);
   }, [from, to, tabla, accion]);
 
-  useEffect(() => {
-    load(0);
-  }, []);
+  useEffect(() => { load(0); }, []);
 
   const totalPages = Math.ceil(data.total / LIMIT);
 
   const accionColor: Record<string, string> = {
-    CREAR:      "bg-green-50 text-green-700",
-    EDITAR:     "bg-blue-50 text-blue-700",
-    ELIMINAR:   "bg-red-50 text-red-700",
+    CREAR: "bg-green-50 text-green-700",
+    EDITAR: "bg-blue-50 text-blue-700",
+    ELIMINAR: "bg-red-50 text-red-700",
     DESACTIVAR: "bg-amber-50 text-amber-700",
-    ACTIVAR:    "bg-green-50 text-green-700",
-    PAPELERA:   "bg-orange-50 text-orange-700",
-    RESTAURAR:  "bg-purple-50 text-purple-700",
+    ACTIVAR: "bg-green-50 text-green-700",
+    PAPELERA: "bg-orange-50 text-orange-700",
+    RESTAURAR: "bg-purple-50 text-purple-700",
   };
 
   const tablaColor: Record<string, string> = {
-    productos:   "bg-blue-50 text-blue-700",
-    clientes:    "bg-green-50 text-green-700",
+    productos: "bg-blue-50 text-blue-700",
+    clientes: "bg-green-50 text-green-700",
     proveedores: "bg-purple-50 text-purple-700",
-    empleados:   "bg-amber-50 text-amber-700",
+    empleados: "bg-amber-50 text-amber-700",
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="p-4 md:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-[#1e1e1e]">Auditoría del Sistema</h1>
           <p className="text-sm text-gray-500">{data.total} registros de cambios</p>
         </div>
       </div>
 
+      {/* Filtros responsivos */}
       <Card className="p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
+        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
+          <div className="w-full md:w-auto">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Desde</label>
             <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+              className="w-full md:w-auto px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
           </div>
-          <div>
+          <div className="w-full md:w-auto">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Hasta</label>
             <input type="date" value={to} onChange={e => setTo(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+              className="w-full md:w-auto px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
           </div>
-          <div>
+          <div className="w-full md:w-auto md:min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Tabla</label>
-            <Select value={tabla} onChange={setTabla}>
+            <Select value={tabla} onChange={setTabla} className="w-full">
               <option value="">Todas</option>
               <option value="productos">Productos</option>
               <option value="clientes">Clientes</option>
@@ -2851,9 +2790,9 @@ function Auditoria({ user }: { user: User }) {
               <option value="empleados">Empleados</option>
             </Select>
           </div>
-          <div>
+          <div className="w-full md:w-auto md:min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Acción</label>
-            <Select value={accion} onChange={setAccion}>
+            <Select value={accion} onChange={setAccion} className="w-full">
               <option value="">Todas</option>
               <option value="CREAR">Crear</option>
               <option value="EDITAR">Editar</option>
@@ -2864,51 +2803,54 @@ function Auditoria({ user }: { user: User }) {
               <option value="RESTAURAR">Restaurar</option>
             </Select>
           </div>
-          <Btn variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); setTabla(""); setAccion(""); }}>
-            <X size={14} /> Limpiar
-          </Btn>
+          <div className="flex gap-2 mt-2 md:mt-0">
+            <Btn variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); setTabla(""); setAccion(""); }}>
+              <X size={14} /> Limpiar
+            </Btn>
+          </div>
         </div>
       </Card>
 
+      {/* Tabla responsiva */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 {["Fecha", "Tabla", "Acción", "Descripción", "Campo", "Valor anterior", "Valor nuevo", "Empleado"].map(h => (
-                  <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
+                  <th key={h} className="text-left py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 font-semibold">{h}</th>
                 ))}
-               </tr>
+              </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan={8} className="py-12 text-center text-gray-400">Cargando...</td></tr>
               ) : data.data.map((r, i) => (
                 <tr key={i} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
-                  <td className="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">{formatFecha(r.fecha)}</td>
-                  <td className="py-3 px-4">
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 whitespace-nowrap">{formatFecha(r.fecha)}</td>
+                  <td className="py-2 px-2 md:py-3 md:px-4">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaColor[r.tabla] ?? 'bg-gray-100 text-gray-600'}`}>
                       {r.tabla}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-2 px-2 md:py-3 md:px-4">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accionColor[r.accion] ?? 'bg-gray-100 text-gray-600'}`}>
                       {r.accion}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-gray-700">{r.descripcion}</td>
-                  <td className="py-3 px-4 text-xs text-gray-500 font-mono">{r.campo_modificado ?? '—'}</td>
-                  <td className="py-3 px-4 text-xs">
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-700">{r.descripcion}</td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 font-mono">{r.campo_modificado ?? '—'}</td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs">
                     {r.valor_anterior
                       ? <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded font-mono">{r.valor_anterior}</span>
                       : <span className="text-gray-400">—</span>}
                   </td>
-                  <td className="py-3 px-4 text-xs">
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs">
                     {r.valor_nuevo
                       ? <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded font-mono">{r.valor_nuevo}</span>
                       : <span className="text-gray-400">—</span>}
                   </td>
-                  <td className="py-3 px-4 text-gray-600 text-xs">{r.nombre_empleado ?? '—'}</td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs">{r.nombre_empleado ?? '—'}</td>
                 </tr>
               ))}
               {!loading && data.data.length === 0 && (
@@ -2918,7 +2860,7 @@ function Auditoria({ user }: { user: User }) {
           </table>
         </div>
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-gray-100 gap-2">
             <span className="text-xs text-gray-500">Página {page + 1} de {totalPages}</span>
             <div className="flex gap-2">
               <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>← Anterior</Btn>
