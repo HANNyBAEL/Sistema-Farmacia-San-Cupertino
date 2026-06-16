@@ -93,7 +93,7 @@ export function generarFacturaPDF(data: FacturaData): void {
   doc.setFont("helvetica", "bold");
   doc.text("DOCUMENTO TRIBUTARIO ELECTRÓNICO", W / 2, 8, { align: "center" });
   doc.setFontSize(9);
-  doc.text("COMPROBANTE DE CRÉDITO FISCAL", W / 2, 13.5, { align: "center" });
+  doc.text("FACTURA", W / 2, 13.5, { align: "center" });
 
   doc.setFontSize(8);
   doc.text("Ver.3", W - 8, 10, { align: "right" });

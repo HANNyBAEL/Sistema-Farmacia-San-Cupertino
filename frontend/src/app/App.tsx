@@ -5,7 +5,8 @@ import {
   Plus, Edit2, X, Check, AlertTriangle, FileSpreadsheet,
   Eye, EyeOff, Filter, Download, RefreshCw, Shield,
   TrendingUp, TrendingDown, Clock, ChevronRight, RotateCcw,
-  Camera
+  Camera,
+  DollarSign
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { login as apiLogin } from "../services/auth";
@@ -279,11 +280,19 @@ function Sidebar({ user, current, onNav, onLogout }: { user: User; current: Scre
 function Dashboard() {
   const [kpis, setKpis]         = useState<any>(null);
   const [salesData, setSalesData] = useState<any[]>([]);
+  const [expiredCount, setExpiredCount] = useState(0);
+  const [avgDailySales, setAvgDailySales] = useState(0);
   const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
-    Promise.all([fetchKPIs(), fetchVentasUltimos7Dias()])
-      .then(([k, s]) => {
+    // Obtener KPIs, ventas de los últimos 7 días y productos vencidos
+    Promise.all([
+      fetchKPIs(),
+      fetchVentasUltimos7Dias(),
+      getProductos() // Importa esta función desde tu API de productos
+    ])
+      .then(([k, s, productos]) => {
+        // Procesar ventas para el gráfico
         const processed = s.map((item: { dia: string; ventas: number }) => {
           const date = new Date(item.dia + 'T12:00:00Z');
           const dayName = date.toLocaleDateString('es-ES', {
@@ -293,6 +302,22 @@ function Dashboard() {
           return { day: dayName.replace('.', ''), ventas: item.ventas };
         });
         setSalesData(processed);
+
+        // Calcular productos vencidos (fecha de vencimiento < hoy)
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const vencidos = productos.filter((p: any) => {
+          if (!p.fecha_vencimiento) return false;
+          const vence = new Date(p.fecha_vencimiento + 'T00:00:00');
+          return vence < hoy;
+        }).length;
+        setExpiredCount(vencidos);
+
+        // Calcular venta promedio diario (últimos 7 días)
+        const totalVentas = processed.reduce((sum: any, day: { ventas: any; }) => sum + day.ventas, 0);
+        const promedio = processed.length ? totalVentas / processed.length : 0;
+        setAvgDailySales(promedio);
+
         setKpis(k);
       })
       .catch(console.error)
@@ -308,8 +333,8 @@ function Dashboard() {
     { label: "Stock Crítico (≤10)",value: kpis?.stockCritico ?? 0,                        icon: <AlertTriangle size={20}/>, accent: "red" as const },
     { label: "Agotados",           value: kpis?.agotados ?? 0,                            icon: <X size={20}/>,             accent: "red" as const },
     { label: "Próx. Vencer (30d)", value: kpis?.porVencer ?? 0,                           icon: <Clock size={20}/>,         accent: "amber" as const },
-    { label: "Proveedores",        value: kpis?.proveedoresActivos ?? 0,                  icon: <Truck size={20}/>,         accent: "blue" as const },
-    { label: "Empleados",          value: kpis?.empleadosActivos ?? 0,                    icon: <UserCog size={20}/>,       accent: "blue" as const },
+    { label: "Productos Vencidos", value: expiredCount,                                   icon: <Package size={20}/>,       accent: "red" as const },
+    { label: "Venta Promedio Diario", value: `$${avgDailySales.toFixed(2)}`,             icon: <DollarSign size={20}/>,    accent: "blue" as const },
   ];
 
   return (
@@ -820,19 +845,19 @@ function Productos({ user }: { user: User }) {
 // ── Ventas (POS) ──────────────────────────────────────────────────────────────
 function Ventas({ user }: { user: User }) {
   const [products, setProducts] = useState<Product[]>([]);
-  const [clients, setClients]   = useState<Client[]>([]);
-  const [search, setSearch]     = useState("");
-  const [cart, setCart]         = useState<CartItem[]>([]);
-  const [clientSearch, setClientSearch]     = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [search, setSearch] = useState("");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [clientSearch, setClientSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [saleError, setSaleError] = useState("");
-  const [saleDone, setSaleDone]   = useState(false);
+  const [saleDone, setSaleDone] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [efectivo, setEfectivo] = useState("");
-  const [metodoPago, setMetodoPago] = useState<"efectivo"|"tarjeta"|"transferencia"|"applepay"|"paypal"|"western">("efectivo");
+  const [metodoPago, setMetodoPago] = useState<"efectivo" | "tarjeta" | "transferencia" | "applepay" | "paypal" | "western">("efectivo");
   // Modal nuevo cliente
   const [showNewClient, setShowNewClient] = useState(false);
-  const [newClientForm, setNewClientForm] = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
+  const [newClientForm, setNewClientForm] = useState({ nombre: "", apellido: "", telefono: "", correo: "", direccion: "", dui: "" });
   const [newClientError, setNewClientError] = useState("");
   const [savingClient, setSavingClient] = useState(false);
   // Modal personalizado para medicamento controlado
@@ -843,6 +868,19 @@ function Ventas({ user }: { user: User }) {
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   const cartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Funciones de formato para DUI y Teléfono
+  function formatDUI(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 9);
+    if (digits.length <= 8) return digits;
+    return `${digits.slice(0, 8)}-${digits.slice(8, 9)}`;
+  }
+
+  function formatPhone(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 4) return digits;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
+  }
 
   useEffect(() => {
     Promise.all([getProductos(), clientesApi.getAll()])
@@ -887,7 +925,7 @@ function Ventas({ user }: { user: User }) {
       setToast({ message: `"${p.nombre_producto}" no está disponible.`, type: 'error' });
       return;
     }
-    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const vencimiento = new Date(p.fecha_vencimiento + 'T00:00:00');
     if (vencimiento < hoy) {
       setToast({ message: `"${p.nombre_producto}" está vencido.`, type: 'error' });
@@ -925,7 +963,7 @@ function Ventas({ user }: { user: User }) {
           setToast({ message: `Solo quedan ${p.stock} unidades.`, type: 'error' });
           return prev;
         }
-        return prev.map(i => i.product.id_producto === p.id_producto ? { ...i, qty: i.qty+1 } : i);
+        return prev.map(i => i.product.id_producto === p.id_producto ? { ...i, qty: i.qty + 1 } : i);
       }
       return [...prev, { product: p, qty: 1 }];
     });
@@ -1046,21 +1084,29 @@ function Ventas({ user }: { user: User }) {
 
   async function guardarNuevoCliente() {
     if (!newClientForm.nombre || !newClientForm.apellido || !newClientForm.telefono) {
-      setNewClientError("Nombre, apellido y teléfono son obligatorios."); return;
+      setNewClientError("Nombre, apellido y teléfono son obligatorios.");
+      return;
     }
     setSavingClient(true);
     try {
-      await clientesApi.create(newClientForm);
+      const payload = {
+        ...newClientForm,
+        dui: newClientForm.dui.replace(/\D/g, ''),
+        telefono: newClientForm.telefono.replace(/\D/g, ''),
+        id_empleado: user.id,
+        nombre_empleado: user.name,
+      };
+      await clientesApi.create(payload);
       const clts = await clientesApi.getAll();
       setClients(clts);
       const creado = clts.find((c: Client) =>
         c.nombre === newClientForm.nombre &&
         c.apellido === newClientForm.apellido &&
-        c.telefono === newClientForm.telefono
+        c.telefono.replace(/\D/g, '') === newClientForm.telefono.replace(/\D/g, '')
       );
       if (creado) setSelectedClient(creado);
       setShowNewClient(false);
-      setNewClientForm({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
+      setNewClientForm({ nombre: "", apellido: "", telefono: "", correo: "", direccion: "", dui: "" });
       setNewClientError("");
     } catch (e: any) {
       setNewClientError(e?.response?.data?.error ?? "Error al registrar el cliente.");
@@ -1070,7 +1116,7 @@ function Ventas({ user }: { user: User }) {
   }
 
   return (
-    <div className="flex h-full" style={{ minHeight:0 }}>
+    <div className="flex h-full" style={{ minHeight: 0 }}>
       {/* Toast flotante */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
@@ -1109,7 +1155,7 @@ function Ventas({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Modal cliente no seleccionado (solo advertencia) */}
+      {/* Modal cliente no seleccionado */}
       {noClientModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full p-6">
@@ -1135,56 +1181,86 @@ function Ventas({ user }: { user: User }) {
       {showScanner && (
         <EscanerCodigoBarras
           onDetected={handleCodigoDetectado}
-          onClose={()=>setShowScanner(false)}
+          onClose={() => setShowScanner(false)}
         />
       )}
 
-      {/* Modal nuevo cliente */}
+      {/* Modal nuevo cliente (con estilo y tamaño consistentes) */}
       {showNewClient && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-sm p-6">
+          <Card className="w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-[#1e1e1e]">Nuevo Cliente</h2>
-              <button onClick={()=>{setShowNewClient(false);setNewClientError("");}} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+              <button onClick={() => { setShowNewClient(false); setNewClientError(""); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             {newClientError && (
               <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
-                <AlertTriangle size={14}/>{newClientError}
+                <AlertTriangle size={14} />{newClientError}
               </div>
             )}
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label><Input value={newClientForm.nombre} onChange={v=>setNewClientForm(p=>({...p,nombre:v}))} placeholder="Nombre"/></div>
-                <div><label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label><Input value={newClientForm.apellido} onChange={v=>setNewClientForm(p=>({...p,apellido:v}))} placeholder="Apellido"/></div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                  <Input value={newClientForm.nombre} onChange={v => setNewClientForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" className="w-full" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label>
+                  <Input value={newClientForm.apellido} onChange={v => setNewClientForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" className="w-full" />
+                </div>
               </div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">DUI <span className="text-gray-400 font-normal">(00000000-0)</span></label><Input value={newClientForm.dui} onChange={v=>setNewClientForm(p=>({...p,dui:v}))} placeholder="00000000-0"/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono *</label><Input value={newClientForm.telefono} onChange={v=>setNewClientForm(p=>({...p,telefono:v}))} placeholder="7000-0000"/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label><Input type="email" value={newClientForm.correo} onChange={v=>setNewClientForm(p=>({...p,correo:v}))} placeholder="correo@ejemplo.com"/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label><Input value={newClientForm.direccion} onChange={v=>setNewClientForm(p=>({...p,direccion:v}))} placeholder="Dirección opcional"/></div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">DUI *</label>
+                <input
+                  value={formatDUI(newClientForm.dui)}
+                  onChange={e => setNewClientForm(prev => ({ ...prev, dui: e.target.value }))}
+                  placeholder="00000000-0"
+                  maxLength={10}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono *</label>
+                <input
+                  value={formatPhone(newClientForm.telefono)}
+                  onChange={e => setNewClientForm(prev => ({ ...prev, telefono: e.target.value }))}
+                  placeholder="0000-0000"
+                  maxLength={9}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+                <Input type="email" value={newClientForm.correo} onChange={v => setNewClientForm(p => ({ ...p, correo: v }))} placeholder="correo@ejemplo.com" className="w-full" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+                <Input value={newClientForm.direccion} onChange={v => setNewClientForm(p => ({ ...p, direccion: v }))} placeholder="Dirección opcional" className="w-full" />
+              </div>
             </div>
             <div className="flex justify-end gap-3 mt-5">
-              <Btn variant="secondary" onClick={()=>{setShowNewClient(false);setNewClientError("");}}>Cancelar</Btn>
-              <Btn variant="primary" onClick={guardarNuevoCliente} disabled={savingClient}><Check size={14}/> {savingClient ? "Guardando..." : "Registrar"}</Btn>
+              <Btn variant="secondary" onClick={() => { setShowNewClient(false); setNewClientError(""); }}>Cancelar</Btn>
+              <Btn variant="primary" onClick={guardarNuevoCliente} disabled={savingClient}><Check size={14} /> {savingClient ? "Guardando..." : "Registrar"}</Btn>
             </div>
           </Card>
         </div>
       )}
 
-      {/* Panel izquierdo: búsqueda productos */}
+      {/* Panel izquierdo: búsqueda de productos */}
       <div className="w-72 border-r border-gray-100 flex flex-col bg-white">
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-[#1e1e1e] text-sm">Buscar Producto</h2>
-            <button onClick={()=>setShowScanner(true)} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:bg-[#e3f2fd] px-2 py-1 rounded-lg font-medium transition-colors"><Camera size={13}/> Escanear</button>
+            <button onClick={() => setShowScanner(true)} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:bg-[#e3f2fd] px-2 py-1 rounded-lg font-medium transition-colors"><Camera size={13} /> Escanear</button>
           </div>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o código de barras..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nombre o código de barras..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
-          {search && results.map(p=>(
-            <button key={p.id_producto} onClick={()=>addToCart(p)} className="w-full text-left p-3 rounded-lg hover:bg-[#e3f2fd] transition-colors border border-transparent hover:border-[#0a4b7a]/20 mb-1">
+          {search && results.map(p => (
+            <button key={p.id_producto} onClick={() => addToCart(p)} className="w-full text-left p-3 rounded-lg hover:bg-[#e3f2fd] transition-colors border border-transparent hover:border-[#0a4b7a]/20 mb-1">
               <div className="text-sm font-medium text-[#1e1e1e]">{p.nombre_producto}</div>
               <div className="flex items-center gap-3 mt-1">
                 <span className="text-xs text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</span>
@@ -1193,27 +1269,27 @@ function Ventas({ user }: { user: User }) {
               </div>
             </button>
           ))}
-          {search && results.length===0 && <p className="text-sm text-gray-400 text-center py-6">Sin resultados</p>}
+          {search && results.length === 0 && <p className="text-sm text-gray-400 text-center py-6">Sin resultados</p>}
           {!search && <p className="text-sm text-gray-400 text-center py-6">Escriba para buscar</p>}
         </div>
       </div>
 
       {/* Panel central: carrito */}
-      <div className="flex-1 flex flex-col" style={{ minWidth:0 }}>
+      <div className="flex-1 flex flex-col" style={{ minWidth: 0 }}>
         <div className="p-4 border-b border-gray-100 bg-white flex items-center justify-between">
           <h2 className="font-semibold text-[#1e1e1e] text-sm">Carrito</h2>
-          {cart.length>0 && <Btn variant="ghost" size="sm" onClick={()=>{setCart([]);setSaleError("");}}><X size={13}/> Limpiar</Btn>}
+          {cart.length > 0 && <Btn variant="ghost" size="sm" onClick={() => { setCart([]); setSaleError(""); }}><X size={13} /> Limpiar</Btn>}
         </div>
-        {saleDone && <div className="mx-4 mt-4 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2"><Check size={16}/> Venta registrada exitosamente.</div>}
-        {saleError && <div className="mx-4 mt-4 bg-red-50 border border-red-200 text-[#d32f2f] rounded-lg px-4 py-3 text-sm flex items-center gap-2"><AlertTriangle size={14}/>{saleError}</div>}
+        {saleDone && <div className="mx-4 mt-4 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2"><Check size={16} /> Venta registrada exitosamente.</div>}
+        {saleError && <div className="mx-4 mt-4 bg-red-50 border border-red-200 text-[#d32f2f] rounded-lg px-4 py-3 text-sm flex items-center gap-2"><AlertTriangle size={14} />{saleError}</div>}
         <div className="flex-1 overflow-auto p-4" ref={cartContainerRef}>
-          {cart.length===0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3"><ShoppingCart size={40} strokeWidth={1}/><span className="text-sm">El carrito está vacío</span></div>
+          {cart.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3"><ShoppingCart size={40} strokeWidth={1} /><span className="text-sm">El carrito está vacío</span></div>
           ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["Producto","P.Unit","Cant.","Subtotal",""].map(h => <th key={h} className="text-left py-2 px-2 text-xs text-gray-500 font-medium">{h}</th>)}
+                  {["Producto", "P.Unit", "Cant.", "Subtotal", ""].map(h => <th key={h} className="text-left py-2 px-2 text-xs text-gray-500 font-medium">{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -1223,13 +1299,13 @@ function Ventas({ user }: { user: User }) {
                     <td className="py-2 px-2 text-gray-600">${Number(item.product.precio).toFixed(2)}</td>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-1">
-                        <button onClick={()=>setQty(item.product.id_producto, item.qty-1)} className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100">−</button>
+                        <button onClick={() => setQty(item.product.id_producto, item.qty - 1)} className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100">−</button>
                         <span className="w-8 text-center font-medium">{item.qty}</span>
-                        <button onClick={()=>setQty(item.product.id_producto, item.qty+1)} className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100">+</button>
+                        <button onClick={() => setQty(item.product.id_producto, item.qty + 1)} className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100">+</button>
                       </div>
                     </td>
                     <td className="py-2 px-2 font-semibold text-[#0a4b7a]">${(Number(item.product.precio) * item.qty).toFixed(2)}</td>
-                    <td className="py-2 px-2"><button onClick={()=>removeFromCart(item.product.id_producto)} className="text-gray-400 hover:text-[#d32f2f]"><X size={15}/></button></td>
+                    <td className="py-2 px-2"><button onClick={() => removeFromCart(item.product.id_producto)} className="text-gray-400 hover:text-[#d32f2f]"><X size={15} /></button></td>
                   </tr>
                 ))}
               </tbody>
@@ -1243,16 +1319,16 @@ function Ventas({ user }: { user: User }) {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-[#1e1e1e] text-sm">Cliente</h2>
-            <button onClick={()=>{setShowNewClient(true);setNewClientError("");}} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:text-[#0d5c96] font-medium hover:bg-[#e3f2fd] px-2 py-1 rounded-lg transition-colors"><Plus size={12}/> Nuevo</button>
+            <button onClick={() => { setShowNewClient(true); setNewClientError(""); }} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:text-[#0d5c96] font-medium hover:bg-[#e3f2fd] px-2 py-1 rounded-lg transition-colors"><Plus size={12} /> Nuevo</button>
           </div>
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={clientSearch} onChange={e=>setClientSearch(e.target.value)} placeholder="Buscar por DUI..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <input value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Buscar por DUI..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
           {clientSearch && (
             <div className="mt-1 border border-gray-100 rounded-lg overflow-hidden shadow-sm">
               {clients.filter(c => (c.dui ?? "").toLowerCase().startsWith(clientSearch.toLowerCase()) && !c.deleted && !c.papelera).map(c => (
-                <button key={c.id_cliente} onClick={()=>{setSelectedClient(c);setClientSearch("");}} className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">
+                <button key={c.id_cliente} onClick={() => { setSelectedClient(c); setClientSearch(""); }} className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">
                   {c.nombre} {c.apellido} {c.dui && <span className="text-gray-400 ml-1">({c.dui})</span>}
                 </button>
               ))}
@@ -1261,7 +1337,7 @@ function Ventas({ user }: { user: User }) {
           {selectedClient && (
             <div className="mt-2 flex items-center justify-between bg-[#e3f2fd] rounded-lg px-3 py-2">
               <span className="text-xs text-[#0a4b7a] font-medium">{selectedClient.nombre} {selectedClient.apellido}</span>
-              <button onClick={()=>setSelectedClient(null)} className="text-[#0a4b7a]/50 hover:text-[#d32f2f]"><X size={13}/></button>
+              <button onClick={() => setSelectedClient(null)} className="text-[#0a4b7a]/50 hover:text-[#d32f2f]"><X size={13} /></button>
             </div>
           )}
         </div>
@@ -1271,12 +1347,12 @@ function Ventas({ user }: { user: User }) {
             <label className="block text-xs font-semibold text-gray-600 mb-2">Método de pago</label>
             <div className="grid grid-cols-2 gap-1.5">
               {([
-                { id:"efectivo", label:"💵 Efectivo" },
-                { id:"tarjeta", label:"💳 Tarjeta" },
-                { id:"transferencia", label:"🏦 Transferencia" },
-                { id:"applepay", label:" Apple Pay" },
-                { id:"paypal", label:"🅿️ PayPal" },
-                { id:"western", label:"🌐 Western Union" },
+                { id: "efectivo", label: "💵 Efectivo" },
+                { id: "tarjeta", label: "💳 Tarjeta" },
+                { id: "transferencia", label: "🏦 Transferencia" },
+                { id: "applepay", label: " Apple Pay" },
+                { id: "paypal", label: "🅿️ PayPal" },
+                { id: "western", label: "🌐 Western Union" },
               ] as const).map(m => (
                 <button key={m.id} onClick={() => { setMetodoPago(m.id); setEfectivo(""); }} className={`text-xs px-2 py-1.5 rounded-lg border font-medium transition-colors text-left ${metodoPago === m.id ? 'bg-[#0a4b7a] text-white border-[#0a4b7a]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#0a4b7a] hover:text-[#0a4b7a]'}`}>{m.label}</button>
               ))}
@@ -1291,14 +1367,23 @@ function Ventas({ user }: { user: User }) {
           {soloEfectivo && (
             <div className="space-y-2">
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">Efectivo recibido *</label><input type="number" min={0} value={efectivo} onChange={e => setEfectivo(e.target.value)} placeholder="$0.00" className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" /></div>
-              {parseFloat(efectivo) >= total && <div className="flex justify-between text-green-700 font-bold text-base bg-green-50 rounded-lg px-3 py-2"><span>Cambio</span><span>${(parseFloat(efectivo) - total).toFixed(2)}</span></div>}
-              {efectivo && parseFloat(efectivo) < total && <div className="flex items-center gap-1 text-[#d32f2f] text-xs"><AlertTriangle size={12}/> Monto insuficiente</div>}
+              {parseFloat(efectivo) >= total && (
+                <div className="flex justify-between text-green-700 font-bold text-base bg-green-50 rounded-lg px-3 py-2">
+                  <span>Cambio</span>
+                  <span>${(parseFloat(efectivo) - total).toFixed(2)}</span>
+                </div>
+              )}
+              {efectivo && parseFloat(efectivo) < total && (
+                <div className="flex items-center gap-1 text-[#d32f2f] text-xs">
+                  <AlertTriangle size={12} /> Monto insuficiente
+                </div>
+              )}
             </div>
           )}
         </div>
         <div className="p-4 border-t border-gray-100 space-y-2">
-          <Btn variant="primary" className="w-full justify-center" onClick={finalizarVenta} disabled={cart.length===0}><Check size={15}/> Finalizar venta</Btn>
-          <Btn variant="danger"  className="w-full justify-center" onClick={()=>{setCart([]);setSaleError("");}} disabled={cart.length===0}><X size={15}/> Cancelar</Btn>
+          <Btn variant="primary" className="w-full justify-center" onClick={finalizarVenta} disabled={cart.length === 0}><Check size={15} /> Finalizar venta</Btn>
+          <Btn variant="danger" className="w-full justify-center" onClick={() => { setCart([]); setSaleError(""); }} disabled={cart.length === 0}><X size={15} /> Cancelar</Btn>
         </div>
       </div>
     </div>
@@ -1351,7 +1436,14 @@ function Clientes({ user }: { user: User }) {
   }
   function openEdit(c:Client){
     setEditClient(c);
-    setForm({nombre:c.nombre,apellido:c.apellido,telefono:c.telefono,correo:c.correo,direccion:c.direccion??"",dui:c.dui??""});
+    setForm({
+      nombre: c.nombre,
+      apellido: c.apellido,
+      telefono: c.telefono,
+      correo: c.correo,
+      direccion: c.direccion ?? "",
+      dui: c.dui ?? ""
+    });
     setFormError("");
     setShowForm(true);
   }
@@ -1390,7 +1482,20 @@ function Clientes({ user }: { user: User }) {
 
   if(loading) return <LoadingSpinner/>;
 
-  // Componente interno para expandir texto
+  // Función para formatear DUI: 00000000-0
+  function formatDUI(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 9);
+    if (digits.length <= 8) return digits;
+    return `${digits.slice(0, 8)}-${digits.slice(8, 9)}`;
+  }
+
+  // Función para formatear teléfono: 0000-0000
+  function formatPhone(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 4) return digits;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
+  }
+
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
     if (!text) return <span className="text-gray-400">—</span>;
@@ -1437,7 +1542,7 @@ function Clientes({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo cliente</Btn>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros (sin cambios) */}
       <Card className="p-4">
         <div className="flex flex-wrap gap-4">
           <div className="min-w-[200px] flex-1">
@@ -1455,7 +1560,7 @@ function Clientes({ user }: { user: User }) {
           </div>
           <div className="min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
-            <input value={filterTel} onChange={e=>setFilterTel(e.target.value)} placeholder="Número..."
+            <input value={filterTel} onChange={e=>setFilterTel(e.target.value)} placeholder="0000-0000"
               className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
           </div>
           <div className="min-w-[200px]">
@@ -1484,17 +1589,17 @@ function Clientes({ user }: { user: User }) {
         </div>
       </Card>
 
+      {/* Tabla (sin cambios) */}
       <Card className="overflow-hidden">
-        {/* Tabla estática: sin overflow-x-auto, con table-fixed y quiebre de texto */}
         <table className="w-full table-fixed text-sm">
           <colgroup>
-            <col className="w-[20%]" />   {/* Nombre */}
-            <col className="w-[10%]" />   {/* DUI */}
-            <col className="w-[10%]" />   {/* Teléfono */}
-            <col className="w-[20%]" />   {/* Correo */}
-            <col className="w-[20%]" />   {/* Dirección */}
-            <col className="w-[8%]" />    {/* Estado */}
-            <col className="w-[12%]" />   {/* Acciones */}
+            <col className="w-[20%]" />
+            <col className="w-[10%]" />
+            <col className="w-[10%]" />
+            <col className="w-[20%]" />
+            <col className="w-[20%]" />
+            <col className="w-[8%]" />
+            <col className="w-[12%]" />
           </colgroup>
           <thead className="bg-gray-50">
             <tr className="border-b border-gray-100">
@@ -1556,6 +1661,7 @@ function Clientes({ user }: { user: User }) {
         </table>
       </Card>
 
+      {/* Modal de formulario ESTILO VENTAS (idéntico al de POS) */}
       {showForm&&(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6">
@@ -1564,19 +1670,49 @@ function Clientes({ user }: { user: User }) {
               <button onClick={()=>setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
             </div>
             {formError&&<div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label><Input value={form.nombre} onChange={v=>setForm(p=>({...p,nombre:v}))}/></div>
-                <div><label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label><Input value={form.apellido} onChange={v=>setForm(p=>({...p,apellido:v}))}/></div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                  <Input value={form.nombre} onChange={v=>setForm(p=>({...p,nombre:v}))} placeholder="Nombre" className="w-full" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label>
+                  <Input value={form.apellido} onChange={v=>setForm(p=>({...p,apellido:v}))} placeholder="Apellido" className="w-full" />
+                </div>
               </div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">DUI <span className="text-gray-400 font-normal">(00000000-0)</span></label><Input value={form.dui} onChange={v=>setForm(p=>({...p,dui:v}))} placeholder="00000000-0"/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono *</label><Input value={form.telefono} onChange={v=>setForm(p=>({...p,telefono:v}))}/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Correo *</label><Input type="email" value={form.correo} onChange={v=>setForm(p=>({...p,correo:v}))}/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label><Input value={form.direccion} onChange={v=>setForm(p=>({...p,direccion:v}))}/></div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">DUI *</label>
+                <input
+                  value={formatDUI(form.dui)} 
+                  onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} 
+                  placeholder="00000000-0" 
+                  maxLength={10}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono *</label>
+                <input
+                  value={formatPhone(form.telefono)} 
+                  onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} 
+                  placeholder="0000-0000" 
+                  maxLength={9}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+                <Input type="email" value={form.correo} onChange={v=>setForm(p=>({...p,correo:v}))} placeholder="correo@ejemplo.com" className="w-full" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+                <Input value={form.direccion} onChange={v=>setForm(p=>({...p,direccion:v}))} placeholder="Dirección opcional" className="w-full" />
+              </div>
             </div>
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-end gap-3 mt-5">
               <Btn variant="secondary" onClick={()=>setShowForm(false)}>Cancelar</Btn>
-              <Btn variant="primary" onClick={saveForm}><Check size={14}/> Guardar</Btn>
+              <Btn variant="primary" onClick={saveForm}><Check size={14}/> Registrar</Btn>
             </div>
           </Card>
         </div>
@@ -1590,6 +1726,8 @@ function Proveedores({ user }: { user: User }) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
+  const [filterTelefono, setFilterTelefono] = useState("");
+  const [filterEstado, setFilterEstado] = useState("");
   const [showForm, setShowForm]   = useState(false);
   const [editSupplier, setEditSupplier] = useState<Supplier | null>(null);
   const [form, setForm]           = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
@@ -1603,9 +1741,14 @@ function Proveedores({ user }: { user: User }) {
   }
   useEffect(()=>{ load(); },[]);
 
-  const filtered = suppliers.filter(s =>
-    `${s.nombre} ${s.apellido}`.toLowerCase().startsWith(search.toLowerCase())
-  );
+  const filtered = suppliers.filter(s => {
+    const nombreCompleto = `${s.nombre} ${s.apellido}`.toLowerCase();
+    if (search && !nombreCompleto.startsWith(search.toLowerCase())) return false;
+    if (filterTelefono && !(s.telefono ?? "").toLowerCase().startsWith(filterTelefono.toLowerCase())) return false;
+    if (filterEstado === "activo" && s.deleted) return false;
+    if (filterEstado === "inactivo" && !s.deleted) return false;
+    return true;
+  });
 
   function openNew(){ setEditSupplier(null); setForm({nombre:"",apellido:"",telefono:"",correo:"",direccion:""}); setFormError(""); setShowForm(true); }
   function openEdit(s:Supplier){ setEditSupplier(s); setForm({nombre:s.nombre,apellido:s.apellido,telefono:s.telefono??"",correo:s.correo??"",direccion:s.direccion??""}); setFormError(""); setShowForm(true); }
@@ -1641,6 +1784,13 @@ function Proveedores({ user }: { user: User }) {
   }
 
   if(loading) return <LoadingSpinner/>;
+
+  const hayFiltros = !!(search || filterTelefono || filterEstado);
+  function limpiarFiltros() {
+    setSearch("");
+    setFilterTelefono("");
+    setFilterEstado("");
+  }
 
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
@@ -1688,18 +1838,45 @@ function Proveedores({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo proveedor</Btn>
       </div>
 
-      {/* Filtro con etiqueta */}
+      {/* Filtros: búsqueda por nombre, teléfono y estado */}
       <Card className="p-4">
-        <div className="min-w-[200px]">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar proveedor</label>
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <div className="flex flex-wrap gap-4">
+          <div className="min-w-[200px] flex-1">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar proveedor</label>
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Nombre completo..."
+                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+              />
+            </div>
+          </div>
+
+          <div className="min-w-[150px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
             <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Nombre completo..."
-              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+              value={filterTelefono}
+              onChange={e => setFilterTelefono(e.target.value)}
+              placeholder="0000-0000"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"
             />
+          </div>
+
+          <div className="min-w-[130px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+            <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
+              <option value="">Todos</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </Select>
+          </div>
+
+          <div className="flex items-end">
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
+              <X size={14} /> Limpiar filtros
+            </Btn>
           </div>
         </div>
       </Card>
@@ -1707,12 +1884,12 @@ function Proveedores({ user }: { user: User }) {
       <Card className="overflow-hidden">
         <table className="w-full table-fixed text-sm">
           <colgroup>
-            <col className="w-[25%]" />
+            <col className="w-[22%]" />
             <col className="w-[15%]" />
             <col className="w-[20%]" />
             <col className="w-[20%]" />
             <col className="w-[8%]" />
-            <col className="w-[11%]" />
+            <col className="w-[15%]" /> {/* Acciones un poco más amplio */}
           </colgroup>
           <thead className="bg-gray-50">
             <tr className="border-b border-gray-100">
@@ -1745,7 +1922,7 @@ function Proveedores({ user }: { user: User }) {
                   </span>
                  </td>
                 <td className="py-3 px-3 break-words whitespace-normal">
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center flex-wrap">
                     <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
                     <button
                       onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
@@ -1885,6 +2062,31 @@ function Empleados({ user }: { user: User }) {
 
   if(loading) return <LoadingSpinner/>;
 
+  // Funciones de formato
+  function formatDUI(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 9);
+    if (digits.length <= 8) return digits;
+    return `${digits.slice(0, 8)}-${digits.slice(8, 9)}`;
+  }
+
+  function formatNIT(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 14);
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 10) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    if (digits.length <= 13) return `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10)}`;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13, 14)}`;
+  }
+
+  function formatPhone(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 4) return digits;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
+  }
+
+  function formatCuentaBanco(value: string): string {
+    return value.replace(/\D/g, '').slice(0, 20);
+  }
+
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
     if (!text) return <span className="text-gray-400">—</span>;
@@ -1972,15 +2174,15 @@ function Empleados({ user }: { user: User }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm table-fixed min-w-[1000px]">
             <colgroup>
-              <col className="w-[14%]" />   {/* Empleado */}
-              <col className="w-[18%]" />   {/* Correo */}
-              <col className="w-[10%]" />   {/* Teléfono */}
-              <col className="w-[10%]" />   {/* DUI */}
-              <col className="w-[12%]" />   {/* NIT */}
-              <col className="w-[10%]" />   {/* Cargo */}
-              <col className="w-[10%]" />   {/* Contratación */}
-              <col className="w-[8%]" />    {/* Estado */}
-              <col className="w-[8%]" />    {/* Acciones */}
+              <col className="w-[20%]" />
+              <col className="w-[16%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
+              <col className="w-[11%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
+              <col className="w-[7%]" />
+              <col className="w-[8%]" />
             </colgroup>
             <thead className="bg-gray-50">
               <tr className="border-b border-gray-100">
@@ -2053,13 +2255,45 @@ function Empleados({ user }: { user: User }) {
             </div>
             {formError&&<div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label><Input value={form.nombre} onChange={v=>setForm(p=>({...p,nombre:v}))}/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label><Input value={form.apellido} onChange={v=>setForm(p=>({...p,apellido:v}))}/></div>
-              <div className="col-span-2"><label className="block text-xs font-semibold text-gray-600 mb-1">Correo *</label><Input type="email" value={form.correo} onChange={v=>setForm(p=>({...p,correo:v}))}/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label><Input value={form.telefono} onChange={v=>setForm(p=>({...p,telefono:v}))}/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">DUI <span className="text-gray-400 font-normal">(00000000-0)</span></label><Input value={form.dui} onChange={v=>setForm(p=>({...p,dui:v}))} placeholder="00000000-0"/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">NIT</label><Input value={form.nit} onChange={v=>setForm(p=>({...p,nit:v}))} placeholder="0000-000000-000-0"/></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Cuenta Bancaria</label><Input value={form.cuenta_banco} onChange={v=>setForm(p=>({...p,cuenta_banco:v}))} placeholder="Número de cuenta"/></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label><Input value={form.nombre} onChange={v=>setForm(p=>({...p,nombre:v}))} className="w-full" /></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label><Input value={form.apellido} onChange={v=>setForm(p=>({...p,apellido:v}))} className="w-full" /></div>
+              <div className="col-span-2"><label className="block text-xs font-semibold text-gray-600 mb-1">Correo *</label><Input type="email" value={form.correo} onChange={v=>setForm(p=>({...p,correo:v}))} className="w-full" /></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
+                <input
+                  value={formatPhone(form.telefono)} 
+                  onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} 
+                  placeholder="0000-0000" 
+                  maxLength={9} 
+                  className="w-full" 
+                />
+              </div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">DUI <span className="text-gray-400 font-normal">(00000000-0)</span></label>
+                <input
+                  value={formatDUI(form.dui)} 
+                  onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} 
+                  placeholder="00000000-0" 
+                  maxLength={10} 
+                  className="w-full" 
+                />
+              </div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">NIT</label>
+                <input
+                  value={formatNIT(form.nit)} 
+                  onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))} 
+                  placeholder="0000-000000-000-0" 
+                  maxLength={17} 
+                  className="w-full" 
+                />
+              </div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Cuenta Bancaria</label>
+                <input 
+                  value={formatCuentaBanco(form.cuenta_banco)} 
+                  onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))} 
+                  placeholder="Número de cuenta" 
+                  maxLength={20} 
+                  className="w-full" 
+                />
+              </div>
               <div><label className="block text-xs font-semibold text-gray-600 mb-1">AFP</label>
                 <Select value={form.afp} onChange={v=>setForm(p=>({...p,afp:v}))} className="w-full">
                   <option value="">Sin AFP</option>
@@ -2073,10 +2307,10 @@ function Empleados({ user }: { user: User }) {
                   {CARGOS.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
                 </Select>
               </div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Fecha contratación</label><Input type="date" value={form.fecha_contratacion} onChange={v=>setForm(p=>({...p,fecha_contratacion:v}))}/></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Fecha contratación</label><Input type="date" value={form.fecha_contratacion} onChange={v=>setForm(p=>({...p,fecha_contratacion:v}))} className="w-full" /></div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Contraseña {editEmp?"(vacío = no cambiar)":"*"}</label>
-                <Input type="password" value={form.password} onChange={v=>setForm(p=>({...p,password:v}))} placeholder="••••••••"/>
+                <Input type="password" value={form.password} onChange={v=>setForm(p=>({...p,password:v}))} placeholder="••••••••" className="w-full" />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
