@@ -31,6 +31,7 @@ const allowedOrigins = [
   'http://localhost:5173'                        // Desarrollo local (Vite)
 ];
 
+
 app.use(cors({
   origin: function (origin, callback) {
     // Permitir solicitudes sin origen (como Postman) o si el origen está en la lista

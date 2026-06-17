@@ -2075,6 +2075,11 @@ function Proveedores({ user }: { user: User }) {
     );
   };
 
+  function formatPhone(filterTelefono: string): string | number | readonly string[] | undefined {
+    // Implement phone number formatting logic here
+    return filterTelefono.replace(/(\d{4})(\d{4})/, '$1-$2');
+  }
+
   return(
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -2100,12 +2105,13 @@ function Proveedores({ user }: { user: User }) {
 
           <div className="min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
-            <input
-              value={filterTelefono}
-              onChange={e => setFilterTelefono(e.target.value)}
-              placeholder="0000-0000"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm"
-            />
+              <input
+                value={formatPhone(filterTelefono)}  // ← formateo en tiempo real
+                onChange={e => setFilterTelefono(e.target.value)}
+                placeholder="0000-0000"
+                maxLength={9}                         // ← límite de caracteres
+                className="..."
+              />
           </div>
 
           <div className="min-w-[130px]">
