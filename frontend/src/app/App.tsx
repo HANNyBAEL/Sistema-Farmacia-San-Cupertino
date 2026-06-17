@@ -1564,12 +1564,7 @@ function Clientes({ user }: { user: User }) {
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [form, setForm]         = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
   const [formError, setFormError] = useState("");
-
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    clienteId: number | null;
-  }>({ isOpen: false, clienteId: null });
-
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; clienteId: number | null }>({ isOpen: false, clienteId: null });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   async function load() {
@@ -1727,10 +1722,11 @@ function Clientes({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo cliente</Btn>
       </div>
 
-      {/* Filtros responsivos */}
+      {/* Filtros con etiquetas claras (estilo Auditoría) */}
       <Card className="p-4">
-        <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-4">
-          <div className="w-full md:flex-1 md:min-w-[200px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+          {/* Buscar por nombre */}
+          <div className="col-span-1 sm:col-span-2 md:col-span-1 lg:col-span-1">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -1739,7 +1735,8 @@ function Clientes({ user }: { user: User }) {
             </div>
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[150px]">
+          {/* DUI */}
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">DUI</label>
             <input
               value={formatDUI(filterDui)}
@@ -1750,7 +1747,8 @@ function Clientes({ user }: { user: User }) {
             />
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[150px]">
+          {/* Teléfono */}
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
             <input
               value={formatPhone(filterTel)}
@@ -1761,19 +1759,8 @@ function Clientes({ user }: { user: User }) {
             />
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[180px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
-            <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
-          </div>
-
-          <div className="w-full md:w-auto md:min-w-[180px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
-            <input value={filterDir} onChange={e=>setFilterDir(e.target.value)} placeholder="Calle, colonia..."
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
-          </div>
-
-          <div className="w-full md:w-auto md:min-w-[130px]">
+          {/* Estado */}
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -1782,24 +1769,39 @@ function Clientes({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="flex items-end">
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
+          {/* Correo (ocupa más espacio) */}
+          <div className="sm:col-span-2 md:col-span-1 lg:col-span-1">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+            <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+          </div>
+
+          {/* Dirección */}
+          <div className="sm:col-span-2 md:col-span-1 lg:col-span-1">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+            <input value={filterDir} onChange={e=>setFilterDir(e.target.value)} placeholder="Calle, colonia..."
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+          </div>
+
+          {/* Botón limpiar */}
+          <div className="flex items-end justify-end sm:col-span-2 md:col-span-1 lg:col-span-1">
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="w-full sm:w-auto">
               <X size={14} /> Limpiar filtros
             </Btn>
           </div>
         </div>
       </Card>
 
-      {/* Tabla responsiva */}
+      {/* Tabla */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-xs sm:text-sm">
+          <table className="w-full text-xs sm:text-sm">
             <colgroup>
-              <col className="w-[22%] sm:w-[20%]" />
+              <col className="w-[22%] sm:w-[18%]" />
               <col className="w-[12%] sm:w-[10%]" />
               <col className="w-[12%] sm:w-[10%]" />
-              <col className="hidden sm:table-cell w-[22%]" />
-              <col className="hidden sm:table-cell w-[22%]" />
+              <col className="hidden md:table-cell w-[18%]" />
+              <col className="hidden md:table-cell w-[18%]" />
               <col className="w-[10%] sm:w-[8%]" />
               <col className="w-[15%] sm:w-[12%]" />
             </colgroup>
@@ -1808,8 +1810,8 @@ function Clientes({ user }: { user: User }) {
                 <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Nombre</th>
                 <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
                 <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
-                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
-                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Dirección</th>
+                <th className="hidden md:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
+                <th className="hidden md:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Dirección</th>
                 <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
                 <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
                </tr>
@@ -1826,10 +1828,10 @@ function Clientes({ user }: { user: User }) {
                   <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
                     <Expandable text={c.telefono} maxLength={12} />
                   </td>
-                  <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                  <td className="hidden md:table-cell py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
                     <Expandable text={c.correo} maxLength={25} />
                   </td>
-                  <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                  <td className="hidden md:table-cell py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
                     <Expandable text={c.direccion ?? "—"} maxLength={30} />
                   </td>
                   <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
