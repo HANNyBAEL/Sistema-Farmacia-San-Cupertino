@@ -2292,7 +2292,7 @@ function Empleados({ user }: { user: User }) {
 
   const filtered = empleados.filter(e => {
     if (search && !`${e.nombre} ${e.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
-    if (filterCargo  && e.cargo !== filterCargo) return false;
+    if (filterCargo  && e.cargo.toLowerCase() !== filterCargo.toLowerCase()) return false;
     if (filterEstado === "activo"   && !e.activo) return false;
     if (filterEstado === "inactivo" &&  e.activo) return false;
     return true;
