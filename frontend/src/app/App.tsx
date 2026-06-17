@@ -548,13 +548,11 @@ function Productos({ user }: { user: User }) {
     lote:"", fecha_vencimiento:"", id_proveedor:"", codigo_barras:""
   });
 
-  // Modal de confirmación para eliminar producto
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     productId: number | null;
   }>({ isOpen: false, productId: null });
 
-  // Toast para mensajes de error/éxito
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   async function load() {
@@ -568,7 +566,6 @@ function Productos({ user }: { user: User }) {
 
   useEffect(() => { load(); }, []);
 
-  // Auto-cerrar toast después de 3 segundos
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
@@ -662,7 +659,6 @@ function Productos({ user }: { user: User }) {
     } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
   }
 
-  // Nuevas funciones para eliminar con modal
   function handleDelete(id: number) {
     setConfirmModal({ isOpen: true, productId: id });
   }
@@ -745,16 +741,16 @@ function Productos({ user }: { user: User }) {
   };
 
   return (
-    <div className="p-6 space-y-4 min-w-0 overflow-x-hidden">
+    <div className="p-4 md:p-6 space-y-4 min-w-0 overflow-x-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Productos</h1>
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
       </div>
 
-      {/* Filtros: buscador por nombre o código de barras */}
+      {/* Filtros responsivos */}
       <Card className="p-4">
-        <div className="flex flex-wrap gap-4">
-          <div className="min-w-[200px] flex-1">
+        <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-4">
+          <div className="w-full md:flex-1 md:min-w-[200px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre o código</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -763,7 +759,7 @@ function Productos({ user }: { user: User }) {
             </div>
           </div>
 
-          <div className="min-w-[130px]">
+          <div className="w-full md:w-auto md:min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Stock</label>
             <Select value={filterStock} onChange={setFilterStock} className="w-full">
               <option value="">Todos</option>
@@ -774,7 +770,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="min-w-[150px]">
+          <div className="w-full md:w-auto md:min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Categoría</label>
             <Select value={filterCat} onChange={setFilterCat} className="w-full">
               <option value="">Todas</option>
@@ -782,19 +778,19 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="min-w-[160px]">
+          <div className="w-full md:w-auto md:min-w-[160px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor</label>
-              <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
-                <option value="">Todos</option>
-                {suppliers
-                  .filter(s => s.deleted === 0)
-                  .map(s => (
-                    <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
-                  ))}
-              </Select>
+            <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
+              <option value="">Todos</option>
+              {suppliers
+                .filter(s => s.deleted === 0)
+                .map(s => (
+                  <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
+                ))}
+            </Select>
           </div>
 
-          <div className="min-w-[140px]">
+          <div className="w-full md:w-auto md:min-w-[140px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Vencimiento</label>
             <Select value={filterVenc} onChange={setFilterVenc} className="w-full">
               <option value="">Todos</option>
@@ -804,7 +800,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="min-w-[120px]">
+          <div className="w-full md:w-auto md:min-w-[120px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -822,97 +818,99 @@ function Productos({ user }: { user: User }) {
       </Card>
 
       <Card className="overflow-hidden">
-        <table className="w-full table-fixed text-sm">
-          <colgroup>
-            <col className="w-[18%]" />
-            <col className="w-[12%]" />
-            <col className="w-[8%]" />
-            <col className="w-[8%]" />
-            <col className="w-[8%]" />
-            <col className="w-[10%]" />
-            <col className="w-[8%]" />
-            <col className="w-[12%]" />
-            <col className="w-[6%]" />
-            <col className="w-[10%]" />
-          </colgroup>
-          <thead className="bg-gray-50">
-            <tr className="border-b border-gray-100">
-              <th className="text-left py-3 px-3 font-semibold text-gray-500">Nombre</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500">Categoría</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500">Precio</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500">Stock</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500">Lote</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500">Código de barras</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500">Vencimiento</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500">Proveedor</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500">Estado</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500">Acciones</th>
-             </tr>
-          </thead>
-          <tbody>
-            {filtered.map(p=>(
-              <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${p.deleted ? 'opacity-60 bg-gray-50' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-gray-50'}`}>
-                <td className="py-3 px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
-                  <Expandable text={p.nombre_producto} maxLength={40} />
-                 </td>
-                <td className="py-3 px-3 break-words whitespace-normal">
-                  {p.categorias_nombres ? (() => {
-                    const cats = p.categorias_nombres.split(', ');
-                    const primera = cats[0];
-                    const resto = cats.slice(1);
-                    return (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <span className="inline-block bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">{primera}</span>
-                        {resto.length > 0 && (
-                          <div className="relative group">
-                            <button className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold hover:bg-blue-200 transition-colors">
-                              +{resto.length}
-                            </button>
-                            <div className="absolute left-0 top-6 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-max">
-                              <p className="text-xs font-semibold text-gray-500 mb-1.5">Otras categorías:</p>
-                              {resto.map((cat: string, i: number) => (
-                                <div key={i} className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded mb-1">{cat}</div>
-                              ))}
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed text-xs sm:text-sm">
+            <colgroup>
+              <col className="w-[20%] sm:w-[18%]" />
+              <col className="w-[14%] sm:w-[12%]" />
+              <col className="w-[10%] sm:w-[8%]" />
+              <col className="w-[10%] sm:w-[8%]" />
+              <col className="hidden sm:table-cell w-[10%]" />
+              <col className="hidden sm:table-cell w-[12%]" />
+              <col className="w-[10%] sm:w-[8%]" />
+              <col className="w-[14%] sm:w-[12%]" />
+              <col className="w-[8%] sm:w-[6%]" />
+              <col className="w-[12%] sm:w-[10%]" />
+            </colgroup>
+            <thead className="bg-gray-50">
+              <tr className="border-b border-gray-100">
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Nombre</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Categoría</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Precio</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Stock</th>
+                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Lote</th>
+                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Código barras</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Venc.</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Proveedor</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
+               </tr>
+            </thead>
+            <tbody>
+              {filtered.map(p=>(
+                <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${p.deleted ? 'opacity-60 bg-gray-50' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-gray-50'}`}>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                    <Expandable text={p.nombre_producto} maxLength={30} />
+                  </td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                    {p.categorias_nombres ? (() => {
+                      const cats = p.categorias_nombres.split(', ');
+                      const primera = cats[0];
+                      const resto = cats.slice(1);
+                      return (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="inline-block bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">{primera}</span>
+                          {resto.length > 0 && (
+                            <div className="relative group">
+                              <button className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold hover:bg-blue-200 transition-colors">
+                                +{resto.length}
+                              </button>
+                              <div className="absolute left-0 top-6 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-max">
+                                <p className="text-xs font-semibold text-gray-500 mb-1.5">Otras categorías:</p>
+                                {resto.map((cat: string, i: number) => (
+                                  <div key={i} className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded mb-1">{cat}</div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })() : <span className="text-gray-400">—</span>}
-                 </td>
-                <td className="py-3 px-3 font-mono text-[#0a4b7a] font-semibold break-words whitespace-normal">${Number(p.precio).toFixed(2)}</td>
-                <td className="py-3 px-3 break-words whitespace-normal"><span className={`text-xs px-2 py-1 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock} — {stockLabel(p.stock)}</span></td>
-                <td className="py-3 px-3 font-mono text-gray-500 break-words whitespace-normal"><Expandable text={p.lote} maxLength={15} /></td>
-                <td className="py-3 px-3 font-mono text-gray-500 break-words whitespace-normal"><Expandable text={p.codigo_barras} maxLength={20} /></td>
-                <td className={`py-3 px-3 text-xs font-mono break-words whitespace-normal ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
-                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={25} /></td>
-                <td className="py-3 px-3 break-words whitespace-normal">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                    {p.deleted ? "Inactivo" : "Activo"}
-                  </span>
-                </td>
-                <td className="py-3 px-3 break-words whitespace-normal">
-                  <div className="flex gap-2 items-center">
-                    <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                    <button
-                      onClick={()=>handleToggle(p.id_producto, p.deleted)}
-                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${p.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
-                      title={p.deleted ? "Activar producto" : "Desactivar producto"}
-                    >
-                      {p.deleted ? "Activar" : "Desactivar"}
-                    </button>
-                    {!p.has_ventas && (
-                      <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {filtered.length===0 && (
-              <tr><td colSpan={10} className="py-10 text-center text-gray-400">Sin productos.</td></tr>
-            )}
-          </tbody>
-        </table>
+                          )}
+                        </div>
+                      );
+                    })() : <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-[#0a4b7a] font-semibold break-words whitespace-normal">${Number(p.precio).toFixed(2)}</td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span></td>
+                  <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 break-words whitespace-normal"><Expandable text={p.lote} maxLength={12} /></td>
+                  <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 break-words whitespace-normal"><Expandable text={p.codigo_barras} maxLength={16} /></td>
+                  <td className={`py-2 px-2 sm:py-3 sm:px-3 text-xs font-mono break-words whitespace-normal ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={20} /></td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                      {p.deleted ? "Inactivo" : "Activo"}
+                    </span>
+                  </td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                      <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                      <button
+                        onClick={()=>handleToggle(p.id_producto, p.deleted)}
+                        className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${p.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                        title={p.deleted ? "Activar producto" : "Desactivar producto"}
+                      >
+                        {p.deleted ? "Activar" : "Desactivar"}
+                      </button>
+                      {!p.has_ventas && (
+                        <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length===0 && (
+                <tr><td colSpan={10} className="py-6 sm:py-10 text-center text-gray-400">Sin productos.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       {showForm && (
@@ -962,7 +960,6 @@ function Productos({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Modal de confirmación para eliminar producto */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title="Mover a papelera"
@@ -973,7 +970,6 @@ function Productos({ user }: { user: User }) {
         variant="danger"
       />
 
-      {/* Toast flotante */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
           <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
@@ -1001,22 +997,16 @@ function Ventas({ user }: { user: User }) {
   const [showScanner, setShowScanner] = useState(false);
   const [efectivo, setEfectivo] = useState("");
   const [metodoPago, setMetodoPago] = useState<"efectivo" | "tarjeta" | "transferencia" | "applepay" | "paypal" | "western">("efectivo");
-  // Modal nuevo cliente
   const [showNewClient, setShowNewClient] = useState(false);
   const [newClientForm, setNewClientForm] = useState({ nombre: "", apellido: "", telefono: "", correo: "", direccion: "", dui: "" });
   const [newClientError, setNewClientError] = useState("");
   const [savingClient, setSavingClient] = useState(false);
-  // Modal personalizado para medicamento controlado
   const [controlledModal, setControlledModal] = useState<{ show: boolean; product: Product | null; onConfirm: () => void }>({ show: false, product: null, onConfirm: () => {} });
-  // Modal para cliente no seleccionado (solo advertencia)
   const [noClientModal, setNoClientModal] = useState(false);
-  // Toast de error general
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   const cartContainerRef = useRef<HTMLDivElement>(null);
-  
 
-  // Funciones de formato para DUI y Teléfono
   function formatDUI(value: string): string {
     const digits = value.replace(/\D/g, '').slice(0, 9);
     if (digits.length <= 8) return digits;
@@ -1038,7 +1028,6 @@ function Ventas({ user }: { user: User }) {
       .catch(console.error);
   }, []);
 
-  // Scroll automático
   useEffect(() => {
     if (cartContainerRef.current) {
       const lastRow = cartContainerRef.current.querySelector('tbody tr:last-child');
@@ -1046,7 +1035,6 @@ function Ventas({ user }: { user: User }) {
     }
   }, [cart]);
 
-  // Limpiar toast después de 3 segundos
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
@@ -1054,7 +1042,6 @@ function Ventas({ user }: { user: User }) {
     }
   }, [toast]);
 
-  // Búsqueda de productos por nombre o código
   const results = products
     .filter(p => {
       if (p.stock <= 0 || p.papelera) return false;
@@ -1072,7 +1059,6 @@ function Ventas({ user }: { user: User }) {
     onCancel: () => {},
   });
 
-  // Agregar al carrito con modal para controlados
   function addToCart(p: Product) {
     if (p.papelera || p.deleted === 1) {
       setToast({ message: `"${p.nombre_producto}" no está disponible.`, type: 'error' });
@@ -1156,7 +1142,6 @@ function Ventas({ user }: { user: User }) {
       setToast({ message: "El efectivo recibido debe cubrir el total.", type: 'error' });
       return;
     }
-    // Validar cliente: si no hay cliente seleccionado, mostrar modal de advertencia
     if (!selectedClient) {
       setNoClientModal(true);
       return;
@@ -1180,7 +1165,6 @@ function Ventas({ user }: { user: User }) {
         fecha: fechaLocal
       });
 
-      // Función para finalizar la venta (limpiar carrito, mostrar éxito, etc.)
       const finalizarVentaExitosa = async () => {
         setSaleDone(true);
         setMetodoPago("efectivo");
@@ -1188,18 +1172,15 @@ function Ventas({ user }: { user: User }) {
         setCart([]);
         setSelectedClient(null);
         setClientSearch("");
-        // Recargar productos después de la venta
         const prods = await getProductos();
         setProducts([...prods].sort((a, b) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
         setTimeout(() => setSaleDone(false), 3000);
       };
 
-      // Mostrar modal para factura
       setFacturaModal({
         show: true,
         onConfirm: async () => {
           setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
-          // Generar factura
           try {
             const { numero_control } = await getSiguienteCorrelativo();
             const codigo_generacion = crypto.randomUUID().toUpperCase();
@@ -1237,12 +1218,10 @@ function Ventas({ user }: { user: User }) {
             console.error("Error generando factura:", fe);
             setToast({ message: "Venta registrada pero no se pudo generar la factura.", type: 'error' });
           }
-          // Finalizar venta después de confirmar factura
           await finalizarVentaExitosa();
         },
         onCancel: () => {
           setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
-          // Finalizar venta sin factura
           finalizarVentaExitosa();
         },
       });
@@ -1286,7 +1265,7 @@ function Ventas({ user }: { user: User }) {
   }
 
   return (
-    <div className="flex h-full" style={{ minHeight: 0 }}>
+    <div className="flex flex-col md:flex-row h-full gap-3 md:gap-0 p-0" style={{ minHeight: 0 }}>
       {/* Toast flotante */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
@@ -1297,7 +1276,7 @@ function Ventas({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Modal medicamento controlado */}
+      {/* Modales (controlado, sin cliente, factura, escáner, nuevo cliente) */}
       {controlledModal.show && controlledModal.product && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full p-6">
@@ -1325,7 +1304,6 @@ function Ventas({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Modal cliente no seleccionado */}
       {noClientModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full p-6">
@@ -1335,19 +1313,14 @@ function Ventas({ user }: { user: User }) {
               </div>
               <h2 className="text-lg font-bold text-[#1e1e1e]">Cliente no seleccionado</h2>
             </div>
-            <p className="text-gray-700 mb-4">
-              Debes seleccionar un cliente antes de finalizar la venta.
-            </p>
+            <p className="text-gray-700 mb-4">Debes seleccionar un cliente antes de finalizar la venta.</p>
             <div className="flex justify-end">
-              <Btn variant="primary" onClick={() => setNoClientModal(false)}>
-                Aceptar
-              </Btn>
+              <Btn variant="primary" onClick={() => setNoClientModal(false)}>Aceptar</Btn>
             </div>
           </Card>
         </div>
       )}
 
-      {/* Modal para generar factura */}
       {facturaModal.show && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full p-6">
@@ -1357,9 +1330,7 @@ function Ventas({ user }: { user: User }) {
               </div>
               <h2 className="text-lg font-bold text-[#1e1e1e]">Generar Factura</h2>
             </div>
-            <p className="text-gray-700 mb-4">
-              ¿Desea generar factura electrónica para esta venta?
-            </p>
+            <p className="text-gray-700 mb-4">¿Desea generar factura electrónica para esta venta?</p>
             <div className="flex justify-end gap-3">
               <Btn variant="secondary" onClick={facturaModal.onCancel}>Cancelar</Btn>
               <Btn variant="primary" onClick={facturaModal.onConfirm}>Sí, generar</Btn>
@@ -1368,7 +1339,6 @@ function Ventas({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Escáner de código de barras */}
       {showScanner && (
         <EscanerCodigoBarras
           onDetected={handleCodigoDetectado}
@@ -1376,10 +1346,9 @@ function Ventas({ user }: { user: User }) {
         />
       )}
 
-      {/* Modal nuevo cliente (con estilo y tamaño consistentes) */}
       {showNewClient && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
+          <Card className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-[#1e1e1e]">Nuevo Cliente</h2>
               <button onClick={() => { setShowNewClient(false); setNewClientError(""); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -1438,9 +1407,9 @@ function Ventas({ user }: { user: User }) {
       )}
 
       {/* Panel izquierdo: búsqueda de productos */}
-      <div className="w-72 border-r border-gray-100 flex flex-col bg-white">
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center justify-between mb-3">
+      <div className="w-full md:w-72 border-b md:border-b-0 md:border-r border-gray-100 flex flex-col bg-white">
+        <div className="p-3 md:p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-2 md:mb-3">
             <h2 className="font-semibold text-[#1e1e1e] text-sm">Buscar Producto</h2>
             <button onClick={() => setShowScanner(true)} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:bg-[#e3f2fd] px-2 py-1 rounded-lg font-medium transition-colors"><Camera size={13} /> Escanear</button>
           </div>
@@ -1449,11 +1418,11 @@ function Ventas({ user }: { user: User }) {
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nombre o código de barras..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-2 max-h-[300px] md:max-h-none">
           {search && results.map(p => (
-            <button key={p.id_producto} onClick={() => addToCart(p)} className="w-full text-left p-3 rounded-lg hover:bg-[#e3f2fd] transition-colors border border-transparent hover:border-[#0a4b7a]/20 mb-1">
+            <button key={p.id_producto} onClick={() => addToCart(p)} className="w-full text-left p-2 md:p-3 rounded-lg hover:bg-[#e3f2fd] transition-colors border border-transparent hover:border-[#0a4b7a]/20 mb-1">
               <div className="text-sm font-medium text-[#1e1e1e]">{p.nombre_producto}</div>
-              <div className="flex items-center gap-3 mt-1">
+              <div className="flex flex-wrap items-center gap-2 mt-1">
                 <span className="text-xs text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${stockColor(p.stock)}`}>Stock: {p.stock}</span>
                 {p.codigo_barras && <span className="text-xs text-gray-400">Código: {p.codigo_barras}</span>}
@@ -1466,49 +1435,51 @@ function Ventas({ user }: { user: User }) {
       </div>
 
       {/* Panel central: carrito */}
-      <div className="flex-1 flex flex-col" style={{ minWidth: 0 }}>
-        <div className="p-4 border-b border-gray-100 bg-white flex items-center justify-between">
+      <div className="flex-1 flex flex-col border-b md:border-b-0" style={{ minWidth: 0 }}>
+        <div className="p-3 md:p-4 border-b border-gray-100 bg-white flex items-center justify-between">
           <h2 className="font-semibold text-[#1e1e1e] text-sm">Carrito</h2>
           {cart.length > 0 && <Btn variant="ghost" size="sm" onClick={() => { setCart([]); setSaleError(""); }}><X size={13} /> Limpiar</Btn>}
         </div>
-        {saleDone && <div className="mx-4 mt-4 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2"><Check size={16} /> Venta registrada exitosamente.</div>}
-        {saleError && <div className="mx-4 mt-4 bg-red-50 border border-red-200 text-[#d32f2f] rounded-lg px-4 py-3 text-sm flex items-center gap-2"><AlertTriangle size={14} />{saleError}</div>}
-        <div className="flex-1 overflow-auto p-4" ref={cartContainerRef}>
+        {saleDone && <div className="mx-3 md:mx-4 mt-3 md:mt-4 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2"><Check size={16} /> Venta registrada exitosamente.</div>}
+        {saleError && <div className="mx-3 md:mx-4 mt-3 md:mt-4 bg-red-50 border border-red-200 text-[#d32f2f] rounded-lg px-4 py-3 text-sm flex items-center gap-2"><AlertTriangle size={14} />{saleError}</div>}
+        <div className="flex-1 overflow-auto p-3 md:p-4" ref={cartContainerRef}>
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3"><ShoppingCart size={40} strokeWidth={1} /><span className="text-sm">El carrito está vacío</span></div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  {["Producto", "P.Unit", "Cant.", "Subtotal", ""].map(h => <th key={h} className="text-left py-2 px-2 text-xs text-gray-500 font-medium">{h}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {cart.map(item => (
-                  <tr key={item.product.id_producto} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="py-2 px-2 font-medium text-[#1e1e1e]">{item.product.nombre_producto}</td>
-                    <td className="py-2 px-2 text-gray-600">${Number(item.product.precio).toFixed(2)}</td>
-                    <td className="py-2 px-2">
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => setQty(item.product.id_producto, item.qty - 1)} className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100">−</button>
-                        <span className="w-8 text-center font-medium">{item.qty}</span>
-                        <button onClick={() => setQty(item.product.id_producto, item.qty + 1)} className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100">+</button>
-                      </div>
-                    </td>
-                    <td className="py-2 px-2 font-semibold text-[#0a4b7a]">${(Number(item.product.precio) * item.qty).toFixed(2)}</td>
-                    <td className="py-2 px-2"><button onClick={() => removeFromCart(item.product.id_producto)} className="text-gray-400 hover:text-[#d32f2f]"><X size={15} /></button></td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs md:text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    {["Producto", "P.Unit", "Cant.", "Subtotal", ""].map(h => <th key={h} className="text-left py-2 px-2 text-xs text-gray-500 font-medium">{h}</th>)}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {cart.map(item => (
+                    <tr key={item.product.id_producto} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="py-2 px-2 font-medium text-[#1e1e1e]">{item.product.nombre_producto}</td>
+                      <td className="py-2 px-2 text-gray-600">${Number(item.product.precio).toFixed(2)}</td>
+                      <td className="py-2 px-2">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setQty(item.product.id_producto, item.qty - 1)} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100 text-sm">−</button>
+                          <span className="w-6 text-center font-medium text-sm">{item.qty}</span>
+                          <button onClick={() => setQty(item.product.id_producto, item.qty + 1)} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100 text-sm">+</button>
+                        </div>
+                      </td>
+                      <td className="py-2 px-2 font-semibold text-[#0a4b7a]">${(Number(item.product.precio) * item.qty).toFixed(2)}</td>
+                      <td className="py-2 px-2"><button onClick={() => removeFromCart(item.product.id_producto)} className="text-gray-400 hover:text-[#d32f2f]"><X size={15} /></button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
 
       {/* Panel derecho: cliente y pago */}
-      <div className="w-64 border-l border-gray-100 flex flex-col bg-white">
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center justify-between mb-3">
+      <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-gray-100 flex flex-col bg-white">
+        <div className="p-3 md:p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-2 md:mb-3">
             <h2 className="font-semibold text-[#1e1e1e] text-sm">Cliente</h2>
             <button onClick={() => { setShowNewClient(true); setNewClientError(""); }} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:text-[#0d5c96] font-medium hover:bg-[#e3f2fd] px-2 py-1 rounded-lg transition-colors"><Plus size={12} /> Nuevo</button>
           </div>
@@ -1517,7 +1488,7 @@ function Ventas({ user }: { user: User }) {
             <input value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Buscar por DUI..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
           {clientSearch && (
-            <div className="mt-1 border border-gray-100 rounded-lg overflow-hidden shadow-sm">
+            <div className="mt-1 border border-gray-100 rounded-lg overflow-hidden shadow-sm max-h-40 overflow-y-auto">
               {clients.filter(c => (c.dui ?? "").toLowerCase().startsWith(clientSearch.toLowerCase()) && !c.deleted && !c.papelera).map(c => (
                 <button key={c.id_cliente} onClick={() => { setSelectedClient(c); setClientSearch(""); }} className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">
                   {c.nombre} {c.apellido} {c.dui && <span className="text-gray-400 ml-1">({c.dui})</span>}
@@ -1532,7 +1503,7 @@ function Ventas({ user }: { user: User }) {
             </div>
           )}
         </div>
-        <div className="p-4 flex-1 space-y-4">
+        <div className="p-3 md:p-4 flex-1 space-y-3 md:space-y-4 overflow-y-auto">
           <h2 className="font-semibold text-[#1e1e1e] text-sm">Resumen</h2>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-2">Método de pago</label>
@@ -1545,7 +1516,7 @@ function Ventas({ user }: { user: User }) {
                 { id: "paypal", label: "🅿️ PayPal" },
                 { id: "western", label: "🌐 Western Union" },
               ] as const).map(m => (
-                <button key={m.id} onClick={() => { setMetodoPago(m.id); setEfectivo(""); }} className={`text-xs px-2 py-1.5 rounded-lg border font-medium transition-colors text-left ${metodoPago === m.id ? 'bg-[#0a4b7a] text-white border-[#0a4b7a]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#0a4b7a] hover:text-[#0a4b7a]'}`}>{m.label}</button>
+                <button key={m.id} onClick={() => { setMetodoPago(m.id); setEfectivo(""); }} className={`text-[10px] md:text-xs px-2 py-1.5 rounded-lg border font-medium transition-colors text-left ${metodoPago === m.id ? 'bg-[#0a4b7a] text-white border-[#0a4b7a]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#0a4b7a] hover:text-[#0a4b7a]'}`}>{m.label}</button>
               ))}
             </div>
           </div>
@@ -1565,16 +1536,14 @@ function Ventas({ user }: { user: User }) {
                 </div>
               )}
               {efectivo && parseFloat(efectivo) < total && (
-                <div className="flex items-center gap-1 text-[#d32f2f] text-xs">
-                  <AlertTriangle size={12} /> Monto insuficiente
-                </div>
+                <div className="flex items-center gap-1 text-[#d32f2f] text-xs"><AlertTriangle size={12} /> Monto insuficiente</div>
               )}
             </div>
           )}
         </div>
-        <div className="p-4 border-t border-gray-100 space-y-2">
-          <Btn variant="primary" className="w-full justify-center" onClick={finalizarVenta} disabled={cart.length === 0}><Check size={15} /> Finalizar venta</Btn>
-          <Btn variant="danger" className="w-full justify-center" onClick={() => { setCart([]); setSaleError(""); }} disabled={cart.length === 0}><X size={15} /> Cancelar</Btn>
+        <div className="p-3 md:p-4 border-t border-gray-100 space-y-2">
+          <Btn variant="primary" className="w-full justify-center text-sm" onClick={finalizarVenta} disabled={cart.length === 0}><Check size={15} /> Finalizar venta</Btn>
+          <Btn variant="danger" className="w-full justify-center text-sm" onClick={() => { setCart([]); setSaleError(""); }} disabled={cart.length === 0}><X size={15} /> Cancelar</Btn>
         </div>
       </div>
     </div>
@@ -1596,13 +1565,11 @@ function Clientes({ user }: { user: User }) {
   const [form, setForm]         = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
   const [formError, setFormError] = useState("");
 
-  // Modal de confirmación para eliminar cliente
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     clienteId: number | null;
   }>({ isOpen: false, clienteId: null });
 
-  // Toast para mensajes de error/éxito
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   async function load() {
@@ -1611,7 +1578,6 @@ function Clientes({ user }: { user: User }) {
   }
   useEffect(()=>{load();},[]);
 
-  // Auto-cerrar toast
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
@@ -1667,7 +1633,6 @@ function Clientes({ user }: { user: User }) {
     } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
   }
 
-  // Nuevas funciones para eliminar con modal
   function handleDelete(id: number) {
     setConfirmModal({ isOpen: true, clienteId: id });
   }
@@ -1704,14 +1669,12 @@ function Clientes({ user }: { user: User }) {
 
   if(loading) return <LoadingSpinner/>;
 
-  // Función para formatear DUI: 00000000-0
   function formatDUI(value: string): string {
     const digits = value.replace(/\D/g, '').slice(0, 9);
     if (digits.length <= 8) return digits;
     return `${digits.slice(0, 8)}-${digits.slice(8, 9)}`;
   }
 
-  // Función para formatear teléfono: 0000-0000
   function formatPhone(value: string): string {
     const digits = value.replace(/\D/g, '').slice(0, 8);
     if (digits.length <= 4) return digits;
@@ -1758,16 +1721,16 @@ function Clientes({ user }: { user: User }) {
   };
 
   return(
-    <div className="p-6 space-y-4">
+    <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Clientes</h1>
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo cliente</Btn>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros responsivos */}
       <Card className="p-4">
-        <div className="flex flex-wrap gap-4">
-          <div className="min-w-[200px] flex-1">
+        <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-4">
+          <div className="w-full md:flex-1 md:min-w-[200px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -1776,8 +1739,7 @@ function Clientes({ user }: { user: User }) {
             </div>
           </div>
 
-          {/* ✅ DUI con formato y límite */}
-          <div className="min-w-[150px]">
+          <div className="w-full md:w-auto md:min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">DUI</label>
             <input
               value={formatDUI(filterDui)}
@@ -1788,8 +1750,7 @@ function Clientes({ user }: { user: User }) {
             />
           </div>
 
-          {/* ✅ Teléfono con formato y límite */}
-          <div className="min-w-[150px]">
+          <div className="w-full md:w-auto md:min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
             <input
               value={formatPhone(filterTel)}
@@ -1800,17 +1761,19 @@ function Clientes({ user }: { user: User }) {
             />
           </div>
 
-          <div className="min-w-[200px]">
+          <div className="w-full md:w-auto md:min-w-[180px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
             <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
               className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
           </div>
-          <div className="min-w-[200px]">
+
+          <div className="w-full md:w-auto md:min-w-[180px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
             <input value={filterDir} onChange={e=>setFilterDir(e.target.value)} placeholder="Calle, colonia..."
               className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
           </div>
-          <div className="min-w-[130px]">
+
+          <div className="w-full md:w-auto md:min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -1818,6 +1781,7 @@ function Clientes({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
+
           <div className="flex items-end">
             <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
               <X size={14} /> Limpiar filtros
@@ -1826,82 +1790,84 @@ function Clientes({ user }: { user: User }) {
         </div>
       </Card>
 
-      {/* Tabla (sin cambios) */}
+      {/* Tabla responsiva */}
       <Card className="overflow-hidden">
-        <table className="w-full table-fixed text-sm">
-          <colgroup>
-            <col className="w-[20%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
-            <col className="w-[20%]" />
-            <col className="w-[20%]" />
-            <col className="w-[8%]" />
-            <col className="w-[12%]" />
-          </colgroup>
-          <thead className="bg-gray-50">
-            <tr className="border-b border-gray-100">
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Nombre</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">DUI</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Teléfono</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Correo</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Dirección</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Estado</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Acciones</th>
-             </tr>
-          </thead>
-          <tbody>
-            {filtered.map(c => (
-              <tr key={c.id_cliente} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${c.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                <td className="py-3 px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
-                  <Expandable text={`${c.nombre} ${c.apellido}`} maxLength={30} />
-                 </td>
-                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
-                  {c.dui ? <Expandable text={c.dui} maxLength={12} /> : <span className="text-gray-400">—</span>}
-                 </td>
-                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
-                  <Expandable text={c.telefono} maxLength={12} />
-                 </td>
-                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
-                  <Expandable text={c.correo} maxLength={30} />
-                 </td>
-                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
-                  <Expandable text={c.direccion ?? "—"} maxLength={35} />
-                 </td>
-                <td className="py-3 px-3 break-words whitespace-normal">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${c.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                    {c.deleted ? "Inactivo" : "Activo"}
-                  </span>
-                 </td>
-                <td className="py-3 px-3 break-words whitespace-normal">
-                  <div className="flex gap-2 items-center">
-                    <button onClick={()=>openEdit(c)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                    <button
-                      onClick={()=>handleToggle(c.id_cliente, c.deleted ?? 0)}
-                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${c.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
-                      title={c.deleted ? "Activar cliente" : "Desactivar cliente"}
-                    >
-                      {c.deleted ? "Activar" : "Desactivar"}
-                    </button>
-                    {!c.has_ventas && (
-                      <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Eliminar permanentemente"><Trash2 size={14}/></button>
-                    )}
-                  </div>
-                 </td>
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed text-xs sm:text-sm">
+            <colgroup>
+              <col className="w-[22%] sm:w-[20%]" />
+              <col className="w-[12%] sm:w-[10%]" />
+              <col className="w-[12%] sm:w-[10%]" />
+              <col className="hidden sm:table-cell w-[22%]" />
+              <col className="hidden sm:table-cell w-[22%]" />
+              <col className="w-[10%] sm:w-[8%]" />
+              <col className="w-[15%] sm:w-[12%]" />
+            </colgroup>
+            <thead className="bg-gray-50">
+              <tr className="border-b border-gray-100">
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Nombre</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
+                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
+                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Dirección</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
                </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={7} className="py-10 text-center text-gray-400">Sin clientes.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map(c => (
+                <tr key={c.id_cliente} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${c.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                    <Expandable text={`${c.nombre} ${c.apellido}`} maxLength={25} />
+                  </td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                    {c.dui ? <Expandable text={c.dui} maxLength={12} /> : <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                    <Expandable text={c.telefono} maxLength={12} />
+                  </td>
+                  <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                    <Expandable text={c.correo} maxLength={25} />
+                  </td>
+                  <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                    <Expandable text={c.direccion ?? "—"} maxLength={30} />
+                  </td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                      {c.deleted ? "Inactivo" : "Activo"}
+                    </span>
+                  </td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                      <button onClick={()=>openEdit(c)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                      <button
+                        onClick={()=>handleToggle(c.id_cliente, c.deleted ?? 0)}
+                        className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${c.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                        title={c.deleted ? "Activar cliente" : "Desactivar cliente"}
+                      >
+                        {c.deleted ? "Activar" : "Desactivar"}
+                      </button>
+                      {!c.has_ventas && (
+                        <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-6 sm:py-10 text-center text-gray-400">Sin clientes.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       {/* Modal de formulario */}
       {showForm&&(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
+          <Card className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-[#1e1e1e]">{editClient?"Editar Cliente":"Nuevo Cliente"}</h2>
               <button onClick={()=>setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
@@ -1955,7 +1921,6 @@ function Clientes({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Modal de confirmación para eliminar cliente */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title="Mover a papelera"
@@ -1966,7 +1931,6 @@ function Clientes({ user }: { user: User }) {
         variant="danger"
       />
 
-      {/* Toast flotante */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
           <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
@@ -1992,10 +1956,14 @@ function Proveedores({ user }: { user: User }) {
   const [editSupplier, setEditSupplier] = useState<Supplier | null>(null);
   const [form, setForm]           = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
   const [formError, setFormError] = useState("");
+
+  // Modal de confirmación para eliminar proveedor
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     proveedorId: number | null;
   }>({ isOpen: false, proveedorId: null });
+
+  // Toast para mensajes de error/éxito
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   async function load(){
@@ -2006,6 +1974,7 @@ function Proveedores({ user }: { user: User }) {
   }
   useEffect(()=>{ load(); },[]);
 
+  // Auto-cerrar toast
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
@@ -2013,6 +1982,7 @@ function Proveedores({ user }: { user: User }) {
     }
   }, [toast]);
 
+  // ✅ Función para formatear teléfono: 0000-0000
   function formatPhone(value: string): string {
     const digits = value.replace(/\D/g, '').slice(0, 8);
     if (digits.length <= 4) return digits;
@@ -2040,6 +2010,7 @@ function Proveedores({ user }: { user: User }) {
     } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
   }
 
+  // Nuevas funciones para eliminar con modal
   function handleDelete(id: number) {
     setConfirmModal({ isOpen: true, proveedorId: id });
   }
@@ -2123,17 +2094,16 @@ function Proveedores({ user }: { user: User }) {
   };
 
   return(
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Proveedores</h1>
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo proveedor</Btn>
       </div>
 
-      {/* Filtros responsivos */}
+      {/* Filtros: búsqueda por nombre, teléfono (con formato) y estado */}
       <Card className="p-4">
-        <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-4">
-          {/* Nombre */}
-          <div className="w-full md:flex-1 md:min-w-[200px]">
+        <div className="flex flex-wrap gap-4">
+          <div className="min-w-[200px] flex-1">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar proveedor</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -2146,8 +2116,8 @@ function Proveedores({ user }: { user: User }) {
             </div>
           </div>
 
-          {/* Teléfono */}
-          <div className="w-full md:w-auto md:min-w-[150px]">
+          {/* ✅ Filtro de Teléfono con formato y límite */}
+          <div className="min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
             <input
               value={formatPhone(filterTelefono)}
@@ -2158,8 +2128,7 @@ function Proveedores({ user }: { user: User }) {
             />
           </div>
 
-          {/* Estado */}
-          <div className="w-full md:w-auto md:min-w-[130px]">
+          <div className="min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -2168,7 +2137,6 @@ function Proveedores({ user }: { user: User }) {
             </Select>
           </div>
 
-          {/* Botón limpiar */}
           <div className="flex items-end">
             <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
               <X size={14} /> Limpiar filtros
@@ -2177,102 +2145,76 @@ function Proveedores({ user }: { user: User }) {
         </div>
       </Card>
 
-      {/* Tabla responsiva */}
+      {/* Tabla (sin cambios) */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs sm:text-sm">
-            <colgroup>
-              <col className="w-[20%] sm:w-[22%]" />
-              <col className="w-[15%] sm:w-[15%]" />
-              <col className="hidden sm:table-cell w-[25%]" />
-              <col className="hidden sm:table-cell w-[25%]" />
-              <col className="w-[10%] sm:w-[8%]" />
-              <col className="w-[20%] sm:w-[15%]" />
-            </colgroup>
-            <thead className="bg-gray-50">
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Nombre</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
-                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
-                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Dirección</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
+        <table className="w-full table-fixed text-sm">
+          <colgroup>
+            <col className="w-[22%]" />
+            <col className="w-[15%]" />
+            <col className="w-[20%]" />
+            <col className="w-[20%]" />
+            <col className="w-[8%]" />
+            <col className="w-[15%]" />
+          </colgroup>
+          <thead className="bg-gray-50">
+            <tr className="border-b border-gray-100">
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Nombre</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Teléfono</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Correo</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Dirección</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Estado</th>
+              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Acciones</th>
+             </tr>
+          </thead>
+          <tbody>
+            {filtered.map(s => (
+              <tr key={s.id_proveedor} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${s.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
+                <td className="py-3 px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                  <Expandable text={`${s.nombre} ${s.apellido}`} maxLength={30} />
+                 </td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
+                  <Expandable text={s.telefono ?? "—"} maxLength={12} />
+                 </td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
+                  <Expandable text={s.correo ?? "—"} maxLength={30} />
+                 </td>
+                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
+                  <Expandable text={s.direccion ?? "—"} maxLength={35} />
+                 </td>
+                <td className="py-3 px-3 break-words whitespace-normal">
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                    {s.deleted ? "Inactivo" : "Activo"}
+                  </span>
+                 </td>
+                <td className="py-3 px-3 break-words whitespace-normal">
+                  <div className="flex gap-2 items-center flex-wrap">
+                    <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                    <button
+                      onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
+                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${s.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                      title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
+                    >
+                      {s.deleted ? "Activar" : "Desactivar"}
+                    </button>
+                    {!s.has_productos && (
+                      <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
+                    )}
+                  </div>
+                 </td>
                </tr>
-            </thead>
-            <tbody>
-              {filtered.map(s => (
-                <tr key={s.id_proveedor} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${s.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
-                    <Expandable text={`${s.nombre} ${s.apellido}`} maxLength={20} />
-                  </td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
-                    <Expandable text={s.telefono ?? "—"} maxLength={12} />
-                  </td>
-                  <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
-                    <Expandable text={s.correo ?? "—"} maxLength={25} />
-                  </td>
-                  <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
-                    <Expandable text={s.direccion ?? "—"} maxLength={30} />
-                  </td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                      {s.deleted ? "Inactivo" : "Activo"}
-                    </span>
-                  </td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                    <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                      <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                      <button
-                        onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
-                        className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${s.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
-                        title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
-                      >
-                        {s.deleted ? "Activar" : "Desactivar"}
-                      </button>
-                      {!s.has_productos && (
-                        <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-6 sm:py-10 text-center text-gray-400">Sin proveedores.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-10 text-center text-gray-400">Sin proveedores.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </Card>
 
-      {/* Modal de confirmación */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title="Mover a papelera"
-        message="¿Estás seguro de que deseas mover este proveedor a la papelera? Podrás restaurarlo más tarde."
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmModal({ isOpen: false, proveedorId: null })}
-        confirmText="Sí, mover a papelera"
-        variant="danger"
-      />
-
-      {/* Toast flotante */}
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
-          }`}>
-            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
-            {toast.message}
-          </div>
-        </div>
-      )}
-
-      {/* Formulario (sin cambios, ya responsivo) */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+          <Card className="w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-[#1e1e1e]">{editSupplier ? "Editar Proveedor" : "Nuevo Proveedor"}</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
@@ -2313,6 +2255,29 @@ function Proveedores({ user }: { user: User }) {
           </Card>
         </div>
       )}
+
+      {/* Modal de confirmación para eliminar proveedor */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Mover a papelera"
+        message="¿Estás seguro de que deseas mover este proveedor a la papelera? Podrás restaurarlo más tarde."
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmModal({ isOpen: false, proveedorId: null })}
+        confirmText="Sí, mover a papelera"
+        variant="danger"
+      />
+
+      {/* Toast flotante */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
+            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+          }`}>
+            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2340,7 +2305,6 @@ function Empleados({ user }: { user: User }) {
 
   const filtered = empleados.filter(e => {
     if (search && !`${e.nombre} ${e.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
-    // ✅ Filtro de cargo con normalización (elimina tildes)
     if (filterCargo) {
       if (normalize(e.cargo) !== normalize(filterCargo)) return false;
     }
@@ -2455,7 +2419,7 @@ function Empleados({ user }: { user: User }) {
   };
 
   return(
-    <div className="p-6 space-y-4">
+    <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Empleados</h1>
@@ -2464,10 +2428,10 @@ function Empleados({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo empleado</Btn>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros responsivos */}
       <Card className="p-4">
-        <div className="flex flex-wrap gap-4">
-          <div className="min-w-[200px] flex-1">
+        <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-4">
+          <div className="w-full md:flex-1 md:min-w-[200px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -2475,14 +2439,16 @@ function Empleados({ user }: { user: User }) {
                 className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
-          <div className="min-w-[150px]">
+
+          <div className="w-full md:w-auto md:min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Cargo</label>
             <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
               <option value="">Todos</option>
               {CARGOS.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
             </Select>
           </div>
-          <div className="min-w-[130px]">
+
+          <div className="w-full md:w-auto md:min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -2490,6 +2456,7 @@ function Empleados({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
+
           <div className="flex items-end">
             <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
               <X size={14} /> Limpiar filtros
@@ -2498,31 +2465,32 @@ function Empleados({ user }: { user: User }) {
         </div>
       </Card>
 
+      {/* Tabla responsiva */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm table-fixed min-w-[1000px]">
+          <table className="w-full text-xs sm:text-sm table-fixed min-w-[700px]">
             <colgroup>
-              <col className="w-[20%]" />
-              <col className="w-[16%]" />
-              <col className="w-[10%]" />
-              <col className="w-[10%]" />
-              <col className="w-[11%]" />
-              <col className="w-[10%]" />
-              <col className="w-[10%]" />
-              <col className="w-[7%]" />
-              <col className="w-[8%]" />
+              <col className="w-[22%] sm:w-[20%]" />
+              <col className="w-[18%] sm:w-[16%]" />
+              <col className="w-[12%] sm:w-[10%]" />
+              <col className="w-[12%] sm:w-[10%]" />
+              <col className="hidden sm:table-cell w-[13%]" />
+              <col className="w-[12%] sm:w-[10%]" />
+              <col className="w-[12%] sm:w-[10%]" />
+              <col className="w-[8%] sm:w-[7%]" />
+              <col className="w-[12%] sm:w-[8%]" />
             </colgroup>
             <thead className="bg-gray-50">
               <tr className="border-b border-gray-100">
-                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Empleado</th>
-                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Correo</th>
-                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
-                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">DUI</th>
-                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">NIT</th>
-                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Cargo</th>
-                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Contratación</th>
-                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Estado</th>
-                <th className="text-left py-2 px-2 font-semibold text-gray-500 text-xs break-words">Acciones</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Empleado</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
+                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">NIT</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Cargo</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Contratación</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
                </tr>
             </thead>
             <tbody>
@@ -2530,34 +2498,34 @@ function Empleados({ user }: { user: User }) {
                 const fullName = `${emp.nombre} ${emp.apellido}`;
                 return (
                   <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
-                    <td className="py-2 px-2 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
                           {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
                         </div>
-                        <Expandable text={fullName} maxLength={20} />
+                        <Expandable text={fullName} maxLength={18} />
                       </div>
                      </td>
-                    <td className="py-2 px-2 break-words whitespace-normal"><Expandable text={emp.correo} maxLength={20} /></td>
-                    <td className="py-2 px-2 break-words whitespace-normal"><Expandable text={emp.telefono} maxLength={12} /></td>
-                    <td className="py-2 px-2 break-words whitespace-normal"><Expandable text={emp.dui} maxLength={12} /></td>
-                    <td className="py-2 px-2 break-words whitespace-normal"><Expandable text={emp.nit} maxLength={14} /></td>
-                    <td className="py-2 px-2 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.correo} maxLength={18} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.telefono} maxLength={12} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.dui} maxLength={12} /></td>
+                    <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.nit} maxLength={14} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-gray-100 text-gray-600'}`}>
                         {CARGO_ICON[emp.cargo]} {emp.cargo}
                       </span>
                      </td>
-                    <td className="py-2 px-2 text-gray-500 text-xs break-words whitespace-normal">{emp.fecha_contratacion || "—"}</td>
-                    <td className="py-2 px-2 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-500 text-xs break-words whitespace-normal">{emp.fecha_contratacion || "—"}</td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                         {emp.activo ? "Activo" : "Inactivo"}
                       </span>
                      </td>
-                    <td className="py-2 px-2 break-words whitespace-normal">
-                      <div className="flex items-center gap-2">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                         <button onClick={()=>openEdit(emp)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                        <button onClick={()=>handleToggle(emp)} className={`p-1 rounded ${emp.activo ? 'text-[#d32f2f] hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`} title={emp.activo ? "Desactivar" : "Activar"}>
-                          {emp.activo ? <X size={14}/> : <Check size={14}/>}
+                        <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-[#d32f2f] bg-red-50 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
+                          {emp.activo ? "Desactivar" : "Activar"}
                         </button>
                       </div>
                      </td>
@@ -2566,7 +2534,7 @@ function Empleados({ user }: { user: User }) {
               })}
               {filtered.length===0 && (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-gray-400">Sin empleados registrados.</td>
+                  <td colSpan={9} className="py-6 sm:py-10 text-center text-gray-400">Sin empleados registrados.</td>
                 </tr>
               )}
             </tbody>
@@ -2597,125 +2565,56 @@ function Empleados({ user }: { user: User }) {
             )}
 
             <div className="space-y-4">
-              {/* Fila 1: Nombre y Apellido */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Nombre *
-                  </label>
-                  <Input
-                    value={form.nombre}
-                    onChange={v => setForm(p => ({ ...p, nombre: v }))}
-                    className="w-full"
-                  />
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} className="w-full" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Apellido *
-                  </label>
-                  <Input
-                    value={form.apellido}
-                    onChange={v => setForm(p => ({ ...p, apellido: v }))}
-                    className="w-full"
-                  />
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label>
+                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} className="w-full" />
                 </div>
               </div>
 
-              {/* Correo (ancho completo) */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Correo *
-                </label>
-                <Input
-                  type="email"
-                  value={form.correo}
-                  onChange={v => setForm(p => ({ ...p, correo: v }))}
-                  className="w-full"
-                  placeholder="correo@ejemplo.com"
-                />
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Correo *</label>
+                <Input type="email" value={form.correo} onChange={v => setForm(p => ({ ...p, correo: v }))} className="w-full" placeholder="correo@ejemplo.com" />
               </div>
 
-              {/* Fila 2: Teléfono y DUI */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Teléfono
-                  </label>
-                  <input
-                    value={formatPhone(form.telefono)}
-                    onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
-                    placeholder="0000-0000"
-                    maxLength={9}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
-                  />
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
+                  <input value={formatPhone(form.telefono)} onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} placeholder="0000-0000" maxLength={9} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    DUI <span className="text-gray-400 font-normal">(00000000-0)</span>
-                  </label>
-                  <input
-                    value={formatDUI(form.dui)}
-                    onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))}
-                    placeholder="00000000-0"
-                    maxLength={10}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
-                  />
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">DUI <span className="text-gray-400 font-normal">(00000000-0)</span></label>
+                  <input value={formatDUI(form.dui)} onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} placeholder="00000000-0" maxLength={10} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
                 </div>
               </div>
 
-              {/* Fila 3: NIT y Cuenta Bancaria */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    NIT
-                  </label>
-                  <input
-                    value={formatNIT(form.nit)}
-                    onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))}
-                    placeholder="0000-000000-000-0"
-                    maxLength={17}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
-                  />
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">NIT</label>
+                  <input value={formatNIT(form.nit)} onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))} placeholder="0000-000000-000-0" maxLength={17} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Cuenta Bancaria
-                  </label>
-                  <input
-                    value={formatCuentaBanco(form.cuenta_banco)}
-                    onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))}
-                    placeholder="Número de cuenta"
-                    maxLength={20}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
-                  />
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Cuenta Bancaria</label>
+                  <input value={formatCuentaBanco(form.cuenta_banco)} onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))} placeholder="Número de cuenta" maxLength={20} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
                 </div>
               </div>
 
-              {/* Fila 4: AFP y Cargo */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    AFP
-                  </label>
-                  <Select
-                    value={form.afp}
-                    onChange={v => setForm(p => ({ ...p, afp: v }))}
-                    className="w-full"
-                  >
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">AFP</label>
+                  <Select value={form.afp} onChange={v => setForm(p => ({ ...p, afp: v }))} className="w-full">
                     <option value="">Sin AFP</option>
                     <option value="CRECER">CRECER</option>
                     <option value="CONFÍA">CONFÍA</option>
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Cargo *
-                  </label>
-                  <Select
-                    value={form.cargo}
-                    onChange={v => setForm(p => ({ ...p, cargo: v }))}
-                    className="w-full"
-                  >
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Cargo *</label>
+                  <Select value={form.cargo} onChange={v => setForm(p => ({ ...p, cargo: v }))} className="w-full">
                     {CARGOS.map(c => (
                       <option key={c} value={c}>
                         {c.charAt(0).toUpperCase() + c.slice(1)}
@@ -2725,42 +2624,21 @@ function Empleados({ user }: { user: User }) {
                 </div>
               </div>
 
-              {/* Fila 5: Fecha Contratación y Contraseña */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Fecha contratación
-                  </label>
-                  <Input
-                    type="date"
-                    value={form.fecha_contratacion}
-                    onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))}
-                    className="w-full"
-                  />
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha contratación</label>
+                  <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} className="w-full" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Contraseña {editEmp ? "(vacío = no cambiar)" : "*"}
-                  </label>
-                  <Input
-                    type="password"
-                    value={form.password}
-                    onChange={v => setForm(p => ({ ...p, password: v }))}
-                    placeholder="••••••••"
-                    className="w-full"
-                  />
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Contraseña {editEmp ? "(vacío = no cambiar)" : "*"}</label>
+                  <Input type="password" value={form.password} onChange={v => setForm(p => ({ ...p, password: v }))} placeholder="••••••••" className="w-full" />
                 </div>
               </div>
             </div>
 
-            {/* Botones */}
             <div className="flex justify-end gap-3 mt-6">
-              <Btn variant="secondary" onClick={() => setShowForm(false)}>
-                Cancelar
-              </Btn>
-              <Btn variant="primary" onClick={saveForm}>
-                <Check size={14} /> Guardar
-              </Btn>
+              <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
+              <Btn variant="primary" onClick={saveForm}><Check size={14} /> Guardar</Btn>
             </div>
           </Card>
         </div>
