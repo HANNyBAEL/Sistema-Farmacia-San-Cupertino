@@ -10,8 +10,12 @@ const pool = mysql.createPool({
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    ssl: {
+        require: true,
+        rejectUnauthorized: false  // Solo para pruebas; en producción usa certificado
+    }
 });
 
 const promisePool = pool.promise();
-export default promisePool;  // Exporta el pool con promesas
+export default promisePool;

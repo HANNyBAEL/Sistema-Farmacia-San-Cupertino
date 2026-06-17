@@ -1,10 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-dotenv.config(); // ✅ Solo UNA vez, al inicio
+dotenv.config();
 
-// Importa el pool de conexiones (para consultas SQL directas)
-import pool from './db.js';  // Asegúrate de que db.js exporte el pool con promesas
+// Importa el pool de conexiones (desde db.js)
+import pool from './db.js';
 
 // Importa Sequelize si lo usas para modelos
 import sequelize from './config/database.js';
@@ -21,30 +21,6 @@ import historialRoutes from './routes/historial.js';
 import eliminadosRoutes from './routes/eliminados.js';
 import facturasRouter from './routes/facturas.js';
 import auditoriaRoutes from './routes/auditoria.js';
-
-
-
-import mysql from 'mysql2';
-require('dotenv').config();
-
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT || 3306,
-    ssl: {                      // 👈 Agrega esto
-        require: true,
-        rejectUnauthorized: true
-    },
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-});
-
-// Convierte la pool para usar promesas (async/await)
-const promisePool = pool.promise();
-dotenv.config();
 
 const app = express();
 
@@ -72,7 +48,7 @@ const PORT = process.env.PORT || 8000;
 
 async function startServer() {
   try {
-    // Verificar conexión a la base de datos (si usas Sequelize)
+    // Verificar conexión a la base de datos (Sequelize)
     await sequelize.authenticate();
     console.log('✅ Conexión a MySQL (Sequelize) exitosa');
 
