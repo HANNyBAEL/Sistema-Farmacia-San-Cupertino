@@ -24,11 +24,28 @@ import auditoriaRoutes from './routes/auditoria.js';
 
 const app = express();
 
-// Middlewares
+// ✅ Configuración CORS mejorada para producción
+const allowedOrigins = [
+  'https://farmacia-san-cupertino.onrender.com', // Tu frontend en Render
+  'http://localhost:3000',                       // Desarrollo local (React)
+  'http://localhost:5173'                        // Desarrollo local (Vite)
+];
+
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: function (origin, callback) {
+    // Permitir solicitudes sin origen (como Postman) o si el origen está en la lista
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`Origen bloqueado por CORS: ${origin}`);
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 
 // Registro de rutas
@@ -48,11 +65,9 @@ const PORT = process.env.PORT || 8000;
 
 async function startServer() {
   try {
-    // Verificar conexión a la base de datos (Sequelize)
     await sequelize.authenticate();
     console.log('✅ Conexión a MySQL (Sequelize) exitosa');
 
-    // Iniciar servidor
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Servidor corriendo en http://0.0.0.0:${PORT}`);
     });

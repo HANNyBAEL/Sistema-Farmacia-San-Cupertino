@@ -868,6 +868,7 @@ function Ventas({ user }: { user: User }) {
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   const cartContainerRef = useRef<HTMLDivElement>(null);
+  
 
   // Funciones de formato para DUI y Teléfono
   function formatDUI(value: string): string {
@@ -918,6 +919,12 @@ function Ventas({ user }: { user: User }) {
       return name.startsWith(term) || name.split(' ').some(word => word.startsWith(term)) || codigo.startsWith(term);
     })
     .slice(0, 6);
+
+  const [facturaModal, setFacturaModal] = useState<{ show: boolean; onConfirm: () => void; onCancel: () => void }>({
+    show: false,
+    onConfirm: () => {},
+    onCancel: () => {},
+  });
 
   // Agregar al carrito con modal para controlados
   function addToCart(p: Product) {
@@ -1027,56 +1034,73 @@ function Ventas({ user }: { user: User }) {
         fecha: fechaLocal
       });
 
-      const desea = confirm("¿Desea generar factura electrónica para esta venta?");
-      if (desea) {
-        try {
-          const { numero_control } = await getSiguienteCorrelativo();
-          const codigo_generacion = crypto.randomUUID().toUpperCase();
-          const fechaHoraLocal = `${year}-${month}-${day} ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
-          await guardarFactura({
-            numero_control,
-            codigo_generacion,
-            id_venta: ventaResp.id_venta,
-            id_cliente: id_cliente,
-            fecha_emision: fechaHoraLocal,
-            total: ventaResp.total,
-          });
-          generarFacturaPDF({
-            numero_control,
-            codigo_generacion,
-            fecha_emision: fechaHoraLocal,
-            receptor: {
-              nombre: `${selectedClient!.nombre} ${selectedClient!.apellido}`,
-              dui: selectedClient!.dui,
-              correo: selectedClient!.correo,
-              telefono: selectedClient!.telefono,
-              direccion: selectedClient!.direccion,
-            },
-            items: cart.map(i => ({
-              codigo: i.product.id_producto,
-              descripcion: i.product.nombre_producto,
-              cantidad: i.qty,
-              precio_unitario: Number(i.product.precio),
-              subtotal: Number(i.product.precio) * i.qty,
-            })),
-            total: ventaResp.total,
-            empleado: user.name,
-          });
-        } catch (fe) {
-          console.error("Error generando factura:", fe);
-          setToast({ message: "Venta registrada pero no se pudo generar la factura.", type: 'error' });
-        }
-      }
+      // Función para finalizar la venta (limpiar carrito, mostrar éxito, etc.)
+      const finalizarVentaExitosa = async () => {
+        setSaleDone(true);
+        setMetodoPago("efectivo");
+        setEfectivo("");
+        setCart([]);
+        setSelectedClient(null);
+        setClientSearch("");
+        // Recargar productos después de la venta
+        const prods = await getProductos();
+        setProducts([...prods].sort((a, b) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+        setTimeout(() => setSaleDone(false), 3000);
+      };
 
-      setSaleDone(true);
-      setMetodoPago("efectivo");
-      setEfectivo("");
-      setCart([]);
-      setSelectedClient(null);
-      setClientSearch("");
-      const prods = await getProductos();
-      setProducts([...prods].sort((a, b) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
-      setTimeout(() => setSaleDone(false), 3000);
+      // Mostrar modal para factura
+      setFacturaModal({
+        show: true,
+        onConfirm: async () => {
+          setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
+          // Generar factura
+          try {
+            const { numero_control } = await getSiguienteCorrelativo();
+            const codigo_generacion = crypto.randomUUID().toUpperCase();
+            const fechaHoraLocal = `${year}-${month}-${day} ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
+            await guardarFactura({
+              numero_control,
+              codigo_generacion,
+              id_venta: ventaResp.id_venta,
+              id_cliente: id_cliente,
+              fecha_emision: fechaHoraLocal,
+              total: ventaResp.total,
+            });
+            generarFacturaPDF({
+              numero_control,
+              codigo_generacion,
+              fecha_emision: fechaHoraLocal,
+              receptor: {
+                nombre: `${selectedClient!.nombre} ${selectedClient!.apellido}`,
+                dui: selectedClient!.dui,
+                correo: selectedClient!.correo,
+                telefono: selectedClient!.telefono,
+                direccion: selectedClient!.direccion,
+              },
+              items: cart.map(i => ({
+                codigo: i.product.id_producto,
+                descripcion: i.product.nombre_producto,
+                cantidad: i.qty,
+                precio_unitario: Number(i.product.precio),
+                subtotal: Number(i.product.precio) * i.qty,
+              })),
+              total: ventaResp.total,
+              empleado: user.name,
+            });
+          } catch (fe) {
+            console.error("Error generando factura:", fe);
+            setToast({ message: "Venta registrada pero no se pudo generar la factura.", type: 'error' });
+          }
+          // Finalizar venta después de confirmar factura
+          await finalizarVentaExitosa();
+        },
+        onCancel: () => {
+          setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
+          // Finalizar venta sin factura
+          finalizarVentaExitosa();
+        },
+      });
+
     } catch (e: any) {
       setToast({ message: e?.response?.data?.error ?? "Error al registrar la venta.", type: 'error' });
     }
@@ -1172,6 +1196,27 @@ function Ventas({ user }: { user: User }) {
               <Btn variant="primary" onClick={() => setNoClientModal(false)}>
                 Aceptar
               </Btn>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal para generar factura */}
+      {facturaModal.show && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                <FileSpreadsheet size={20} />
+              </div>
+              <h2 className="text-lg font-bold text-[#1e1e1e]">Generar Factura</h2>
+            </div>
+            <p className="text-gray-700 mb-4">
+              ¿Desea generar factura electrónica para esta venta?
+            </p>
+            <div className="flex justify-end gap-3">
+              <Btn variant="secondary" onClick={facturaModal.onCancel}>Cancelar</Btn>
+              <Btn variant="primary" onClick={facturaModal.onConfirm}>Sí, generar</Btn>
             </div>
           </Card>
         </div>
