@@ -1971,6 +1971,13 @@ function Proveedores({ user }: { user: User }) {
     }
   }, [toast]);
 
+  // ✅ Función para formatear teléfono: 0000-0000
+  function formatPhone(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 4) return digits;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
+  }
+
   const filtered = suppliers.filter(s => {
     const nombreCompleto = `${s.nombre} ${s.apellido}`.toLowerCase();
     if (search && !nombreCompleto.startsWith(search.toLowerCase())) return false;
@@ -2075,11 +2082,6 @@ function Proveedores({ user }: { user: User }) {
     );
   };
 
-  function formatPhone(filterTelefono: string): string | number | readonly string[] | undefined {
-    // Implement phone number formatting logic here
-    return filterTelefono.replace(/(\d{4})(\d{4})/, '$1-$2');
-  }
-
   return(
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -2087,7 +2089,7 @@ function Proveedores({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo proveedor</Btn>
       </div>
 
-      {/* Filtros: búsqueda por nombre, teléfono y estado */}
+      {/* Filtros: búsqueda por nombre, teléfono (con formato) y estado */}
       <Card className="p-4">
         <div className="flex flex-wrap gap-4">
           <div className="min-w-[200px] flex-1">
@@ -2103,15 +2105,16 @@ function Proveedores({ user }: { user: User }) {
             </div>
           </div>
 
+          {/* ✅ Filtro de Teléfono con formato y límite */}
           <div className="min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
-              <input
-                value={formatPhone(filterTelefono)}  // ← formateo en tiempo real
-                onChange={e => setFilterTelefono(e.target.value)}
-                placeholder="0000-0000"
-                maxLength={9}                         // ← límite de caracteres
-                className="..."
-              />
+            <input
+              value={formatPhone(filterTelefono)}
+              onChange={e => setFilterTelefono(e.target.value)}
+              placeholder="0000-0000"
+              maxLength={9}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+            />
           </div>
 
           <div className="min-w-[130px]">
@@ -2131,6 +2134,7 @@ function Proveedores({ user }: { user: User }) {
         </div>
       </Card>
 
+      {/* Tabla (sin cambios) */}
       <Card className="overflow-hidden">
         <table className="w-full table-fixed text-sm">
           <colgroup>
