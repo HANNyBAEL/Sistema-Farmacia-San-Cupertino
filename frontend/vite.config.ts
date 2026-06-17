@@ -12,13 +12,24 @@ export default defineConfig({
     },
   },
 
-  server: {
-    host: '0.0.0.0', // Permite conexiones desde otras PCs
-    port: 3000,
+  // ✅ Incluye ambas librerías
+  optimizeDeps: {
+    include: ['jspdf', 'jspdf-autotable'],
+  },
 
+  build: {
+    rollupOptions: {
+      external: [],
+    },
+    chunkSizeWarningLimit: 1000,
+  },
+
+  server: {
+    host: '0.0.0.0',
+    port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000', // ✅ Cambiado de IP a localhost
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
     },
