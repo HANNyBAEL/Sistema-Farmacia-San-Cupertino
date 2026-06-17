@@ -23,12 +23,17 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const clientes = await sequelize.query(
-      'SELECT * FROM clientes WHERE id_cliente = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT }
+    const id = Number(req.params.id);
+    const [cliente] = await sequelize.query(
+      `SELECT c.*,
+        (SELECT COUNT(*) FROM ventas v 
+         WHERE v.id_cliente = c.id_cliente AND v.papelera = 0) as has_ventas
+       FROM clientes c
+       WHERE c.id_cliente = :id`,
+      { replacements: { id }, type: sequelize.QueryTypes.SELECT }
     );
-    if (!clientes.length) return res.status(404).json({ error: 'Cliente no encontrado' });
-    res.json(clientes[0]);
+    if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
+    res.json(cliente);
   } catch (error) {
     console.error('❌ GET /clientes/:id:', error);
     res.status(500).json({ error: error.message });
@@ -134,21 +139,42 @@ router.patch('/:id/toggle', async (req, res) => {
 router.patch('/:id/papelera', async (req, res) => {
   const { id_empleado, nombre_empleado } = req.body;
   try {
+    const id = Number(req.params.id);
+
+    // ✅ Validar que NO tenga ventas activas (no en papelera)
+    const [ventas] = await sequelize.query(
+      'SELECT COUNT(*) as count FROM ventas WHERE id_cliente = :id AND papelera = 0',
+      { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+    );
+
+    if (ventas.count > 0) {
+      return res.status(400).json({
+        error: 'No se puede mover el cliente a la papelera porque tiene ventas activas asociadas.'
+      });
+    }
+
     const [cliente] = await sequelize.query(
       'SELECT nombre, apellido FROM clientes WHERE id_cliente = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
+      { replacements: { id }, type: sequelize.QueryTypes.SELECT }
     );
+
     await sequelize.query(
       'UPDATE clientes SET papelera = 1 WHERE id_cliente = :id',
-      { replacements: { id: Number(req.params.id) } }
+      { replacements: { id } }
     );
+
     await registrarAuditoria({
-      tabla: 'clientes', accion: 'PAPELERA',
-      descripcion: `Cliente movido a papelera: ${cliente.nombre} ${cliente.apellido}`,
-      id_registro: Number(req.params.id), id_empleado, nombre_empleado
+      tabla: 'clientes',
+      accion: 'PAPELERA',
+      descripcion: `Cliente movido a papelera: ${cliente?.nombre || ''} ${cliente?.apellido || ''}`,
+      id_registro: id,
+      id_empleado,
+      nombre_empleado
     });
+
     res.json({ message: 'Cliente movido a papelera' });
   } catch (error) {
+    console.error('❌ PATCH /clientes/:id/papelera:', error);
     res.status(500).json({ error: error.message });
   }
 });
