@@ -2289,12 +2289,13 @@ function Empleados({ user }: { user: User }) {
 
   async function load(){setLoading(true);try{setEmpleados(await empleadosApi.getAll());}catch(e){console.error(e);}finally{setLoading(false);}}
   useEffect(()=>{load();},[]);
+  
+  const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
   const filtered = empleados.filter(e => {
     if (search && !`${e.nombre} ${e.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
     // ✅ Filtro de cargo con normalización (elimina tildes)
     if (filterCargo) {
-      const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       if (normalize(e.cargo) !== normalize(filterCargo)) return false;
     }
     if (filterEstado === "activo"   && !e.activo) return false;
