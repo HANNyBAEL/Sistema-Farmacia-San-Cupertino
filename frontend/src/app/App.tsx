@@ -2292,7 +2292,11 @@ function Empleados({ user }: { user: User }) {
 
   const filtered = empleados.filter(e => {
     if (search && !`${e.nombre} ${e.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
-    if (filterCargo  && e.cargo.toLowerCase() !== filterCargo.toLowerCase()) return false;
+    // ✅ Filtro de cargo con normalización (elimina tildes)
+    if (filterCargo) {
+      const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      if (normalize(e.cargo) !== normalize(filterCargo)) return false;
+    }
     if (filterEstado === "activo"   && !e.activo) return false;
     if (filterEstado === "inactivo" &&  e.activo) return false;
     return true;
