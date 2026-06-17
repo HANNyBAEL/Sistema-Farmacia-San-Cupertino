@@ -1,8 +1,10 @@
 import axios from 'axios';
 
-// Usa ruta relativa para que Vite redirija las peticiones a través del proxy
+// 🔥 Usa VITE_API_URL si existe, si no usa /api (para desarrollo con proxy)
+const baseURL = import.meta.env.VITE_API_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: baseURL,
 });
 
 // Interceptor para adjuntar token JWT
@@ -14,17 +16,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ✅ Interceptor para manejar errores 401 (sesión invalidada o usuario desactivado)
+// ✅ Interceptor para manejar errores 401
 api.interceptors.response.use(
   response => response,
   error => {
     if (error.response && error.response.status === 401) {
       const mensaje = error.response.data?.error;
       if (mensaje === 'Usuario desactivado' || mensaje === 'Sesión invalidada' || mensaje === 'Token inválido o expirado') {
-        // Limpiar sesión local
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        // Disparar evento para que la app redirija al login
         window.dispatchEvent(new Event('session-expired'));
       }
     }
