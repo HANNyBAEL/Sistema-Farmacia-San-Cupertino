@@ -41,8 +41,8 @@ router.post('/', async (req, res) => {
   try {
     const password_hash = await bcrypt.hash(password, 10);
     const [result] = await sequelize.query(
-    `INSERT INTO empleados (nombre, apellido, correo, telefono, cargo, password_hash, fecha_contratacion, activo, dui, nit, cuenta_banco, afp)
-    VALUES (:nombre, :apellido, :correo, :telefono, :cargo, :password_hash, :fecha_contratacion, 1, :dui, :nit, :cuenta_banco, :afp)`,
+    `INSERT INTO empleados (nombre, apellido, correo, telefono, cargo, password_hash, fecha_contratacion, activo, dui, nit, cuenta_banco, afp, token_version)
+    VALUES (:nombre, :apellido, :correo, :telefono, :cargo, :password_hash, :fecha_contratacion, 1, :dui, :nit, :cuenta_banco, :afp, 1)`,
       { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, password_hash, fecha_contratacion: fecha_contratacion||null, dui: req.body.dui||null, nit: req.body.nit||null, cuenta_banco: req.body.cuenta_banco||null, afp: req.body.afp||null }, type: sequelize.QueryTypes.INSERT }
     );
     await registrarAuditoria({
@@ -64,9 +64,12 @@ router.put('/:id', async (req, res) => {
   try {
     // Leer valores anteriores ANTES del UPDATE
     const [anterior] = await sequelize.query(
-      'SELECT nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo, dui, nit, cuenta_banco, afp FROM empleados WHERE id_empleado = :id',
+      'SELECT nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo, dui, nit, cuenta_banco, afp, token_version FROM empleados WHERE id_empleado = :id',
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
     );
+
+    // ✅ Variable para controlar si debemos incrementar token_version
+    let invalidarSesion = false;
 
     if (password) {
       const password_hash = await bcrypt.hash(password, 10);
@@ -74,18 +77,34 @@ router.put('/:id', async (req, res) => {
         `UPDATE empleados SET nombre=:nombre, apellido=:apellido, correo=:correo, telefono=:telefono,
          cargo=:cargo, password_hash=:password_hash, fecha_contratacion=:fecha_contratacion, activo=:activo, dui=:dui, nit=:nit, cuenta_banco=:cuenta_banco, afp=:afp
          WHERE id_empleado=:id`,
-        { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, password_hash, fecha_contratacion: fecha_contratacion||null, activo: activo??1, dui: dui||null, nit: nit||null, cuenta_banco: cuenta_banco||null, afp: afp||null, id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
+        { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, password_hash, fecha_contratacion: fecha_contratacion||null, activo: activo ?? 1, dui: dui||null, nit: nit||null, cuenta_banco: cuenta_banco||null, afp: afp||null, id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
       );
+      // ✅ Si se cambió la contraseña, invalidar sesión
+      invalidarSesion = true;
     } else {
+      // Si no cambia password, actualizar sin él
       await sequelize.query(
         `UPDATE empleados SET nombre=:nombre, apellido=:apellido, correo=:correo, telefono=:telefono,
          cargo=:cargo, fecha_contratacion=:fecha_contratacion, activo=:activo, dui=:dui, nit=:nit, cuenta_banco=:cuenta_banco, afp=:afp
          WHERE id_empleado=:id`,
-        { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, fecha_contratacion: fecha_contratacion||null, activo: activo??1, dui: dui||null, nit: nit||null, cuenta_banco: cuenta_banco||null, afp: afp||null, id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
+        { replacements: { nombre, apellido, correo, telefono: telefono||null, cargo, fecha_contratacion: fecha_contratacion||null, activo: activo ?? 1, dui: dui||null, nit: nit||null, cuenta_banco: cuenta_banco||null, afp: afp||null, id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
       );
     }
 
-    // Detectar cambios campo por campo
+    // ✅ Si se desactiva (activo = 0), invalidar sesión
+    if (activo !== undefined && activo === 0) {
+      invalidarSesion = true;
+    }
+
+    // ✅ Si se necesita invalidar, incrementar token_version
+    if (invalidarSesion) {
+      await sequelize.query(
+        `UPDATE empleados SET token_version = token_version + 1 WHERE id_empleado = :id`,
+        { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
+      );
+    }
+
+    // Detectar cambios campo por campo (para auditoría)
     const campos = [
       { campo: 'nombre',             nuevo: nombre,                    ant: anterior?.nombre },
       { campo: 'apellido',           nuevo: apellido,                  ant: anterior?.apellido },
@@ -142,6 +161,11 @@ router.delete('/:id', async (req, res) => {
     );
     await sequelize.query(
       'UPDATE empleados SET activo = 0 WHERE id_empleado = :id',
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
+    );
+    // ✅ Al desactivar, incrementar token_version para invalidar sesión
+    await sequelize.query(
+      `UPDATE empleados SET token_version = token_version + 1 WHERE id_empleado = :id`,
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
     );
     await registrarAuditoria({

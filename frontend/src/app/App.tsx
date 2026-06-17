@@ -3130,52 +3130,109 @@ function Configuracion() {
 }
 
 // ── App Shell ─────────────────────────────────────────────────────────────────
+// ── Componente de confirmación para cerrar sesión ──
+function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }: {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}): import("react/jsx-runtime").JSX.Element | null {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <Card className="max-w-md w-full p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+            <AlertTriangle size={20} />
+          </div>
+          <h2 className="text-lg font-bold text-[#1e1e1e]">{title}</h2>
+        </div>
+        <p className="text-gray-700 mb-6">{message}</p>
+        <div className="flex justify-end gap-3">
+          <Btn variant="secondary" onClick={onCancel}>Cancelar</Btn>
+          <Btn variant="primary" onClick={onConfirm}>Sí, cerrar sesión</Btn>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ── App Shell ─────────────────────────────────────────────────────────────────
 function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
-  const [screen, setScreen] = useState<Screen>(()=>{
-    if(user.role==="cajero") return "ventas";
-    if(user.role==="farmaceutico") return "alertas";
+  const [screen, setScreen] = useState<Screen>(() => {
+    if (user.role === "cajero") return "ventas";
+    if (user.role === "farmaceutico") return "alertas";
     return "dashboard";
   });
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const screenTitle: Record<Screen,string> = {
-    dashboard:"Dashboard", ventas:"Ventas (POS)", productos:"Productos",
-    clientes:"Clientes", empleados:"Empleados", proveedores:"Proveedores",
-    alertas:"Alertas de Stock", historial:"Historial de Ventas",
-    eliminados:"Registros Eliminados", auditoria: "Auditoría del Sistema",
+  const screenTitle: Record<Screen, string> = {
+    dashboard: "Dashboard",
+    ventas: "Ventas (POS)",
+    productos: "Productos",
+    clientes: "Clientes",
+    empleados: "Empleados",
+    proveedores: "Proveedores",
+    alertas: "Alertas de Stock",
+    historial: "Historial de Ventas",
+    eliminados: "Registros Eliminados",
+    auditoria: "Auditoría del Sistema",
   };
 
-  return(
-    <div className="flex h-screen overflow-hidden bg-[#f5f7fa]" style={{ fontFamily:"Inter, sans-serif" }}>
-      <Sidebar user={user} current={screen} onNav={setScreen} onLogout={onLogout}/>
+  const handleLogoutClick = () => setShowLogoutModal(true);
+  const handleLogoutConfirm = () => {
+    setShowLogoutModal(false);
+    onLogout(); // ejecuta el logout real (limpia localStorage y estado)
+  };
+  const handleLogoutCancel = () => setShowLogoutModal(false);
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-[#f5f7fa]" style={{ fontFamily: "Inter, sans-serif" }}>
+      <Sidebar user={user} current={screen} onNav={setScreen} onLogout={handleLogoutClick} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-14 bg-white border-b-2 border-[#0a4b7a]/10 flex items-center px-6 gap-4 flex-shrink-0">
           <h2 className="font-semibold text-[#1e1e1e] text-sm">{screenTitle[screen]}</h2>
           <div className="ml-auto flex items-center gap-3">
             <div className="flex items-center gap-2 pl-3 border-l border-gray-100">
-              <div className="w-7 h-7 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold">{user.name.charAt(0)}</div>
+              <div className="w-7 h-7 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold">
+                {user.name.charAt(0)}
+              </div>
               <div className="hidden sm:block">
                 <div className="text-xs font-medium text-[#1e1e1e] leading-tight">{user.name}</div>
                 <div className="text-xs text-gray-400 capitalize">{user.role}</div>
               </div>
             </div>
-            <button onClick={onLogout} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#d32f2f] border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-              <LogOut size={13}/> Salir
+            <button
+              onClick={handleLogoutClick}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#d32f2f] border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <LogOut size={13} /> Salir
             </button>
           </div>
         </header>
         <main className="flex-1 overflow-y-scroll">
-          {screen==="dashboard"    && <Dashboard/>}
-          {screen==="ventas"       && <Ventas user={user}/>}
-          {screen==="productos"    && <Productos user={user}/>}
-          {screen==="clientes"     && <Clientes user={user}/>}
-          {screen==="empleados"    && <Empleados user={user}/>}
-          {screen==="proveedores"  && <Proveedores user={user}/>}
-          {screen==="alertas"      && <Alertas/>}
-          {screen==="historial"    && <Historial/>}
-          {screen==="eliminados"   && <Eliminados/>}
+          {screen === "dashboard" && <Dashboard />}
+          {screen === "ventas" && <Ventas user={user} />}
+          {screen === "productos" && <Productos user={user} />}
+          {screen === "clientes" && <Clientes user={user} />}
+          {screen === "empleados" && <Empleados user={user} />}
+          {screen === "proveedores" && <Proveedores user={user} />}
+          {screen === "alertas" && <Alertas />}
+          {screen === "historial" && <Historial />}
+          {screen === "eliminados" && <Eliminados />}
           {screen === "auditoria" && <Auditoria user={user} />}
         </main>
       </div>
+
+      {/* Modal de confirmación de logout */}
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        title="Cerrar sesión"
+        message="¿Estás seguro de que deseas cerrar sesión?"
+        onConfirm={handleLogoutConfirm}
+        onCancel={handleLogoutCancel}
+      />
     </div>
   );
 }
@@ -3183,6 +3240,18 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  if(!user) return <LoginScreen onLogin={setUser}/>;
-  return <AppShell user={user} onLogout={()=>{localStorage.removeItem('token');setUser(null);}}/>;
+
+  // ✅ Escuchar evento de sesión expirada
+  useEffect(() => {
+    const handler = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+    };
+    window.addEventListener('session-expired', handler);
+    return () => window.removeEventListener('session-expired', handler);
+  }, []);
+
+  if (!user) return <LoginScreen onLogin={setUser} />;
+  return <AppShell user={user} onLogout={() => { localStorage.removeItem('token'); setUser(null); }} />;
 }
