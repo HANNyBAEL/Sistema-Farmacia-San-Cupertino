@@ -667,10 +667,14 @@ function Productos({ user }: { user: User }) {
 
           <div className="min-w-[160px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor</label>
-            <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
-              <option value="">Todos</option>
-              {suppliers.map(s => <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>)}
-            </Select>
+              <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
+                <option value="">Todos</option>
+                {suppliers
+                  .filter(s => s.deleted === 0) // ✅ solo activos
+                  .map(s => (
+                    <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
+                  ))}
+              </Select>
           </div>
 
           <div className="min-w-[140px]">
@@ -816,7 +820,11 @@ function Productos({ user }: { user: User }) {
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor *</label>
                 <Select value={form.id_proveedor} onChange={v=>setForm(p=>({...p,id_proveedor:v}))} className="w-full">
                   <option value="">Seleccionar proveedor...</option>
-                  {suppliers.map(s=><option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>)}
+                  {suppliers
+                    .filter(s => s.deleted === 0) // ✅ solo activos
+                    .map(s => (
+                      <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
+                    ))}
                 </Select>
               </div>
               <div className="col-span-2">

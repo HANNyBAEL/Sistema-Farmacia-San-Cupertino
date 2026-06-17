@@ -89,21 +89,42 @@ router.patch('/:id/toggle', async (req, res) => {
 router.patch('/:id/papelera', async (req, res) => {
   const { id_empleado, nombre_empleado } = req.body;
   try {
+    const id = Number(req.params.id);
+
+    // Verificar si el proveedor tiene productos activos (no en papelera)
+    const [productos] = await sequelize.query(
+      'SELECT COUNT(*) as count FROM productos WHERE id_proveedor = :id AND papelera = 0',
+      { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+    );
+
+    if (productos.count > 0) {
+      return res.status(400).json({
+        error: 'No se puede eliminar el proveedor porque tiene productos asociados. Solo puede desactivarlo.'
+      });
+    }
+
     const [prov] = await sequelize.query(
       'SELECT nombre, apellido FROM proveedores WHERE id_proveedor = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
+      { replacements: { id }, type: sequelize.QueryTypes.SELECT }
     );
+
     await sequelize.query(
       'UPDATE proveedores SET papelera = 1 WHERE id_proveedor = :id',
-      { replacements: { id: Number(req.params.id) } }
+      { replacements: { id } }
     );
+
     await registrarAuditoria({
-      tabla: 'proveedores', accion: 'PAPELERA',
+      tabla: 'proveedores',
+      accion: 'PAPELERA',
       descripcion: `Proveedor movido a papelera: ${prov.nombre} ${prov.apellido}`,
-      id_registro: Number(req.params.id), id_empleado, nombre_empleado
+      id_registro: id,
+      id_empleado,
+      nombre_empleado
     });
+
     res.json({ message: 'Proveedor movido a papelera' });
   } catch (error) {
+    console.error('❌ PATCH /proveedores/:id/papelera:', error);
     res.status(500).json({ error: error.message });
   }
 });
