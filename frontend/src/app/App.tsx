@@ -1628,8 +1628,9 @@ function Clientes({ user }: { user: User }) {
   async function confirmDelete() {
     if (confirmModal.clienteId === null) return;
     try {
-      await api.delete(`/clientes/${confirmModal.clienteId}`, {
-        data: { id_empleado: user.id, nombre_empleado: user.name }
+      await api.patch(`/clientes/${confirmModal.clienteId}/papelera`, {
+        id_empleado: user.id,
+        nombre_empleado: user.name
       });
       setConfirmModal({ isOpen: false, clienteId: null });
       setToast({ message: "Cliente movido a papelera correctamente.", type: 'success' });
@@ -1637,7 +1638,7 @@ function Clientes({ user }: { user: User }) {
     } catch (e: any) {
       setConfirmModal({ isOpen: false, clienteId: null });
       setToast({
-        message: e?.response?.data?.error ?? "No se puede eliminar este cliente porque tiene ventas asociadas.",
+        message: e?.response?.data?.error ?? "No se puede mover este cliente a la papelera porque tiene ventas asociadas.",
         type: 'error'
       });
     }
