@@ -141,40 +141,35 @@ router.patch('/:id/papelera', async (req, res) => {
   try {
     const id = Number(req.params.id);
 
-    // ✅ Validar que NO tenga ventas activas (no en papelera)
-    const [ventas] = await sequelize.query(
-      'SELECT COUNT(*) as count FROM ventas WHERE id_cliente = :id AND papelera = 0',
-      { replacements: { id }, type: sequelize.QueryTypes.SELECT }
-    );
-
-    if (ventas.count > 0) {
-      return res.status(400).json({
-        error: 'No se puede mover el cliente a la papelera porque tiene ventas activas asociadas.'
-      });
-    }
-
+    // Verificar si existe el cliente y no está ya en papelera
     const [cliente] = await sequelize.query(
       'SELECT nombre, apellido FROM clientes WHERE id_cliente = :id',
       { replacements: { id }, type: sequelize.QueryTypes.SELECT }
     );
 
+    if (!cliente) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    // Mover a papelera (actualizar campo papelera)
     await sequelize.query(
       'UPDATE clientes SET papelera = 1 WHERE id_cliente = :id',
       { replacements: { id } }
     );
 
+    // Registrar auditoría (con manejo de valores nulos)
     await registrarAuditoria({
       tabla: 'clientes',
       accion: 'PAPELERA',
-      descripcion: `Cliente movido a papelera: ${cliente?.nombre || ''} ${cliente?.apellido || ''}`,
+      descripcion: `Cliente movido a papelera: ${cliente.nombre} ${cliente.apellido}`,
       id_registro: id,
-      id_empleado,
-      nombre_empleado
+      id_empleado: id_empleado || null,
+      nombre_empleado: nombre_empleado || null
     });
 
     res.json({ message: 'Cliente movido a papelera' });
   } catch (error) {
-    console.error('❌ PATCH /clientes/:id/papelera:', error);
+    console.error('❌ Error en PATCH /clientes/:id/papelera:', error);
     res.status(500).json({ error: error.message });
   }
 });
