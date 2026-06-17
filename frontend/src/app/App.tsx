@@ -3033,6 +3033,17 @@ function Eliminados() {
   const [search, setSearch]   = useState("");
   const [tab, setTab]         = useState("todos");
 
+  // Modal de confirmación
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    tipo: string | null;
+    id: number | null;
+    accion: 'restaurar' | 'eliminar' | null;
+  }>({ isOpen: false, tipo: null, id: null, accion: null });
+
+  // Toast para mensajes
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
   async function load(){
     setLoading(true);
     try{ setRecords(await eliminadosApi.getAll()); }
@@ -3040,6 +3051,14 @@ function Eliminados() {
     finally{ setLoading(false); }
   }
   useEffect(()=>{ load(); },[]);
+
+  // Auto-cerrar toast después de 3 segundos
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const tipoLabel: Record<string, string> = {
     producto: "Producto",
@@ -3066,23 +3085,49 @@ function Eliminados() {
   const byTab = tab === "todos" ? records : records.filter(r => r.tipo === tab);
   const filtered = byTab.filter(r => r.nombre.toLowerCase().startsWith(search.toLowerCase()));
 
-  async function handleRestore(tipo: string, id: number) {
-    if (!confirm(`¿Restaurar este ${tipoLabel[tipo].toLowerCase()}?`)) return;
-    try {
-      await eliminadosApi.restaurar(tipo, id);
-      load();
-    } catch (e: any) {
-      alert(e?.response?.data?.error ?? "Error al restaurar.");
-    }
+  // Abrir modal para restaurar
+  function handleRestore(tipo: string, id: number) {
+    setConfirmModal({
+      isOpen: true,
+      tipo,
+      id,
+      accion: 'restaurar'
+    });
   }
 
-  async function handlePermanent(tipo: string, id: number) {
-    if (!confirm(`⚠️ Esta acción es irreversible. ¿Eliminar permanentemente este ${tipoLabel[tipo].toLowerCase()}?`)) return;
+  // Abrir modal para eliminar permanentemente
+  function handlePermanent(tipo: string, id: number) {
+    setConfirmModal({
+      isOpen: true,
+      tipo,
+      id,
+      accion: 'eliminar'
+    });
+  }
+
+  // Ejecutar la acción confirmada
+  async function confirmAction() {
+    if (!confirmModal.tipo || confirmModal.id === null || !confirmModal.accion) return;
+
+    const { tipo, id, accion } = confirmModal;
+    const label = tipoLabel[tipo]?.toLowerCase() || 'registro';
+
     try {
-      await eliminadosApi.eliminar(tipo, id);
+      if (accion === 'restaurar') {
+        await eliminadosApi.restaurar(tipo, id);
+        setToast({ message: `${tipoLabel[tipo]} restaurado correctamente.`, type: 'success' });
+      } else {
+        await eliminadosApi.eliminar(tipo, id);
+        setToast({ message: `${tipoLabel[tipo]} eliminado permanentemente.`, type: 'success' });
+      }
+      setConfirmModal({ isOpen: false, tipo: null, id: null, accion: null });
       load();
     } catch (e: any) {
-      alert(e?.response?.data?.error ?? "Error al eliminar permanentemente.");
+      setConfirmModal({ isOpen: false, tipo: null, id: null, accion: null });
+      setToast({
+        message: e?.response?.data?.error ?? `Error al ${accion === 'restaurar' ? 'restaurar' : 'eliminar'} el ${label}.`,
+        type: 'error'
+      });
     }
   }
 
@@ -3173,6 +3218,33 @@ function Eliminados() {
           </table>
         </div>
       </Card>
+
+      {/* Modal de confirmación */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.accion === 'restaurar' ? 'Restaurar registro' : 'Eliminar permanentemente'}
+        message={
+          confirmModal.accion === 'restaurar'
+            ? `¿Restaurar este ${tipoLabel[confirmModal.tipo || '']?.toLowerCase() || 'registro'}?`
+            : `⚠️ Esta acción es irreversible. ¿Eliminar permanentemente este ${tipoLabel[confirmModal.tipo || '']?.toLowerCase() || 'registro'}?`
+        }
+        onConfirm={confirmAction}
+        onCancel={() => setConfirmModal({ isOpen: false, tipo: null, id: null, accion: null })}
+        confirmText={confirmModal.accion === 'restaurar' ? 'Sí, restaurar' : 'Sí, eliminar permanentemente'}
+        variant={confirmModal.accion === 'restaurar' ? 'primary' : 'danger'}
+      />
+
+      {/* Toast flotante */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
+            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+          }`}>
+            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
