@@ -157,6 +157,45 @@ function Select({ children, value, onChange, className = "" }: {
     {children}
   </select>;
 }
+// ── Componente de confirmación para cerrar sesión ──
+function ConfirmModal({
+  isOpen,
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  confirmText = "Confirmar",
+  cancelText = "Cancelar",
+  variant = "danger", // "danger" | "primary"
+}: {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: "danger" | "primary";
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <Card className="max-w-md w-full p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+            <AlertTriangle size={20} />
+          </div>
+          <h2 className="text-lg font-bold text-[#1e1e1e]">{title}</h2>
+        </div>
+        <p className="text-gray-700 mb-6">{message}</p>
+        <div className="flex justify-end gap-3">
+          <Btn variant="secondary" onClick={onCancel}>{cancelText}</Btn>
+          <Btn variant={variant} onClick={onConfirm}>{confirmText}</Btn>
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 function LoadingSpinner() {
   return <div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-[#0a4b7a] border-t-transparent rounded-full animate-spin" /></div>;
@@ -462,6 +501,15 @@ function Productos({ user }: { user: User }) {
     lote:"", fecha_vencimiento:"", id_proveedor:"", codigo_barras:""
   });
 
+  // Modal de confirmación para eliminar producto
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    productId: number | null;
+  }>({ isOpen: false, productId: null });
+
+  // Toast para mensajes de error/éxito
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
   async function load() {
     setLoading(true);
     try {
@@ -472,6 +520,14 @@ function Productos({ user }: { user: User }) {
   }
 
   useEffect(() => { load(); }, []);
+
+  // Auto-cerrar toast después de 3 segundos
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const filtered = products
     .filter(p => {
@@ -559,13 +615,27 @@ function Productos({ user }: { user: User }) {
     } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("¿Mover este producto a la papelera?")) return;
+  // Nuevas funciones para eliminar con modal
+  function handleDelete(id: number) {
+    setConfirmModal({ isOpen: true, productId: id });
+  }
+
+  async function confirmDelete() {
+    if (confirmModal.productId === null) return;
     try {
-      await api.patch(`/productos/${id}/papelera`, { id_empleado: user.id, nombre_empleado: user.name });
+      await api.patch(`/productos/${confirmModal.productId}/papelera`, {
+        id_empleado: user.id,
+        nombre_empleado: user.name
+      });
+      setConfirmModal({ isOpen: false, productId: null });
+      setToast({ message: "Producto movido a papelera correctamente.", type: 'success' });
       load();
     } catch (e: any) {
-      alert(e?.response?.data?.error ?? "Error al eliminar el producto.");
+      setConfirmModal({ isOpen: false, productId: null });
+      setToast({
+        message: e?.response?.data?.error ?? "No se puede eliminar este producto porque tiene ventas asociadas.",
+        type: 'error'
+      });
     }
   }
 
@@ -670,7 +740,7 @@ function Productos({ user }: { user: User }) {
               <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
                 <option value="">Todos</option>
                 {suppliers
-                  .filter(s => s.deleted === 0) // ✅ solo activos
+                  .filter(s => s.deleted === 0)
                   .map(s => (
                     <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
                   ))}
@@ -705,9 +775,7 @@ function Productos({ user }: { user: User }) {
       </Card>
 
       <Card className="overflow-hidden">
-        {/* Eliminado overflow-x-auto */}
         <table className="w-full table-fixed text-sm">
-          {/* Definir anchos de columna para evitar movimiento */}
           <colgroup>
             <col className="w-[18%]" />
             <col className="w-[12%]" />
@@ -821,7 +889,7 @@ function Productos({ user }: { user: User }) {
                 <Select value={form.id_proveedor} onChange={v=>setForm(p=>({...p,id_proveedor:v}))} className="w-full">
                   <option value="">Seleccionar proveedor...</option>
                   {suppliers
-                    .filter(s => s.deleted === 0) // ✅ solo activos
+                    .filter(s => s.deleted === 0)
                     .map(s => (
                       <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
                     ))}
@@ -844,6 +912,29 @@ function Productos({ user }: { user: User }) {
               <Btn variant="primary" onClick={saveForm}><Check size={14}/> Guardar</Btn>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* Modal de confirmación para eliminar producto */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Mover a papelera"
+        message="¿Estás seguro de que deseas mover este producto a la papelera? Podrás restaurarlo más tarde."
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmModal({ isOpen: false, productId: null })}
+        confirmText="Sí, mover a papelera"
+        variant="danger"
+      />
+
+      {/* Toast flotante */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
+            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+          }`}>
+            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
+            {toast.message}
+          </div>
         </div>
       )}
     </div>
@@ -1458,11 +1549,28 @@ function Clientes({ user }: { user: User }) {
   const [form, setForm]         = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
   const [formError, setFormError] = useState("");
 
+  // Modal de confirmación para eliminar cliente
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    clienteId: number | null;
+  }>({ isOpen: false, clienteId: null });
+
+  // Toast para mensajes de error/éxito
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
   async function load() {
     setLoading(true);
     try { setClients(await clientesApi.getAll()); } catch(e){console.error(e);} finally{setLoading(false);}
   }
   useEffect(()=>{load();},[]);
+
+  // Auto-cerrar toast
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const filtered = clients.filter(c => {
     if (search && !`${c.nombre} ${c.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
@@ -1512,13 +1620,26 @@ function Clientes({ user }: { user: User }) {
     } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("¿Eliminar este cliente permanentemente?")) return;
+  // Nuevas funciones para eliminar con modal
+  function handleDelete(id: number) {
+    setConfirmModal({ isOpen: true, clienteId: id });
+  }
+
+  async function confirmDelete() {
+    if (confirmModal.clienteId === null) return;
     try {
-      await api.delete(`/clientes/${id}`, { data: { id_empleado: user.id, nombre_empleado: user.name } });
+      await api.delete(`/clientes/${confirmModal.clienteId}`, {
+        data: { id_empleado: user.id, nombre_empleado: user.name }
+      });
+      setConfirmModal({ isOpen: false, clienteId: null });
+      setToast({ message: "Cliente movido a papelera correctamente.", type: 'success' });
       load();
     } catch (e: any) {
-      alert(e?.response?.data?.error ?? "No se puede eliminar este cliente.");
+      setConfirmModal({ isOpen: false, clienteId: null });
+      setToast({
+        message: e?.response?.data?.error ?? "No se puede eliminar este cliente porque tiene ventas asociadas.",
+        type: 'error'
+      });
     }
   }
 
@@ -1595,7 +1716,7 @@ function Clientes({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo cliente</Btn>
       </div>
 
-      {/* Filtros (sin cambios) */}
+      {/* Filtros */}
       <Card className="p-4">
         <div className="flex flex-wrap gap-4">
           <div className="min-w-[200px] flex-1">
@@ -1642,7 +1763,7 @@ function Clientes({ user }: { user: User }) {
         </div>
       </Card>
 
-      {/* Tabla (sin cambios) */}
+      {/* Tabla */}
       <Card className="overflow-hidden">
         <table className="w-full table-fixed text-sm">
           <colgroup>
@@ -1714,7 +1835,7 @@ function Clientes({ user }: { user: User }) {
         </table>
       </Card>
 
-      {/* Modal de formulario ESTILO VENTAS (idéntico al de POS) */}
+      {/* Modal de formulario */}
       {showForm&&(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6">
@@ -1770,6 +1891,29 @@ function Clientes({ user }: { user: User }) {
           </Card>
         </div>
       )}
+
+      {/* Modal de confirmación para eliminar cliente */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Mover a papelera"
+        message="¿Estás seguro de que deseas mover este cliente a la papelera? Podrás restaurarlo más tarde."
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmModal({ isOpen: false, clienteId: null })}
+        confirmText="Sí, mover a papelera"
+        variant="danger"
+      />
+
+      {/* Toast flotante */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
+            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+          }`}>
+            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1786,6 +1930,15 @@ function Proveedores({ user }: { user: User }) {
   const [form, setForm]           = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
   const [formError, setFormError] = useState("");
 
+  // Modal de confirmación para eliminar proveedor
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    proveedorId: number | null;
+  }>({ isOpen: false, proveedorId: null });
+
+  // Toast para mensajes de error/éxito
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
   async function load(){
     setLoading(true);
     try{ setSuppliers(await proveedoresApi.getAll()); }
@@ -1793,6 +1946,14 @@ function Proveedores({ user }: { user: User }) {
     finally{ setLoading(false); }
   }
   useEffect(()=>{ load(); },[]);
+
+  // Auto-cerrar toast
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const filtered = suppliers.filter(s => {
     const nombreCompleto = `${s.nombre} ${s.apellido}`.toLowerCase();
@@ -1815,13 +1976,27 @@ function Proveedores({ user }: { user: User }) {
     } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("¿Mover este proveedor a la papelera?")) return;
+  // Nuevas funciones para eliminar con modal
+  function handleDelete(id: number) {
+    setConfirmModal({ isOpen: true, proveedorId: id });
+  }
+
+  async function confirmDelete() {
+    if (confirmModal.proveedorId === null) return;
     try {
-      await api.patch(`/proveedores/${id}/papelera`, { id_empleado: user.id, nombre_empleado: user.name });
+      await api.patch(`/proveedores/${confirmModal.proveedorId}/papelera`, {
+        id_empleado: user.id,
+        nombre_empleado: user.name
+      });
+      setConfirmModal({ isOpen: false, proveedorId: null });
+      setToast({ message: "Proveedor movido a papelera correctamente.", type: 'success' });
       load();
     } catch (e: any) {
-      alert(e?.response?.data?.error ?? "Error al eliminar el proveedor.");
+      setConfirmModal({ isOpen: false, proveedorId: null });
+      setToast({
+        message: e?.response?.data?.error ?? "No se puede eliminar este proveedor porque tiene productos asociados.",
+        type: 'error'
+      });
     }
   }
 
@@ -1942,7 +2117,7 @@ function Proveedores({ user }: { user: User }) {
             <col className="w-[20%]" />
             <col className="w-[20%]" />
             <col className="w-[8%]" />
-            <col className="w-[15%]" /> {/* Acciones un poco más amplio */}
+            <col className="w-[15%]" />
           </colgroup>
           <thead className="bg-gray-50">
             <tr className="border-b border-gray-100">
@@ -2041,6 +2216,29 @@ function Proveedores({ user }: { user: User }) {
               <Btn variant="primary" onClick={saveForm}><Check size={14}/> Guardar</Btn>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* Modal de confirmación para eliminar proveedor */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Mover a papelera"
+        message="¿Estás seguro de que deseas mover este proveedor a la papelera? Podrás restaurarlo más tarde."
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmModal({ isOpen: false, proveedorId: null })}
+        confirmText="Sí, mover a papelera"
+        variant="danger"
+      />
+
+      {/* Toast flotante */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
+            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+          }`}>
+            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
+            {toast.message}
+          </div>
         </div>
       )}
     </div>
@@ -3183,33 +3381,7 @@ function Configuracion() {
 }
 
 // ── App Shell ─────────────────────────────────────────────────────────────────
-// ── Componente de confirmación para cerrar sesión ──
-function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }: {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}): import("react/jsx-runtime").JSX.Element | null {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <Card className="max-w-md w-full p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-            <AlertTriangle size={20} />
-          </div>
-          <h2 className="text-lg font-bold text-[#1e1e1e]">{title}</h2>
-        </div>
-        <p className="text-gray-700 mb-6">{message}</p>
-        <div className="flex justify-end gap-3">
-          <Btn variant="secondary" onClick={onCancel}>Cancelar</Btn>
-          <Btn variant="primary" onClick={onConfirm}>Sí, cerrar sesión</Btn>
-        </div>
-      </Card>
-    </div>
-  );
-}
+
 
 // ── App Shell ─────────────────────────────────────────────────────────────────
 function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
