@@ -2523,76 +2523,193 @@ function Empleados({ user }: { user: User }) {
         </div>
       </Card>
 
-      {showForm&&(
+      {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-[#1e1e1e]">{editEmp?"Editar Empleado":"Nuevo Empleado"}</h2>
-              <button onClick={()=>setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+              <h2 className="text-lg font-bold text-[#1e1e1e]">
+                {editEmp ? "Editar Empleado" : "Nuevo Empleado"}
+              </h2>
+              <button
+                onClick={() => setShowForm(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
             </div>
-            {formError&&<div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
-            <div className="grid grid-cols-2 gap-4">
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label><Input value={form.nombre} onChange={v=>setForm(p=>({...p,nombre:v}))} className="w-full" /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label><Input value={form.apellido} onChange={v=>setForm(p=>({...p,apellido:v}))} className="w-full" /></div>
-              <div className="col-span-2"><label className="block text-xs font-semibold text-gray-600 mb-1">Correo *</label><Input type="email" value={form.correo} onChange={v=>setForm(p=>({...p,correo:v}))} className="w-full" /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
-                <input
-                  value={formatPhone(form.telefono)} 
-                  onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} 
-                  placeholder="0000-0000" 
-                  maxLength={9} 
-                  className="w-full" 
-                />
+
+            {formError && (
+              <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+                <AlertTriangle size={14} />
+                {formError}
               </div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">DUI <span className="text-gray-400 font-normal">(00000000-0)</span></label>
-                <input
-                  value={formatDUI(form.dui)} 
-                  onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} 
-                  placeholder="00000000-0" 
-                  maxLength={10} 
-                  className="w-full" 
-                />
+            )}
+
+            <div className="space-y-4">
+              {/* Fila 1: Nombre y Apellido */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Nombre *
+                  </label>
+                  <Input
+                    value={form.nombre}
+                    onChange={v => setForm(p => ({ ...p, nombre: v }))}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Apellido *
+                  </label>
+                  <Input
+                    value={form.apellido}
+                    onChange={v => setForm(p => ({ ...p, apellido: v }))}
+                    className="w-full"
+                  />
+                </div>
               </div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">NIT</label>
-                <input
-                  value={formatNIT(form.nit)} 
-                  onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))} 
-                  placeholder="0000-000000-000-0" 
-                  maxLength={17} 
-                  className="w-full" 
-                />
-              </div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Cuenta Bancaria</label>
-                <input 
-                  value={formatCuentaBanco(form.cuenta_banco)} 
-                  onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))} 
-                  placeholder="Número de cuenta" 
-                  maxLength={20} 
-                  className="w-full" 
-                />
-              </div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">AFP</label>
-                <Select value={form.afp} onChange={v=>setForm(p=>({...p,afp:v}))} className="w-full">
-                  <option value="">Sin AFP</option>
-                  <option value="CRECER">CRECER</option>
-                  <option value="CONFÍA">CONFÍA</option>
-                </Select>
-              </div>
+
+              {/* Correo (ancho completo) */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Cargo *</label>
-                <Select value={form.cargo} onChange={v=>setForm(p=>({...p,cargo:v}))} className="w-full">
-                  {CARGOS.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
-                </Select>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Correo *
+                </label>
+                <Input
+                  type="email"
+                  value={form.correo}
+                  onChange={v => setForm(p => ({ ...p, correo: v }))}
+                  className="w-full"
+                  placeholder="correo@ejemplo.com"
+                />
               </div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Fecha contratación</label><Input type="date" value={form.fecha_contratacion} onChange={v=>setForm(p=>({...p,fecha_contratacion:v}))} className="w-full" /></div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Contraseña {editEmp?"(vacío = no cambiar)":"*"}</label>
-                <Input type="password" value={form.password} onChange={v=>setForm(p=>({...p,password:v}))} placeholder="••••••••" className="w-full" />
+
+              {/* Fila 2: Teléfono y DUI */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Teléfono
+                  </label>
+                  <input
+                    value={formatPhone(form.telefono)}
+                    onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
+                    placeholder="0000-0000"
+                    maxLength={9}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    DUI <span className="text-gray-400 font-normal">(00000000-0)</span>
+                  </label>
+                  <input
+                    value={formatDUI(form.dui)}
+                    onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))}
+                    placeholder="00000000-0"
+                    maxLength={10}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  />
+                </div>
+              </div>
+
+              {/* Fila 3: NIT y Cuenta Bancaria */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    NIT
+                  </label>
+                  <input
+                    value={formatNIT(form.nit)}
+                    onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))}
+                    placeholder="0000-000000-000-0"
+                    maxLength={17}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Cuenta Bancaria
+                  </label>
+                  <input
+                    value={formatCuentaBanco(form.cuenta_banco)}
+                    onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))}
+                    placeholder="Número de cuenta"
+                    maxLength={20}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  />
+                </div>
+              </div>
+
+              {/* Fila 4: AFP y Cargo */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    AFP
+                  </label>
+                  <Select
+                    value={form.afp}
+                    onChange={v => setForm(p => ({ ...p, afp: v }))}
+                    className="w-full"
+                  >
+                    <option value="">Sin AFP</option>
+                    <option value="CRECER">CRECER</option>
+                    <option value="CONFÍA">CONFÍA</option>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Cargo *
+                  </label>
+                  <Select
+                    value={form.cargo}
+                    onChange={v => setForm(p => ({ ...p, cargo: v }))}
+                    className="w-full"
+                  >
+                    {CARGOS.map(c => (
+                      <option key={c} value={c}>
+                        {c.charAt(0).toUpperCase() + c.slice(1)}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+
+              {/* Fila 5: Fecha Contratación y Contraseña */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Fecha contratación
+                  </label>
+                  <Input
+                    type="date"
+                    value={form.fecha_contratacion}
+                    onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Contraseña {editEmp ? "(vacío = no cambiar)" : "*"}
+                  </label>
+                  <Input
+                    type="password"
+                    value={form.password}
+                    onChange={v => setForm(p => ({ ...p, password: v }))}
+                    placeholder="••••••••"
+                    className="w-full"
+                  />
+                </div>
               </div>
             </div>
+
+            {/* Botones */}
             <div className="flex justify-end gap-3 mt-6">
-              <Btn variant="secondary" onClick={()=>setShowForm(false)}>Cancelar</Btn>
-              <Btn variant="primary" onClick={saveForm}><Check size={14}/> Guardar</Btn>
+              <Btn variant="secondary" onClick={() => setShowForm(false)}>
+                Cancelar
+              </Btn>
+              <Btn variant="primary" onClick={saveForm}>
+                <Check size={14} /> Guardar
+              </Btn>
             </div>
           </Card>
         </div>
