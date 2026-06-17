@@ -1728,16 +1728,31 @@ function Clientes({ user }: { user: User }) {
                 className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
+
+          {/* ✅ DUI con formato y límite */}
           <div className="min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">DUI</label>
-            <input value={filterDui} onChange={e=>setFilterDui(e.target.value)} placeholder="00000000-0"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+            <input
+              value={formatDUI(filterDui)}
+              onChange={e => setFilterDui(e.target.value)}
+              placeholder="00000000-0"
+              maxLength={10}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+            />
           </div>
+
+          {/* ✅ Teléfono con formato y límite */}
           <div className="min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
-            <input value={filterTel} onChange={e=>setFilterTel(e.target.value)} placeholder="0000-0000"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+            <input
+              value={formatPhone(filterTel)}
+              onChange={e => setFilterTel(e.target.value)}
+              placeholder="0000-0000"
+              maxLength={9}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+            />
           </div>
+
           <div className="min-w-[200px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
             <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
@@ -1764,7 +1779,7 @@ function Clientes({ user }: { user: User }) {
         </div>
       </Card>
 
-      {/* Tabla */}
+      {/* Tabla (sin cambios) */}
       <Card className="overflow-hidden">
         <table className="w-full table-fixed text-sm">
           <colgroup>
