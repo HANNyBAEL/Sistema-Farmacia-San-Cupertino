@@ -22,6 +22,30 @@ import eliminadosRoutes from './routes/eliminados.js';
 import facturasRouter from './routes/facturas.js';
 import auditoriaRoutes from './routes/auditoria.js';
 
+
+
+import mysql from 'mysql2';
+require('dotenv').config();
+
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT || 3306,
+    ssl: {                      // 👈 Agrega esto
+        require: true,
+        rejectUnauthorized: true
+    },
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
+
+// Convierte la pool para usar promesas (async/await)
+const promisePool = pool.promise();
+dotenv.config();
+
 const app = express();
 
 // Middlewares
