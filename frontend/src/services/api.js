@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // 🔥 Usa VITE_API_URL si existe, si no usa /api (para desarrollo con proxy)
-const baseURL = import.meta.env.VITE_API_URL || '/api';
+const baseURL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api`  // Si VITE_API_URL existe, le agregamos /api
+  : '/api';                                 // Si no, usamos el proxy de desarrollo
 
 const api = axios.create({
   baseURL: baseURL,
