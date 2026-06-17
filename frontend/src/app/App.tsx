@@ -3033,7 +3033,6 @@ function Eliminados() {
   const [search, setSearch]   = useState("");
   const [tab, setTab]         = useState("todos");
 
-  // Modal de confirmación
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     tipo: string | null;
@@ -3041,7 +3040,6 @@ function Eliminados() {
     accion: 'restaurar' | 'eliminar' | null;
   }>({ isOpen: false, tipo: null, id: null, accion: null });
 
-  // Toast para mensajes
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   async function load(){
@@ -3052,7 +3050,6 @@ function Eliminados() {
   }
   useEffect(()=>{ load(); },[]);
 
-  // Auto-cerrar toast después de 3 segundos
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
@@ -3085,30 +3082,16 @@ function Eliminados() {
   const byTab = tab === "todos" ? records : records.filter(r => r.tipo === tab);
   const filtered = byTab.filter(r => r.nombre.toLowerCase().startsWith(search.toLowerCase()));
 
-  // Abrir modal para restaurar
   function handleRestore(tipo: string, id: number) {
-    setConfirmModal({
-      isOpen: true,
-      tipo,
-      id,
-      accion: 'restaurar'
-    });
+    setConfirmModal({ isOpen: true, tipo, id, accion: 'restaurar' });
   }
 
-  // Abrir modal para eliminar permanentemente
   function handlePermanent(tipo: string, id: number) {
-    setConfirmModal({
-      isOpen: true,
-      tipo,
-      id,
-      accion: 'eliminar'
-    });
+    setConfirmModal({ isOpen: true, tipo, id, accion: 'eliminar' });
   }
 
-  // Ejecutar la acción confirmada
   async function confirmAction() {
     if (!confirmModal.tipo || confirmModal.id === null || !confirmModal.accion) return;
-
     const { tipo, id, accion } = confirmModal;
     const label = tipoLabel[tipo]?.toLowerCase() || 'registro';
 
@@ -3149,7 +3132,6 @@ function Eliminados() {
         </div>
       )}
 
-      {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit flex-wrap">
         {tabs.map(t => {
           const count = t.id === "todos" ? records.length : records.filter(r => r.tipo === t.id).length;
@@ -3219,7 +3201,7 @@ function Eliminados() {
         </div>
       </Card>
 
-      {/* Modal de confirmación */}
+      {/* Modal de confirmación (exactamente igual que en la imagen) */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title={confirmModal.accion === 'restaurar' ? 'Restaurar registro' : 'Eliminar permanentemente'}
