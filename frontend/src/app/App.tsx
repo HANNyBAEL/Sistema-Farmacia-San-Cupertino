@@ -6,7 +6,8 @@ import {
   Eye, EyeOff, Filter, Download, RefreshCw, Shield,
   TrendingUp, TrendingDown, Clock, ChevronRight, RotateCcw,
   Camera,
-  DollarSign
+  DollarSign,
+  Menu
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { login as apiLogin } from "../services/auth";
@@ -274,44 +275,90 @@ const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: 
 ];
 
 function Sidebar({ user, current, onNav, onLogout }: { user: User; current: Screen; onNav: (s: Screen) => void; onLogout: () => void }) {
+  const [isOpen, setIsOpen] = useState(false);
   const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role));
+
   return (
-    <aside className="flex flex-col h-full bg-[#0a2a44] w-60 flex-shrink-0">
-      <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/10">
-        <div className="w-9 h-9 flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-1">
-          <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
+    <>
+      {/* Botón hamburguesa para móvil */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed top-3 left-3 z-50 md:hidden bg-[#0a2a44] text-white p-2 rounded-lg shadow-lg hover:bg-[#0a4b7a] transition-colors"
+        aria-label="Menú"
+      >
+        {isOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Overlay oscuro para móvil */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-40 flex flex-col bg-[#0a2a44] w-64 transform transition-transform duration-300 ease-in-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:relative md:translate-x-0 md:w-60
+        `}
+      >
+        {/* Logo y botón de cierre en móvil */}
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-1">
+              <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-white font-bold text-sm block leading-tight">Farmacias San Cupertino</span>
+              <span className="text-white/40 text-[10px]">Gestión Farmaceutica</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="md:hidden text-white/70 hover:text-white transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-white font-bold text-sm block leading-tight">Farmacias San Cupertino</span>
-          <span className="text-white/40 text-[10px]">Gestión Farmacéutica</span>
-        </div>
-      </div>
-      <nav className="flex-1 py-3 overflow-y-auto">
-        {visible.map(item => {
-          const active = current === item.screen;
-          return (
-            <button key={item.screen} onClick={() => onNav(item.screen)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all ${active ? "bg-[#0a4b7a] text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}>
-              <span className="flex-shrink-0">{item.icon}</span>
-              <span className="truncate">{item.label}</span>
-              {active && <ChevronRight size={14} className="ml-auto" />}
+
+        <nav className="flex-1 py-3 overflow-y-auto">
+          {visible.map(item => {
+            const active = current === item.screen;
+            return (
+              <button
+                key={item.screen}
+                onClick={() => { onNav(item.screen); setIsOpen(false); }}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all ${
+                  active ? "bg-[#0a4b7a] text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span className="flex-shrink-0">{item.icon}</span>
+                <span className="truncate">{item.label}</span>
+                {active && <ChevronRight size={14} className="ml-auto" />}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-white/10 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              {user.name.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-white text-xs font-medium truncate">{user.name}</div>
+              <div className="text-white/50 text-xs capitalize">{user.role}</div>
+            </div>
+            <button onClick={onLogout} className="text-white/40 hover:text-[#d32f2f] transition-colors">
+              <LogOut size={15} />
             </button>
-          );
-        })}
-      </nav>
-      <div className="border-t border-white/10 p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-            {user.name.charAt(0)}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-white text-xs font-medium truncate">{user.name}</div>
-            <div className="text-white/50 text-xs capitalize">{user.role}</div>
-          </div>
-          <button onClick={onLogout} className="text-white/40 hover:text-[#d32f2f] transition-colors"><LogOut size={15}/></button>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
@@ -3583,9 +3630,6 @@ function Configuracion() {
 }
 
 // ── App Shell ─────────────────────────────────────────────────────────────────
-
-
-// ── App Shell ─────────────────────────────────────────────────────────────────
 function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [screen, setScreen] = useState<Screen>(() => {
     if (user.role === "cajero") return "ventas";
@@ -3618,11 +3662,12 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
     <div className="flex h-screen overflow-hidden bg-[#f5f7fa]" style={{ fontFamily: "Inter, sans-serif" }}>
       <Sidebar user={user} current={screen} onNav={setScreen} onLogout={handleLogoutClick} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-14 bg-white border-b-2 border-[#0a4b7a]/10 flex items-center px-6 gap-4 flex-shrink-0">
-          <h2 className="font-semibold text-[#1e1e1e] text-sm">{screenTitle[screen]}</h2>
-          <div className="ml-auto flex items-center gap-3">
+        {/* Header con padding adaptado para móvil */}
+        <header className="h-14 bg-white border-b-2 border-[#0a4b7a]/10 flex items-center px-3 md:px-6 gap-4 flex-shrink-0 pl-14 md:pl-6">
+          <h2 className="font-semibold text-[#1e1e1e] text-sm truncate">{screenTitle[screen]}</h2>
+          <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center gap-2 pl-3 border-l border-gray-100">
-              <div className="w-7 h-7 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-7 h-7 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                 {user.name.charAt(0)}
               </div>
               <div className="hidden sm:block">
@@ -3632,7 +3677,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
             </div>
             <button
               onClick={handleLogoutClick}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#d32f2f] border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#d32f2f] border border-red-200 rounded-lg hover:bg-red-50 transition-colors whitespace-nowrap"
             >
               <LogOut size={13} /> Salir
             </button>
