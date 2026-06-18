@@ -1967,6 +1967,7 @@ function Proveedores({ user }: { user: User }) {
   const [showForm, setShowForm]   = useState(false);
   const [editSupplier, setEditSupplier] = useState<Supplier | null>(null);
   const [form, setForm]           = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
+  const [originalForm, setOriginalForm] = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
   const [formError, setFormError] = useState("");
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -2004,8 +2005,40 @@ function Proveedores({ user }: { user: User }) {
     return true;
   });
 
-  function openNew(){ setEditSupplier(null); setForm({nombre:"",apellido:"",telefono:"",correo:"",direccion:""}); setFormError(""); setShowForm(true); }
-  function openEdit(s:Supplier){ setEditSupplier(s); setForm({nombre:s.nombre,apellido:s.apellido,telefono:s.telefono??"",correo:s.correo??"",direccion:s.direccion??""}); setFormError(""); setShowForm(true); }
+  // Función para verificar si hay cambios en el formulario
+  const hasChanges = () => {
+    return (
+      form.nombre !== originalForm.nombre ||
+      form.apellido !== originalForm.apellido ||
+      form.telefono !== originalForm.telefono ||
+      form.correo !== originalForm.correo ||
+      form.direccion !== originalForm.direccion
+    );
+  };
+
+  function openNew(){
+    setEditSupplier(null);
+    const initialForm = { nombre:"", apellido:"", telefono:"", correo:"", direccion:"" };
+    setForm(initialForm);
+    setOriginalForm(initialForm);
+    setFormError("");
+    setShowForm(true);
+  }
+
+  function openEdit(s: Supplier){
+    setEditSupplier(s);
+    const initialForm = {
+      nombre: s.nombre,
+      apellido: s.apellido,
+      telefono: s.telefono ?? "",
+      correo: s.correo ?? "",
+      direccion: s.direccion ?? ""
+    };
+    setForm(initialForm);
+    setOriginalForm(initialForm);
+    setFormError("");
+    setShowForm(true);
+  }
 
   async function saveForm() {
     if (!form.nombre || !form.apellido) { setFormError("Nombre y apellido son obligatorios."); return; }
@@ -2105,10 +2138,10 @@ function Proveedores({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo proveedor</Btn>
       </div>
 
-      {/* Filtros con etiquetas claras (estilo Auditoría) */}
+      {/* Filtros en línea horizontal */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          <div>
+        <div className="flex flex-wrap items-end gap-3 md:gap-4">
+          <div className="flex-1 min-w-[180px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar proveedor</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -2121,7 +2154,7 @@ function Proveedores({ user }: { user: User }) {
             </div>
           </div>
 
-          <div>
+          <div className="flex-1 min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
             <input
               value={formatPhone(filterTelefono)}
@@ -2132,7 +2165,7 @@ function Proveedores({ user }: { user: User }) {
             />
           </div>
 
-          <div>
+          <div className="flex-1 min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -2141,8 +2174,8 @@ function Proveedores({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="flex items-end justify-end sm:col-span-2 lg:col-span-1">
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="w-full sm:w-auto">
+          <div className="flex items-end">
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
               <X size={14} /> Limpiar filtros
             </Btn>
           </div>
@@ -2258,7 +2291,9 @@ function Proveedores({ user }: { user: User }) {
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-              <Btn variant="primary" onClick={saveForm}><Check size={14}/> Guardar</Btn>
+              <Btn variant="primary" onClick={saveForm} disabled={!hasChanges()}>
+                <Check size={14}/> Guardar
+              </Btn>
             </div>
           </Card>
         </div>
