@@ -380,11 +380,12 @@ function Dashboard() {
       .then(([k, s, productos]) => {
         // Procesar ventas para el gráfico
         const processed = s.map((item: { dia: string; ventas: number }) => {
-          const date = new Date(item.dia + 'T12:00:00Z');
-          const dayName = date.toLocaleDateString('es-ES', {
-            weekday: 'short',
-            timeZone: 'America/El_Salvador'
-          });
+        // Crear fecha local sin UTC
+        const date = new Date(item.dia + 'T00:00:00');
+        const dayName = date.toLocaleDateString('es-ES', {
+          weekday: 'short',
+          timeZone: 'America/El_Salvador'
+        });
           return { day: dayName.replace('.', ''), ventas: item.ventas };
         });
         setSalesData(processed);
