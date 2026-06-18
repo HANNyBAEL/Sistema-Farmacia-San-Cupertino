@@ -1,4 +1,4 @@
-import { default as sequelize } from '../config/database.js';
+import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -13,8 +13,8 @@ const sequelize = new Sequelize(
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: false, // ✅ Coma agregada correctamente
-        timezone: 'America/El_Salvador', // Ahora es reconocida
+        rejectUnauthorized: false,
+        timezone: 'America/El_Salvador',
       }
     },
     logging: false,
@@ -26,3 +26,5 @@ const sequelize = new Sequelize(
     }
   }
 );
+
+export default sequelize;
