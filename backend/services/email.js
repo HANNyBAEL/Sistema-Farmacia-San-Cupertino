@@ -29,7 +29,7 @@ export const sendRecoveryEmail = async (email, codigo) => {
   console.log(`📧 Enviando correo a ${email} con código ${codigo}`);
   try {
     const info = await transporter.sendMail({
-      from: `"Farmacias San Cupertino" <${process.env.SMTP_USER}>`, // ✅ Remitente explícito
+      from: process.env.SMTP_USER,
       to: email,
       subject: 'Código de recuperación de contraseña',
       html: `
@@ -65,7 +65,7 @@ export const sendInvitationEmail = async (email, nombre, token) => {
   console.log(`📧 Enviando invitación a ${email}...`);
   try {
     const info = await transporter.sendMail({
-      from: `"Farmacias San Cupertino" <${process.env.SMTP_USER}>`, // ✅ Remitente explícito
+      from: process.env.SMTP_USER,
       to: email,
       subject: 'Invitación a Farmacias San Cupertino',
       html: `
