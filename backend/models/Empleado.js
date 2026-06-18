@@ -20,9 +20,10 @@ const Empleado = sequelize.define('Empleado', {
     allowNull: false,
     unique: true,
   },
-  password: {
+  password_hash: {
     type: DataTypes.STRING(255),
     allowNull: false,
+    field: 'password_hash'  // Esto mapea el campo del modelo a la columna real
   },
   telefono: DataTypes.STRING(20),
   dui: DataTypes.STRING(10),

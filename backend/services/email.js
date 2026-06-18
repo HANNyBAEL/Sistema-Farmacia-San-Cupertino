@@ -1,53 +1,28 @@
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
-dotenv.config();
 
-// Configura el transporte (usa Gmail como ejemplo)
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: false, // true para 465
   auth: {
-    user: process.env.EMAIL_USER, // tu correo Gmail
-    pass: process.env.EMAIL_PASS  // contraseña de aplicación (no la de Gmail)
-  }
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
 });
 
-/**
- * Envía un correo de invitación para establecer contraseña
- */
-export const sendInvitationEmail = async (to, nombre, token) => {
-  const link = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/establecer-contrasena?token=${token}`;
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to,
+export const sendInvitationEmail = async (email, nombre, token) => {
+  const link = `${process.env.FRONTEND_URL}/establecer-contrasena?token=${token}`;
+  await transporter.sendMail({
+    to: email,
     subject: 'Invitación a Farmacias San Cupertino',
-    html: `
-      <h2>Hola ${nombre},</h2>
-      <p>Has sido registrado en el sistema de Farmacias San Cupertino.</p>
-      <p>Para establecer tu contraseña, haz clic en el siguiente enlace:</p>
-      <a href="${link}" style="display:inline-block;padding:10px 20px;background:#0a4b7a;color:#fff;text-decoration:none;border-radius:5px;">Establecer contraseña</a>
-      <p>Este enlace expirará en 24 horas.</p>
-      <p>Si no solicitaste este registro, ignora este correo.</p>
-    `
-  };
-  await transporter.sendMail(mailOptions);
+    html: `<p>Hola ${nombre},</p><p>Has sido registrado en el sistema. Haz clic en el siguiente enlace para establecer tu contraseña:</p><a href="${link}">${link}</a><p>El enlace expira en 24 horas.</p>`,
+  });
 };
 
-/**
- * Envía un código de recuperación de contraseña
- */
-export const sendRecoveryCode = async (to, nombre, codigo) => {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to,
+export const sendRecoveryEmail = async (email, codigo) => {
+  await transporter.sendMail({
+    to: email,
     subject: 'Código de recuperación de contraseña',
-    html: `
-      <h2>Hola ${nombre},</h2>
-      <p>Recibimos una solicitud para restablecer tu contraseña.</p>
-      <p>Tu código de verificación es:</p>
-      <h1 style="font-size:2rem;color:#0a4b7a;">${codigo}</h1>
-      <p>Este código expirará en 10 minutos.</p>
-      <p>Si no solicitaste esto, ignora este correo.</p>
-    `
-  };
-  await transporter.sendMail(mailOptions);
+    html: `<p>Tu código de recuperación es: <strong>${codigo}</strong></p><p>Expira en 10 minutos.</p>`,
+  });
 };

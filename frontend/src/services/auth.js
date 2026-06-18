@@ -1,9 +1,9 @@
 import api from './api';
 
-export const login = async (email, password) => {
-  const { data } = await api.post('/auth/login', { email, password });
+export const login = async (correo, contraseña) => {
+  const { data } = await api.post('/auth/login', { correo, contraseña });
   localStorage.setItem('token', data.token);
-  return data; // { token, rol, nombre, id, debe_cambiar }
+  return data; // { token, rol, nombre, id }
 };
 
 export const logout = () => {
@@ -25,4 +25,9 @@ export const solicitarRecuperacion = async (email) => {
 
 export const recuperarContrasena = async (email, codigo, password) => {
   await api.post('/auth/recuperar-contrasena', { email, codigo, password });
+};
+
+export const registrarEmpleado = async (empleadoData) => {
+  const { data } = await api.post('/auth/registrar-empleado', empleadoData);
+  return data;
 };

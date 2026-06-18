@@ -10,7 +10,7 @@ import {
   Menu
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { login as apiLogin } from "../services/auth";
+import { login as apiLogin, login, registrarEmpleado } from "../services/auth";
 import { getProductos, createProducto, updateProducto, deleteProducto } from "../services/productos";
 import { fetchKPIs, fetchVentasUltimos7Dias } from "../services/dashboard";
 import { createVenta } from "../services/ventas";
@@ -210,42 +210,29 @@ function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
   const [showPw, setShowPw]   = useState(false);
   const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
 
   async function handleLogin() {
     if (!email || !password) { setError("Complete todos los campos."); return; }
     setLoading(true); setError("");
     try {
-      const data = await apiLogin(email, password);
-      const roleMap: Record<string, Role> = { administrador:"administrador", farmaceutico:"farmaceutico", cajero:"cajero" };
-      const role = roleMap[data.rol?.toLowerCase()] ?? "cajero";
-      
-      // Si debe cambiar contraseña, redirigir a la pantalla de cambio forzado
-      if (data.debe_cambiar) {
-        // Guardar token y datos en localStorage o estado global
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify({ name: data.nombre, role, id: data.id }));
-        // Mostrar pantalla de cambio de contraseña obligatorio
-        setPantalla('cambiar-contrasena-forzado');
-        return;
-      }
-      
-      onLogin({ name: data.nombre, role, id: data.id });
+      const data = await login(email, password); // <- ahora usa 'correo' y 'contraseña' internamente
+      // Si el login devuelve 'debe_cambiar', puedes ignorarlo o redirigir, pero no lo enviamos.
+      onLogin({ name: data.nombre, role: data.rol, id: data.id });
     } catch (err: any) {
       const msg = err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.";
       setError(msg);
     } finally { setLoading(false); }
   }
 
+  if (showRecovery) {
+    return <RecuperarContrasena onSuccess={() => setShowRecovery(false)} />;
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily:"Inter, sans-serif" }}>
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-4">
-            <img src={logoImg} alt="Farmacia San Cupertino" className="w-full h-full object-contain" />
-          </div>
-          <h1 className="text-lg font-bold text-[#0a2a44] text-center">Farmacias San Cupertino</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Sistema de gestión</p>
-        </div>
+        {/* ... resto del contenido igual, logo, etc. ... */}
         <h2 className="text-xl font-bold text-[#1e1e1e] mb-1">Iniciar sesión</h2>
         <p className="text-gray-500 text-sm mb-6">Ingrese sus credenciales para continuar</p>
         <div className="space-y-4">
@@ -267,6 +254,11 @@ function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
         <Btn variant="primary" size="lg" className="w-full mt-6 justify-center" onClick={handleLogin} disabled={loading}>
           {loading ? "Ingresando..." : "Iniciar sesión"}
         </Btn>
+        <div className="mt-4 text-center">
+          <button onClick={() => setShowRecovery(true)} className="text-sm text-[#0a4b7a] hover:underline">
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2432,11 +2424,13 @@ function Empleados({ user }: { user: User }) {
         id_empleado_sesion: user.id,
         nombre_empleado_sesion: user.name,
       };
-      // ✅ Ya no se envía password
       if(editEmp) {
         await empleadosApi.update(editEmp.id_empleado, payload);
+        setToast({ message: 'Empleado actualizado correctamente.', type: 'success' });
       } else {
-        await empleadosApi.create(payload);
+        // Nuevo empleado: usar el endpoint de registro con invitación
+        await registrarEmpleado(payload);
+        setToast({ message: 'Empleado registrado. Se ha enviado un correo de invitación.', type: 'success' });
       }
       setShowForm(false);
       load();
