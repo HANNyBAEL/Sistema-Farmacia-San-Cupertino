@@ -2,19 +2,17 @@ import nodemailer from 'nodemailer';
 
 // Configuración del transporter forzando IPv4
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false, // true para 465, false para 587
+  secure: false,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : '',
   },
-  // 🔥 Forzar IPv4 para evitar ENETUNREACH
-  family: 4,
-  // Opcional: aumentar timeout
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
+  family: 4, // 🔥 Forzar IPv4
+  connectionTimeout: 30000,  // Aumentar a 30 segundos
+  greetingTimeout: 30000,
+  socketTimeout: 30000,
 });
 
 // Verificar conexión al iniciar (útil para depuración)
