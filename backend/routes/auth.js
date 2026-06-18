@@ -137,43 +137,57 @@ router.post('/cambiar-contrasena', authenticate, async (req, res) => {
   }
 });
 
-// ─── SOLICITAR RECUPERACIÓN (envía código por correo) ──
+// ─── SOLICITAR RECUPERACIÓN (con logs detallados) ──────
 router.post('/solicitar-recuperacion', async (req, res) => {
   const { email } = req.body;
-  console.log(`📧 Solicitud de recuperación para: ${email}`);
-
   if (!email) return res.status(400).json({ error: 'Correo requerido' });
 
   try {
+    console.log(`📧 Solicitud de recuperación para: ${email}`);
+
+    // Buscar usuario
     const [user] = await sequelize.query(
       `SELECT id_empleado, nombre FROM empleados WHERE correo = ?`,
       { replacements: [email], type: sequelize.QueryTypes.SELECT }
     );
     if (!user) {
-      console.log(`❌ Correo no registrado: ${email}`);
+      console.log(`❌ Usuario no encontrado: ${email}`);
       return res.status(404).json({ error: 'Correo no registrado' });
     }
 
+    // Generar código
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 10 * 60000); // 10 minutos
-
+    const expires = new Date(Date.now() + 10 * 60000);
     console.log(`🔑 Código generado para ${email}: ${codigo}`);
 
-    // Guardar en tabla recovery_codes
+    // Guardar en BD
     await sequelize.query(
       `INSERT INTO recovery_codes (id_empleado, codigo, expires) VALUES (?, ?, ?)`,
       { replacements: [user.id_empleado, codigo, expires], type: sequelize.QueryTypes.INSERT }
     );
     console.log(`✅ Código guardado en BD para ${email}`);
 
-    // Enviar correo
-    await sendRecoveryEmail(email, codigo);
-    console.log(`✅ Correo enviado a ${email}`);
+    // Enviar correo (capturar error específico)
+    try {
+      console.log(`📧 Enviando código de recuperación a ${email}...`);
+      await sendRecoveryEmail(email, codigo);
+      console.log(`✅ Correo enviado exitosamente a ${email}`);
+    } catch (emailError) {
+      console.error(`❌ Error al enviar correo a ${email}:`, emailError);
+      // Puedes decidir si devolver error 500 o continuar (pero mejor devolver error)
+      return res.status(500).json({
+        error: 'Error al enviar el correo. Verifica la configuración SMTP.',
+        details: emailError.message // Solo en desarrollo
+      });
+    }
 
     res.json({ message: 'Código enviado a tu correo' });
   } catch (error) {
-    console.error('❌ Error en solicitar-recuperacion:', error);
-    res.status(500).json({ error: 'Error al enviar código. Revisa los logs del servidor.' });
+    console.error('❌ Error en /solicitar-recuperacion:', error);
+    res.status(500).json({
+      error: 'Error al procesar la solicitud',
+      details: error.message
+    });
   }
 });
 
