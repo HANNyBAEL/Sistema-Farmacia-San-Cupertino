@@ -529,7 +529,7 @@ function ExpandableCell({ text, maxLength = 30 }: { text?: string | null; maxLen
   );
 }
 
-function Productos({ user }: { user: User }) {
+ffunction Productos({ user }: { user: User }) {
   const [products, setProducts]   = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -747,19 +747,19 @@ function Productos({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
       </div>
 
-      {/* Filtros responsivos */}
+      {/* Filtros con etiquetas claras (estilo Auditoría) */}
       <Card className="p-4">
-        <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-4">
-          <div className="w-full md:flex-1 md:min-w-[200px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <div className="sm:col-span-2 lg:col-span-1">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre o código</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o código de barras..."
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o código..."
                 className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[130px]">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Stock</label>
             <Select value={filterStock} onChange={setFilterStock} className="w-full">
               <option value="">Todos</option>
@@ -770,7 +770,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[150px]">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Categoría</label>
             <Select value={filterCat} onChange={setFilterCat} className="w-full">
               <option value="">Todas</option>
@@ -778,7 +778,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[160px]">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor</label>
             <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
               <option value="">Todos</option>
@@ -790,7 +790,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[140px]">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Vencimiento</label>
             <Select value={filterVenc} onChange={setFilterVenc} className="w-full">
               <option value="">Todos</option>
@@ -800,7 +800,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[120px]">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -809,107 +809,110 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="flex items-end">
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
+          <div className="flex items-end justify-end sm:col-span-2 lg:col-span-1">
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="w-full sm:w-auto">
               <X size={14} /> Limpiar filtros
             </Btn>
           </div>
         </div>
       </Card>
 
+      {/* Tabla con todas las columnas visibles y buen scroll */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-xs sm:text-sm">
-            <colgroup>
-              <col className="w-[20%] sm:w-[18%]" />
-              <col className="w-[14%] sm:w-[12%]" />
-              <col className="w-[10%] sm:w-[8%]" />
-              <col className="w-[10%] sm:w-[8%]" />
-              <col className="hidden sm:table-cell w-[10%]" />
-              <col className="hidden sm:table-cell w-[12%]" />
-              <col className="w-[10%] sm:w-[8%]" />
-              <col className="w-[14%] sm:w-[12%]" />
-              <col className="w-[8%] sm:w-[6%]" />
-              <col className="w-[12%] sm:w-[10%]" />
-            </colgroup>
-            <thead className="bg-gray-50">
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Nombre</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Categoría</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Precio</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Stock</th>
-                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Lote</th>
-                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Código barras</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Venc.</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Proveedor</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
-               </tr>
-            </thead>
-            <tbody>
-              {filtered.map(p=>(
-                <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${p.deleted ? 'opacity-60 bg-gray-50' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-gray-50'}`}>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
-                    <Expandable text={p.nombre_producto} maxLength={30} />
-                  </td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                    {p.categorias_nombres ? (() => {
-                      const cats = p.categorias_nombres.split(', ');
-                      const primera = cats[0];
-                      const resto = cats.slice(1);
-                      return (
-                        <div className="flex items-center gap-1 flex-wrap">
-                          <span className="inline-block bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">{primera}</span>
-                          {resto.length > 0 && (
-                            <div className="relative group">
-                              <button className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold hover:bg-blue-200 transition-colors">
-                                +{resto.length}
-                              </button>
-                              <div className="absolute left-0 top-6 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-max">
-                                <p className="text-xs font-semibold text-gray-500 mb-1.5">Otras categorías:</p>
-                                {resto.map((cat: string, i: number) => (
-                                  <div key={i} className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded mb-1">{cat}</div>
-                                ))}
+        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="min-w-[900px]">
+            <table className="w-full text-xs sm:text-sm table-fixed">
+              <colgroup>
+                <col className="w-[16%]" />
+                <col className="w-[11%]" />
+                <col className="w-[8%]" />
+                <col className="w-[8%]" />
+                <col className="w-[10%]" />
+                <col className="w-[12%]" />
+                <col className="w-[8%]" />
+                <col className="w-[12%]" />
+                <col className="w-[6%]" />
+                <col className="w-[9%]" />
+              </colgroup>
+              <thead className="bg-gray-50">
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Nombre</th>
+                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Categoría</th>
+                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Precio</th>
+                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Stock</th>
+                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Lote</th>
+                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Código barras</th>
+                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Venc.</th>
+                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Proveedor</th>
+                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Estado</th>
+                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Acciones</th>
+                 </tr>
+              </thead>
+              <tbody>
+                {filtered.map(p=>(
+                  <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${p.deleted ? 'opacity-60 bg-gray-50' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-gray-50'}`}>
+                    <td className="py-1 px-1 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                      <Expandable text={p.nombre_producto} maxLength={20} />
+                    </td>
+                    <td className="py-1 px-1 sm:py-3 sm:px-3 break-words whitespace-normal">
+                      {p.categorias_nombres ? (() => {
+                        const cats = p.categorias_nombres.split(', ');
+                        const primera = cats[0];
+                        const resto = cats.slice(1);
+                        return (
+                          <div className="flex items-center gap-0.5 flex-wrap">
+                            <span className="inline-block bg-blue-50 text-blue-700 text-[9px] sm:text-xs px-1 py-0.5 rounded">{primera}</span>
+                            {resto.length > 0 && (
+                              <div className="relative group">
+                                <button className="inline-flex items-center justify-center w-4 h-4 bg-blue-100 text-blue-700 text-[9px] rounded-full font-bold hover:bg-blue-200 transition-colors">
+                                  +{resto.length}
+                                </button>
+                                <div className="absolute left-0 top-5 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-1.5 min-w-max">
+                                  <p className="text-[9px] font-semibold text-gray-500 mb-0.5">Otras categorías:</p>
+                                  {resto.map((cat: string, i: number) => (
+                                    <div key={i} className="text-[9px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded mb-0.5">{cat}</div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })() : <span className="text-gray-400">—</span>}
-                  </td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-[#0a4b7a] font-semibold break-words whitespace-normal">${Number(p.precio).toFixed(2)}</td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span></td>
-                  <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 break-words whitespace-normal"><Expandable text={p.lote} maxLength={12} /></td>
-                  <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 break-words whitespace-normal"><Expandable text={p.codigo_barras} maxLength={16} /></td>
-                  <td className={`py-2 px-2 sm:py-3 sm:px-3 text-xs font-mono break-words whitespace-normal ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={20} /></td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                      {p.deleted ? "Inactivo" : "Activo"}
-                    </span>
-                  </td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                    <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                      <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                      <button
-                        onClick={()=>handleToggle(p.id_producto, p.deleted)}
-                        className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${p.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
-                        title={p.deleted ? "Activar producto" : "Desactivar producto"}
-                      >
-                        {p.deleted ? "Activar" : "Desactivar"}
-                      </button>
-                      {!p.has_ventas && (
-                        <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length===0 && (
-                <tr><td colSpan={10} className="py-6 sm:py-10 text-center text-gray-400">Sin productos.</td></tr>
-              )}
-            </tbody>
-          </table>
+                            )}
+                          </div>
+                        );
+                      })() : <span className="text-gray-400">—</span>}
+                    </td>
+                    <td className="py-1 px-1 sm:py-3 sm:px-3 font-mono text-[#0a4b7a] font-semibold break-words whitespace-normal text-[10px] sm:text-sm">${Number(p.precio).toFixed(2)}</td>
+                    <td className="py-1 px-1 sm:py-3 sm:px-3 break-words whitespace-normal"><span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span></td>
+                    <td className="py-1 px-1 sm:py-3 sm:px-3 font-mono text-gray-500 break-words whitespace-normal text-[9px] sm:text-xs"><Expandable text={p.lote} maxLength={10} /></td>
+                    <td className="py-1 px-1 sm:py-3 sm:px-3 font-mono text-gray-500 break-words whitespace-normal text-[9px] sm:text-xs"><Expandable text={p.codigo_barras} maxLength={12} /></td>
+                    <td className={`py-1 px-1 sm:py-3 sm:px-3 text-[9px] sm:text-xs font-mono break-words whitespace-normal ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
+                    <td className="py-1 px-1 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal text-[9px] sm:text-xs"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
+                    <td className="py-1 px-1 sm:py-3 sm:px-3 break-words whitespace-normal">
+                      <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                        {p.deleted ? "Inactivo" : "Activo"}
+                      </span>
+                    </td>
+                    <td className="py-1 px-1 sm:py-3 sm:px-3 break-words whitespace-normal">
+                      <div className="flex flex-wrap items-center gap-0.5 sm:gap-2">
+                        <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={12} sm:size={14}/></button>
+                        <button
+                          onClick={()=>handleToggle(p.id_producto, p.deleted)}
+                          className={`p-1 rounded text-[9px] sm:text-xs font-semibold px-1 sm:px-2 py-0.5 ${p.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                          title={p.deleted ? "Activar producto" : "Desactivar producto"}
+                        >
+                          {p.deleted ? "Activar" : "Desactivar"}
+                        </button>
+                        {!p.has_ventas && (
+                          <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={12} sm:size={14}/></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length===0 && (
+                  <tr><td colSpan={10} className="py-6 sm:py-10 text-center text-gray-400">Sin productos.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </Card>
 
