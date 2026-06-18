@@ -1596,7 +1596,6 @@ function Clientes({ user }: { user: User }) {
     setFilterDir(""); setFilterEstado("");
   }
 
-  // Función para verificar si hay cambios en el formulario
   const hasChanges = () => {
     return (
       form.nombre !== originalForm.nombre ||
@@ -1621,8 +1620,8 @@ function Clientes({ user }: { user: User }) {
     const initialForm = {
       nombre: c.nombre,
       apellido: c.apellido,
-      telefono: c.telefono,
-      correo: c.correo,
+      telefono: c.telefono ?? "",
+      correo: c.correo ?? "",
       direccion: c.direccion ?? "",
       dui: c.dui ?? ""
     };
@@ -1800,7 +1799,7 @@ function Clientes({ user }: { user: User }) {
         </div>
       </Card>
 
-      {/* Tabla con scroll horizontal y ancho fijo */}
+      {/* Tabla (sin cambios) */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <div className="min-w-[900px]">
