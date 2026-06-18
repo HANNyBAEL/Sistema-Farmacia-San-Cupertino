@@ -25,7 +25,7 @@ import { getSiguienteCorrelativo, guardarFactura } from "../services/facturas";
 import { generarFacturaPDF } from "./GenerarFactura";
 import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
-
+import { useNavigate, useLocation } from 'react-router-dom'; // si estás usando react-router, si no, puedes usar window.location
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -80,6 +80,7 @@ interface Supplier {
 }
 
 interface Empleado {
+  has_ventas: any;
   dui: string;
   nit: string;
   afp: string;
@@ -143,10 +144,10 @@ function Card({ children, className = "", accent }: { children: React.ReactNode;
   return <div className={`bg-white rounded-lg shadow-sm border border-gray-100 ${accent ? borders[accent] : ""} ${className}`}>{children}</div>;
 }
 
-function Input({ placeholder, value, onChange, type = "text", className = "" }: {
-  placeholder?: string; value: string; onChange: (v: string) => void; type?: string; className?: string;
+function Input({ placeholder, value, onChange, type = "text", className = "", maxLength }: {
+  placeholder?: string; value: string; onChange: (v: string) => void; type?: string; className?: string; maxLength?: number;
 }) {
-  return <input type={type} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)}
+  return <input type={type} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength}
     className={`w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-[#1e1e1e] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] transition-all text-sm ${className}`} />;
 }
 
@@ -217,6 +218,17 @@ function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
       const data = await apiLogin(email, password);
       const roleMap: Record<string, Role> = { administrador:"administrador", farmaceutico:"farmaceutico", cajero:"cajero" };
       const role = roleMap[data.rol?.toLowerCase()] ?? "cajero";
+      
+      // Si debe cambiar contraseña, redirigir a la pantalla de cambio forzado
+      if (data.debe_cambiar) {
+        // Guardar token y datos en localStorage o estado global
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify({ name: data.nombre, role, id: data.id }));
+        // Mostrar pantalla de cambio de contraseña obligatorio
+        setPantalla('cambiar-contrasena-forzado');
+        return;
+      }
+      
       onLogin({ name: data.nombre, role, id: data.id });
     } catch (err: any) {
       const msg = err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.";
@@ -2333,15 +2345,41 @@ function Empleados({ user }: { user: User }) {
   const [showForm, setShowForm]   = useState(false);
   const [editEmp, setEditEmp]     = useState<Empleado | null>(null);
   const [formError, setFormError] = useState("");
-  const [form, setForm] = useState({ nombre:"", apellido:"", correo:"", telefono:"", cargo:"cajero", password:"", fecha_contratacion:"", dui:"", nit:"", cuenta_banco:"", afp:"" });
+  const [form, setForm] = useState({ 
+    nombre:"", apellido:"", correo:"", telefono:"", 
+    cargo:"cajero", fecha_contratacion:"", 
+    dui:"", nit:"", cuenta_banco:"", afp:"" 
+  }); // ✅ Sin password
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; empleadoId: number | null }>({ isOpen: false, empleadoId: null });
 
   const CARGOS = ["administrador","farmaceutico","cajero"];
-  const CARGO_COLOR: Record<string,string> = { administrador:"bg-[#e3f2fd] text-[#0a4b7a]", farmaceutico:"bg-[#e8f5e9] text-green-800", cajero:"bg-[#fff3e0] text-amber-800" };
-  const CARGO_ICON: Record<string,React.ReactNode> = { administrador:<Shield size={12}/>, farmaceutico:<Package size={12}/>, cajero:<ShoppingCart size={12}/> };
+  const CARGO_COLOR: Record<string,string> = { 
+    administrador:"bg-[#e3f2fd] text-[#0a4b7a]", 
+    farmaceutico:"bg-[#e8f5e9] text-green-800", 
+    cajero:"bg-[#fff3e0] text-amber-800" 
+  };
+  const CARGO_ICON: Record<string,React.ReactNode> = { 
+    administrador:<Shield size={12}/>, 
+    farmaceutico:<Package size={12}/>, 
+    cajero:<ShoppingCart size={12}/> 
+  };
 
-  async function load(){setLoading(true);try{setEmpleados(await empleadosApi.getAll());}catch(e){console.error(e);}finally{setLoading(false);}}
-  useEffect(()=>{load();},[]);
-  
+  async function load(){
+    setLoading(true);
+    try{ setEmpleados(await empleadosApi.getAll()); }
+    catch(e){ console.error(e); }
+    finally{ setLoading(false); }
+  }
+  useEffect(()=>{ load(); },[]);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
   const filtered = empleados.filter(e => {
@@ -2354,23 +2392,57 @@ function Empleados({ user }: { user: User }) {
     return true;
   });
 
-  function openNew(){setEditEmp(null);setForm({nombre:"",apellido:"",correo:"",telefono:"",cargo:"cajero",password:"",fecha_contratacion:"",dui:"",nit:"",cuenta_banco:"",afp:""});setFormError("");setShowForm(true);}
-  function openEdit(emp:Empleado){setEditEmp(emp);setForm({nombre:emp.nombre,apellido:emp.apellido,correo:emp.correo,telefono:emp.telefono??"",cargo:emp.cargo,password:"",fecha_contratacion:emp.fecha_contratacion??"",dui:emp.dui??"",nit:emp.nit??"",cuenta_banco:emp.cuenta_banco??"",afp:emp.afp??""});setFormError("");setShowForm(true);}
+  function openNew(){
+    setEditEmp(null);
+    setForm({ 
+      nombre:"", apellido:"", correo:"", telefono:"", 
+      cargo:"cajero", fecha_contratacion:"", 
+      dui:"", nit:"", cuenta_banco:"", afp:"" 
+    });
+    setFormError("");
+    setShowForm(true);
+  }
+
+  function openEdit(emp:Empleado){
+    setEditEmp(emp);
+    setForm({
+      nombre: emp.nombre,
+      apellido: emp.apellido,
+      correo: emp.correo,
+      telefono: emp.telefono ?? "",
+      cargo: emp.cargo,
+      fecha_contratacion: emp.fecha_contratacion ?? "",
+      dui: emp.dui ?? "",
+      nit: emp.nit ?? "",
+      cuenta_banco: emp.cuenta_banco ?? "",
+      afp: emp.afp ?? ""
+    });
+    setFormError("");
+    setShowForm(true);
+  }
 
   async function saveForm(){
-    if(!form.nombre||!form.apellido||!form.correo||!form.cargo){setFormError("Complete los campos obligatorios.");return;}
-    if(!editEmp&&!form.password){setFormError("La contraseña es obligatoria para nuevos empleados.");return;}
+    if(!form.nombre||!form.apellido||!form.correo||!form.cargo){
+      setFormError("Complete los campos obligatorios.");
+      return;
+    }
     try{
       const payload:any={
         ...form,
         id_empleado_sesion: user.id,
         nombre_empleado_sesion: user.name,
       };
-      if(!payload.password) delete payload.password;
-      if(editEmp) await empleadosApi.update(editEmp.id_empleado, payload);
-      else        await empleadosApi.create(payload);
-      setShowForm(false); load();
-    }catch(e:any){setFormError(e?.response?.data?.error??"Error al guardar.");}
+      // ✅ Ya no se envía password
+      if(editEmp) {
+        await empleadosApi.update(editEmp.id_empleado, payload);
+      } else {
+        await empleadosApi.create(payload);
+      }
+      setShowForm(false);
+      load();
+    }catch(e:any){
+      setFormError(e?.response?.data?.error ?? "Error al guardar.");
+    }
   }
 
   async function handleToggle(emp: Empleado){
@@ -2384,7 +2456,45 @@ function Empleados({ user }: { user: User }) {
         nombre_empleado_sesion: user.name,
       });
       load();
-    }catch(e){console.error(e);}
+    }catch(e){ console.error(e); }
+  }
+
+  // ✅ Forzar restablecimiento de contraseña
+  async function handleForzarRestablecimiento(id: number) {
+    if (!confirm('¿Forzar restablecimiento de contraseña para este empleado? El empleado deberá cambiarla en su próximo inicio de sesión.')) return;
+    try {
+      await api.patch(`/empleados/${id}/forzar-restablecimiento`, {
+        id_empleado_sesion: user.id,
+        nombre_empleado_sesion: user.name
+      });
+      setToast({ message: 'Restablecimiento forzado. El empleado deberá cambiar su contraseña.', type: 'success' });
+      load();
+    } catch (e: any) {
+      setToast({ message: e?.response?.data?.error || 'Error al forzar restablecimiento', type: 'error' });
+    }
+  }
+
+  // ✅ Eliminar (mover a papelera) con modal
+  function handleDelete(id: number) {
+    setConfirmModal({ isOpen: true, empleadoId: id });
+  }
+
+  async function confirmDelete() {
+    if (confirmModal.empleadoId === null) return;
+    try {
+      await api.delete(`/empleados/${confirmModal.empleadoId}`, {
+        data: { id_empleado_sesion: user.id, nombre_empleado_sesion: user.name }
+      });
+      setConfirmModal({ isOpen: false, empleadoId: null });
+      setToast({ message: "Empleado desactivado correctamente.", type: 'success' });
+      load();
+    } catch (e: any) {
+      setConfirmModal({ isOpen: false, empleadoId: null });
+      setToast({
+        message: e?.response?.data?.error ?? "Error al desactivar el empleado.",
+        type: 'error'
+      });
+    }
   }
 
   const hayFiltros = !!(filterCargo||filterEstado);
@@ -2471,7 +2581,6 @@ function Empleados({ user }: { user: User }) {
       {/* Filtros en línea horizontal */}
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-3 md:gap-4">
-          {/* Buscar por nombre */}
           <div className="flex-1 min-w-[180px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
             <div className="relative">
@@ -2480,8 +2589,6 @@ function Empleados({ user }: { user: User }) {
                 className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
-
-          {/* Cargo */}
           <div className="flex-1 min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Cargo</label>
             <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
@@ -2489,8 +2596,6 @@ function Empleados({ user }: { user: User }) {
               {CARGOS.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
             </Select>
           </div>
-
-          {/* Estado */}
           <div className="flex-1 min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
@@ -2499,8 +2604,6 @@ function Empleados({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
-
-          {/* Botón limpiar */}
           <div className="flex items-end">
             <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
               <X size={14} /> Limpiar filtros
@@ -2509,7 +2612,7 @@ function Empleados({ user }: { user: User }) {
         </div>
       </Card>
 
-      {/* Tabla más ancha: table-auto y min-w-[1400px] */}
+      {/* Tabla */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <div className="min-w-[1400px]">
@@ -2561,6 +2664,20 @@ function Empleados({ user }: { user: User }) {
                           <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-[#d32f2f] bg-red-50 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
                             {emp.activo ? "Desactivar" : "Activar"}
                           </button>
+                          {/* ✅ Botón Forzar restablecimiento */}
+                          <button 
+                            onClick={() => handleForzarRestablecimiento(emp.id_empleado)} 
+                            className="text-purple-700 bg-purple-50 hover:bg-purple-100 p-1 rounded text-xs font-semibold px-2 py-0.5"
+                            title="Forzar restablecimiento de contraseña"
+                          >
+                            <RefreshCw size={12} />
+                          </button>
+                          {/* ✅ Botón desactivar/eliminar (si no tiene ventas) */}
+                          {!emp.has_ventas && (
+                            <button onClick={() => handleDelete(emp.id_empleado)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Desactivar empleado">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                        </td>
                      </tr>
@@ -2584,10 +2701,7 @@ function Empleados({ user }: { user: User }) {
               <h2 className="text-lg font-bold text-[#1e1e1e]">
                 {editEmp ? "Editar Empleado" : "Nuevo Empleado"}
               </h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -2664,10 +2778,7 @@ function Empleados({ user }: { user: User }) {
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha contratación</label>
                   <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} className="w-full" />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Contraseña {editEmp ? "(vacío = no cambiar)" : "*"}</label>
-                  <Input type="password" value={form.password} onChange={v => setForm(p => ({ ...p, password: v }))} placeholder="••••••••" className="w-full" />
-                </div>
+                {/* ✅ Ya no hay campo de contraseña */}
               </div>
             </div>
 
@@ -2676,6 +2787,29 @@ function Empleados({ user }: { user: User }) {
               <Btn variant="primary" onClick={saveForm}><Check size={14} /> Guardar</Btn>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* Modal de confirmación para desactivar */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Desactivar empleado"
+        message="¿Estás seguro de que deseas desactivar este empleado? Podrá ser reactivado más tarde."
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmModal({ isOpen: false, empleadoId: null })}
+        confirmText="Sí, desactivar"
+        variant="danger"
+      />
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
+            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+          }`}>
+            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
+            {toast.message}
+          </div>
         </div>
       )}
     </div>
@@ -3554,6 +3688,301 @@ function Configuracion() {
   );
 }
 
+function CambiarContrasenaForzado({ token, onSuccess, onCancel }: { token: string | null; onSuccess: () => void; onCancel: () => void }) {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+
+  const handleSubmit = async () => {
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/cambiar-contrasena', {
+        password_actual: '', // No se necesita para el cambio forzado (debe_cambiar=true)
+        password_nuevo: password
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      onSuccess();
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Error al cambiar la contraseña');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
+            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          <h2 className="text-xl font-bold text-[#1e1e1e]">Cambio de contraseña obligatorio</h2>
+          <p className="text-sm text-gray-500 text-center mt-1">Por seguridad, debes cambiar tu contraseña antes de continuar.</p>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Nueva contraseña</label>
+            <div className="relative">
+              <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
+            <div className="relative">
+              <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
+              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+        </div>
+        {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
+        <div className="flex gap-3 mt-6">
+          <Btn variant="primary" className="flex-1 justify-center" onClick={handleSubmit} disabled={loading}>
+            {loading ? 'Cambiando...' : 'Cambiar contraseña'}
+          </Btn>
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onCancel}>Cerrar sesión</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EstablecerContrasena({ token, onSuccess }: { token: string | null; onSuccess: () => void }) {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!token) {
+      setError('Token de invitación inválido');
+      return;
+    }
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/establecer-contrasena', { token, password });
+      setSuccess(true);
+      setTimeout(onSuccess, 2000);
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Error al establecer la contraseña');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+          <div className="text-green-500 text-5xl mb-4">✅</div>
+          <h2 className="text-xl font-bold text-[#1e1e1e]">¡Contraseña establecida!</h2>
+          <p className="text-gray-500 mt-2">Ya puedes iniciar sesión con tu nueva contraseña.</p>
+          <Btn variant="primary" className="w-full mt-6 justify-center" onClick={onSuccess}>Ir al inicio de sesión</Btn>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
+            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          <h2 className="text-xl font-bold text-[#1e1e1e]">Establecer contraseña</h2>
+          <p className="text-sm text-gray-500 text-center mt-1">Has sido invitado a unirte al sistema. Establece tu contraseña.</p>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Contraseña</label>
+            <div className="relative">
+              <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
+            <div className="relative">
+              <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
+              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+        </div>
+        {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
+        <Btn variant="primary" className="w-full mt-6 justify-center" onClick={handleSubmit} disabled={loading}>
+          {loading ? 'Estableciendo...' : 'Establecer contraseña'}
+        </Btn>
+      </div>
+    </div>
+  );
+}
+
+function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
+  const [step, setStep] = useState<'solicitar' | 'verificar'>('solicitar');
+  const [email, setEmail] = useState('');
+  const [codigo, setCodigo] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+
+  const handleSolicitar = async () => {
+    if (!email) {
+      setError('Ingresa tu correo electrónico');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/solicitar-recuperacion', { email });
+      setStep('verificar');
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Error al enviar el código');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerificar = async () => {
+    if (!codigo || !password || password !== confirmPassword) {
+      setError('Completa todos los campos y verifica que las contraseñas coincidan');
+      return;
+    }
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/recuperar-contrasena', { email, codigo, password });
+      setSuccess(true);
+      setTimeout(onSuccess, 2000);
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Error al restablecer la contraseña');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+          <div className="text-green-500 text-5xl mb-4">✅</div>
+          <h2 className="text-xl font-bold text-[#1e1e1e]">¡Contraseña restablecida!</h2>
+          <p className="text-gray-500 mt-2">Ahora puedes iniciar sesión con tu nueva contraseña.</p>
+          <Btn variant="primary" className="w-full mt-6 justify-center" onClick={onSuccess}>Ir al inicio de sesión</Btn>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
+            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          <h2 className="text-xl font-bold text-[#1e1e1e]">
+            {step === 'solicitar' ? 'Recuperar contraseña' : 'Verificar código'}
+          </h2>
+          <p className="text-sm text-gray-500 text-center mt-1">
+            {step === 'solicitar' ? 'Te enviaremos un código a tu correo' : 'Ingresa el código que recibiste'}
+          </p>
+        </div>
+
+        {step === 'solicitar' ? (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Correo electrónico</label>
+              <Input type="email" value={email} onChange={setEmail} placeholder="tu@correo.com" />
+            </div>
+            {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
+            <Btn variant="primary" className="w-full mt-6 justify-center" onClick={handleSolicitar} disabled={loading}>
+              {loading ? 'Enviando...' : 'Enviar código'}
+            </Btn>
+            <div className="mt-4 text-center">
+              <button onClick={onSuccess} className="text-sm text-[#0a4b7a] hover:underline">Volver al inicio de sesión</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Código de verificación</label>
+              <Input value={codigo} onChange={setCodigo} placeholder="000000" maxLength={6} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Nueva contraseña</label>
+              <div className="relative">
+                <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
+              <div className="relative">
+                <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
+                <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
+            <Btn variant="primary" className="w-full mt-6 justify-center" onClick={handleVerificar} disabled={loading}>
+              {loading ? 'Restableciendo...' : 'Restablecer contraseña'}
+            </Btn>
+            <div className="mt-4 text-center">
+              <button onClick={() => setStep('solicitar')} className="text-sm text-[#0a4b7a] hover:underline">Volver atrás</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 // ── App Shell ─────────────────────────────────────────────────────────────────
 function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [screen, setScreen] = useState<Screen>(() => {
@@ -3634,21 +4063,92 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
   );
 }
 
-// ── Root ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [pantalla, setPantalla] = useState<'login' | 'app' | 'cambiar-contrasena-forzado' | 'establecer-contrasena' | 'recuperar-contrasena'>('login');
+  const [tokenTemp, setTokenTemp] = useState<string | null>(null);
 
-  // ✅ Escuchar evento de sesión expirada
+  // Manejar login exitoso
+  const handleLogin = (userData: User) => {
+    setUser(userData);
+    setPantalla('app');
+  };
+
+  // Manejar logout
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setPantalla('login');
+  };
+
+  // Escuchar evento de sesión expirada (ya lo tenías)
   useEffect(() => {
     const handler = () => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setUser(null);
+      setPantalla('login');
     };
     window.addEventListener('session-expired', handler);
     return () => window.removeEventListener('session-expired', handler);
   }, []);
 
-  if (!user) return <LoginScreen onLogin={setUser} />;
-  return <AppShell user={user} onLogout={() => { localStorage.removeItem('token'); setUser(null); }} />;
+  // Si está en login, mostrar LoginScreen
+  if (pantalla === 'login') {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
+  // Si está en cambio de contraseña forzado
+  if (pantalla === 'cambiar-contrasena-forzado') {
+    // Obtener token del localStorage
+    const token = localStorage.getItem('token');
+    return <CambiarContrasenaForzado token={token} onSuccess={() => {
+      // Recargar usuario desde localStorage
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+        setPantalla('app');
+      } else {
+        setPantalla('login');
+      }
+    }} onCancel={() => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setPantalla('login');
+    }} />;
+  }
+
+  // Si está en establecimiento de contraseña (por invitación)
+  if (pantalla === 'establecer-contrasena') {
+    // Obtener token de la URL (usando window.location.search)
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    return <EstablecerContrasena token={token} onSuccess={() => setPantalla('login')} />;
+  }
+
+  // Si está en recuperación de contraseña
+  if (pantalla === 'recuperar-contrasena') {
+    return <RecuperarContrasena onSuccess={() => setPantalla('login')} />;
+  }
+
+  // App normal
+  if (user) {
+    return <AppShell user={user} onLogout={handleLogout} />;
+  }
+
+  // Fallback
+  return <LoginScreen onLogin={handleLogin} />;
+}
+
+// ── Root ──────────────────────────────────────────────────────────────────────
+
+
+
+
+function setPantalla(arg0: string) {
+  throw new Error("Function not implemented.");
+}
+function setToast(arg0: { message: string; type: string; }) {
+  throw new Error("Function not implemented.");
 }

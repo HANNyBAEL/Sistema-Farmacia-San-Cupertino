@@ -45,6 +45,19 @@ const Empleado = sequelize.define('Empleado', {
     allowNull: false,
     defaultValue: 1,
   },
+  debe_cambiar: {
+  type: DataTypes.BOOLEAN,
+  allowNull: false,
+  defaultValue: false,
+  },
+  invitation_token: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+  },
+  invitation_expires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
 }, {
   tableName: 'empleados',
   timestamps: true,

@@ -3,9 +3,26 @@ import api from './api';
 export const login = async (email, password) => {
   const { data } = await api.post('/auth/login', { email, password });
   localStorage.setItem('token', data.token);
-  return data; // { token, rol, nombre, id }
+  return data; // { token, rol, nombre, id, debe_cambiar }
 };
 
 export const logout = () => {
   localStorage.removeItem('token');
+  localStorage.removeItem('user');
+};
+
+export const establecerContrasena = async (token, password) => {
+  await api.post('/auth/establecer-contrasena', { token, password });
+};
+
+export const cambiarContrasena = async (passwordActual, passwordNuevo) => {
+  await api.post('/auth/cambiar-contrasena', { password_actual: passwordActual, password_nuevo: passwordNuevo });
+};
+
+export const solicitarRecuperacion = async (email) => {
+  await api.post('/auth/solicitar-recuperacion', { email });
+};
+
+export const recuperarContrasena = async (email, codigo, password) => {
+  await api.post('/auth/recuperar-contrasena', { email, codigo, password });
 };
