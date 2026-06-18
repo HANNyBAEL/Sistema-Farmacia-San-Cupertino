@@ -1,36 +1,15 @@
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
-// Configuración del transporter forzando IPv4
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false, // true para 465
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : '',
-  },
-  family: 4, // 🔥 Forzar IPv4
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 15000,
-});
-
-// Verificar conexión al iniciar
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('❌ Error de conexión SMTP:', error);
-  } else {
-    console.log('✅ Conexión SMTP establecida correctamente');
-  }
-});
+// Configurar API Key de SendGrid
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // ─── ENVÍO DE CÓDIGO DE RECUPERACIÓN ────────────────────
 export const sendRecoveryEmail = async (email, codigo) => {
-  console.log(`📧 Enviando correo a ${email} con código ${codigo}`);
+  console.log(`📧 Enviando código de recuperación a ${email} vía SendGrid...`);
   try {
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_USER,
+    const msg = {
       to: email,
+      from: process.env.FROM_EMAIL || 'farmaciassanjosecupertino@gmail.com', // Debe ser un correo verificado en SendGrid
       subject: 'Código de recuperación de contraseña',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f7fa; border-radius: 12px;">
@@ -50,11 +29,12 @@ export const sendRecoveryEmail = async (email, codigo) => {
           </div>
         </div>
       `,
-    });
-    console.log(`✅ Correo enviado: ${info.messageId}`);
-    return info;
+    };
+    await sgMail.send(msg);
+    console.log(`✅ Correo enviado exitosamente a ${email} vía SendGrid`);
+    return true;
   } catch (error) {
-    console.error('❌ Error al enviar correo (detallado):', error);
+    console.error('❌ Error al enviar correo con SendGrid:', error);
     throw error;
   }
 };
@@ -62,11 +42,11 @@ export const sendRecoveryEmail = async (email, codigo) => {
 // ─── ENVÍO DE INVITACIÓN PARA NUEVOS EMPLEADOS ──────────
 export const sendInvitationEmail = async (email, nombre, token) => {
   const link = `${process.env.FRONTEND_URL}/establecer-contrasena?token=${token}`;
-  console.log(`📧 Enviando invitación a ${email}...`);
+  console.log(`📧 Enviando invitación a ${email} vía SendGrid...`);
   try {
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_USER,
+    const msg = {
       to: email,
+      from: process.env.FROM_EMAIL || 'farmaciassanjosecupertino@gmail.com',
       subject: 'Invitación a Farmacias San Cupertino',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f7fa; border-radius: 12px;">
@@ -87,11 +67,12 @@ export const sendInvitationEmail = async (email, nombre, token) => {
           </div>
         </div>
       `,
-    });
-    console.log(`✅ Invitación enviada: ${info.messageId}`);
-    return info;
+    };
+    await sgMail.send(msg);
+    console.log(`✅ Invitación enviada exitosamente a ${email} vía SendGrid`);
+    return true;
   } catch (error) {
-    console.error('❌ Error al enviar invitación:', error);
+    console.error('❌ Error al enviar invitación con SendGrid:', error);
     throw error;
   }
 };
