@@ -7,7 +7,8 @@ import {
   TrendingUp, TrendingDown, Clock, ChevronRight, RotateCcw,
   Camera,
   DollarSign,
-  Menu
+  Menu,
+  ArrowLeft
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { login as apiLogin, login, registrarEmpleado } from "../services/auth";
@@ -203,6 +204,364 @@ function ConfirmModal({
 
 function LoadingSpinner() {
   return <div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-[#0a4b7a] border-t-transparent rounded-full animate-spin" /></div>;
+}
+
+function CambiarContrasenaForzado({ token, onSuccess, onCancel }: { token: string | null; onSuccess: () => void; onCancel: () => void }) {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+
+  const handleSubmit = async () => {
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/cambiar-contrasena', {
+        password_actual: '', // No se necesita para el cambio forzado (debe_cambiar=true)
+        password_nuevo: password
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      onSuccess();
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Error al cambiar la contraseña');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
+            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          <h2 className="text-xl font-bold text-[#1e1e1e]">Cambio de contraseña obligatorio</h2>
+          <p className="text-sm text-gray-500 text-center mt-1">Por seguridad, debes cambiar tu contraseña antes de continuar.</p>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Nueva contraseña</label>
+            <div className="relative">
+              <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
+            <div className="relative">
+              <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
+              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+        </div>
+        {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
+        <div className="flex gap-3 mt-6">
+          <Btn variant="primary" className="flex-1 justify-center" onClick={handleSubmit} disabled={loading}>
+            {loading ? 'Cambiando...' : 'Cambiar contraseña'}
+          </Btn>
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onCancel}>Cerrar sesión</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EstablecerContrasena({ token, onSuccess }: { token: string | null; onSuccess: () => void }) {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!token) {
+      setError('Token de invitación inválido');
+      return;
+    }
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/establecer-contrasena', { token, password });
+      setSuccess(true);
+      setTimeout(onSuccess, 2000);
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Error al establecer la contraseña');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+          <div className="text-green-500 text-5xl mb-4">✅</div>
+          <h2 className="text-xl font-bold text-[#1e1e1e]">¡Contraseña establecida!</h2>
+          <p className="text-gray-500 mt-2">Ya puedes iniciar sesión con tu nueva contraseña.</p>
+          <Btn variant="primary" className="w-full mt-6 justify-center" onClick={onSuccess}>Ir al inicio de sesión</Btn>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
+            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          <h2 className="text-xl font-bold text-[#1e1e1e]">Establecer contraseña</h2>
+          <p className="text-sm text-gray-500 text-center mt-1">Has sido invitado a unirte al sistema. Establece tu contraseña.</p>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Contraseña</label>
+            <div className="relative">
+              <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
+            <div className="relative">
+              <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
+              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+        </div>
+        {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
+        <Btn variant="primary" className="w-full mt-6 justify-center" onClick={handleSubmit} disabled={loading}>
+          {loading ? 'Estableciendo...' : 'Establecer contraseña'}
+        </Btn>
+      </div>
+    </div>
+  );
+}
+
+function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
+  const [step, setStep] = useState<'solicitar' | 'verificar'>('solicitar');
+  const [email, setEmail] = useState('');
+  const [codigo, setCodigo] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+
+  const handleSolicitar = async () => {
+    if (!email) {
+      setError('Ingresa tu correo electrónico');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/solicitar-recuperacion', { email });
+      setStep('verificar');
+    } catch (err: any) {
+      // 🔥 Mostrar error detallado del backend (incluye 'details' si existe)
+      const msg = err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al enviar el código';
+      setError(`❌ ${msg}`);
+      console.error('Error en solicitarRecuperacion:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerificar = async () => {
+    if (!codigo || !password || password !== confirmPassword) {
+      setError('Completa todos los campos y verifica que las contraseñas coincidan');
+      return;
+    }
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/recuperar-contrasena', { email, codigo, password });
+      setSuccess(true);
+      setTimeout(onSuccess, 2000);
+    } catch (err: any) {
+      const msg = err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al restablecer la contraseña';
+      setError(`❌ ${msg}`);
+      console.error('Error en recuperarContrasena:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+          <div className="text-green-500 text-5xl mb-4">✅</div>
+          <h2 className="text-xl font-bold text-[#1e1e1e]">¡Contraseña restablecida!</h2>
+          <p className="text-gray-500 mt-2">Ahora puedes iniciar sesión con tu nueva contraseña.</p>
+          <Btn variant="primary" className="w-full mt-6 justify-center" onClick={onSuccess}>
+            Ir al inicio de sesión
+          </Btn>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-4">
+            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          <h2 className="text-xl font-bold text-[#1e1e1e]">
+            {step === 'solicitar' ? 'Recuperar contraseña' : 'Verificar código'}
+          </h2>
+          <p className="text-sm text-gray-500 text-center mt-1">
+            {step === 'solicitar'
+              ? 'Te enviaremos un código a tu correo'
+              : 'Ingresa el código que recibiste'}
+          </p>
+        </div>
+
+        {step === 'solicitar' ? (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Correo electrónico</label>
+              <Input
+                type="email"
+                value={email}
+                onChange={setEmail}
+                placeholder="tu@correo.com"
+              />
+            </div>
+            {error && (
+              <div className="mt-3 flex items-start gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+                <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
+                <span className="break-words whitespace-pre-wrap">{error}</span>
+              </div>
+            )}
+            <Btn
+              variant="primary"
+              className="w-full mt-6 justify-center"
+              onClick={handleSolicitar}
+              disabled={loading}
+            >
+              {loading ? 'Enviando...' : 'Enviar código'}
+            </Btn>
+            <div className="mt-4 text-center">
+              <button onClick={onSuccess} className="text-sm text-[#0a4b7a] hover:underline flex items-center justify-center gap-1">
+                <ArrowLeft size={14} /> Volver al inicio de sesión
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Código de verificación</label>
+              <Input
+                value={codigo}
+                onChange={setCodigo}
+                placeholder="000000"
+                maxLength={6}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Nueva contraseña</label>
+              <div className="relative">
+                <Input
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={setPassword}
+                  placeholder="Mínimo 6 caracteres"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
+              <div className="relative">
+                <Input
+                  type={showConfirmPw ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  placeholder="Repite la contraseña"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPw(!showConfirmPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            {error && (
+              <div className="mt-3 flex items-start gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+                <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
+                <span className="break-words whitespace-pre-wrap">{error}</span>
+              </div>
+            )}
+            <Btn
+              variant="primary"
+              className="w-full mt-6 justify-center"
+              onClick={handleVerificar}
+              disabled={loading}
+            >
+              {loading ? 'Restableciendo...' : 'Restablecer contraseña'}
+            </Btn>
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setStep('solicitar')}
+                className="text-sm text-[#0a4b7a] hover:underline flex items-center justify-center gap-1"
+              >
+                <ArrowLeft size={14} /> Volver atrás
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── Login ─────────────────────────────────────────────────────────────────────
@@ -3683,366 +4042,6 @@ function Configuracion() {
     </div>
   );
 }
-
-function CambiarContrasenaForzado({ token, onSuccess, onCancel }: { token: string | null; onSuccess: () => void; onCancel: () => void }) {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showPw, setShowPw] = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
-
-  const handleSubmit = async () => {
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      await api.post('/auth/cambiar-contrasena', {
-        password_actual: '', // No se necesita para el cambio forzado (debe_cambiar=true)
-        password_nuevo: password
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      onSuccess();
-    } catch (e: any) {
-      setError(e?.response?.data?.error || 'Error al cambiar la contraseña');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
-            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
-          </div>
-          <h2 className="text-xl font-bold text-[#1e1e1e]">Cambio de contraseña obligatorio</h2>
-          <p className="text-sm text-gray-500 text-center mt-1">Por seguridad, debes cambiar tu contraseña antes de continuar.</p>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Nueva contraseña</label>
-            <div className="relative">
-              <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
-            <div className="relative">
-              <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
-              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-        </div>
-        {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
-        <div className="flex gap-3 mt-6">
-          <Btn variant="primary" className="flex-1 justify-center" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Cambiando...' : 'Cambiar contraseña'}
-          </Btn>
-          <Btn variant="secondary" className="flex-1 justify-center" onClick={onCancel}>Cerrar sesión</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EstablecerContrasena({ token, onSuccess }: { token: string | null; onSuccess: () => void }) {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [showPw, setShowPw] = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!token) {
-      setError('Token de invitación inválido');
-      return;
-    }
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      await api.post('/auth/establecer-contrasena', { token, password });
-      setSuccess(true);
-      setTimeout(onSuccess, 2000);
-    } catch (e: any) {
-      setError(e?.response?.data?.error || 'Error al establecer la contraseña');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
-          <div className="text-green-500 text-5xl mb-4">✅</div>
-          <h2 className="text-xl font-bold text-[#1e1e1e]">¡Contraseña establecida!</h2>
-          <p className="text-gray-500 mt-2">Ya puedes iniciar sesión con tu nueva contraseña.</p>
-          <Btn variant="primary" className="w-full mt-6 justify-center" onClick={onSuccess}>Ir al inicio de sesión</Btn>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
-            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
-          </div>
-          <h2 className="text-xl font-bold text-[#1e1e1e]">Establecer contraseña</h2>
-          <p className="text-sm text-gray-500 text-center mt-1">Has sido invitado a unirte al sistema. Establece tu contraseña.</p>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Contraseña</label>
-            <div className="relative">
-              <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
-            <div className="relative">
-              <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
-              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-        </div>
-        {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
-        <Btn variant="primary" className="w-full mt-6 justify-center" onClick={handleSubmit} disabled={loading}>
-          {loading ? 'Estableciendo...' : 'Establecer contraseña'}
-        </Btn>
-      </div>
-    </div>
-  );
-}
-
-function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
-  const [step, setStep] = useState<'solicitar' | 'verificar'>('solicitar');
-  const [email, setEmail] = useState('');
-  const [codigo, setCodigo] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [showPw, setShowPw] = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
-
-  const handleSolicitar = async () => {
-    if (!email) {
-      setError('Ingresa tu correo electrónico');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      await api.post('/auth/solicitar-recuperacion', { email });
-      setStep('verificar');
-    } catch (err: any) {
-      // 🔥 Mostrar error detallado del backend (incluye 'details' si existe)
-      const msg = err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al enviar el código';
-      setError(`❌ ${msg}`);
-      console.error('Error en solicitarRecuperacion:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerificar = async () => {
-    if (!codigo || !password || password !== confirmPassword) {
-      setError('Completa todos los campos y verifica que las contraseñas coincidan');
-      return;
-    }
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      await api.post('/auth/recuperar-contrasena', { email, codigo, password });
-      setSuccess(true);
-      setTimeout(onSuccess, 2000);
-    } catch (err: any) {
-      const msg = err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al restablecer la contraseña';
-      setError(`❌ ${msg}`);
-      console.error('Error en recuperarContrasena:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
-          <div className="text-green-500 text-5xl mb-4">✅</div>
-          <h2 className="text-xl font-bold text-[#1e1e1e]">¡Contraseña restablecida!</h2>
-          <p className="text-gray-500 mt-2">Ahora puedes iniciar sesión con tu nueva contraseña.</p>
-          <Btn variant="primary" className="w-full mt-6 justify-center" onClick={onSuccess}>
-            Ir al inicio de sesión
-          </Btn>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-4">
-            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
-          </div>
-          <h2 className="text-xl font-bold text-[#1e1e1e]">
-            {step === 'solicitar' ? 'Recuperar contraseña' : 'Verificar código'}
-          </h2>
-          <p className="text-sm text-gray-500 text-center mt-1">
-            {step === 'solicitar'
-              ? 'Te enviaremos un código a tu correo'
-              : 'Ingresa el código que recibiste'}
-          </p>
-        </div>
-
-        {step === 'solicitar' ? (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Correo electrónico</label>
-              <Input
-                type="email"
-                value={email}
-                onChange={setEmail}
-                placeholder="tu@correo.com"
-              />
-            </div>
-            {error && (
-              <div className="mt-3 flex items-start gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
-                <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
-                <span className="break-words whitespace-pre-wrap">{error}</span>
-              </div>
-            )}
-            <Btn
-              variant="primary"
-              className="w-full mt-6 justify-center"
-              onClick={handleSolicitar}
-              disabled={loading}
-            >
-              {loading ? 'Enviando...' : 'Enviar código'}
-            </Btn>
-            <div className="mt-4 text-center">
-              <button onClick={onSuccess} className="text-sm text-[#0a4b7a] hover:underline flex items-center justify-center gap-1">
-                <ArrowLeft size={14} /> Volver al inicio de sesión
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Código de verificación</label>
-              <Input
-                value={codigo}
-                onChange={setCodigo}
-                placeholder="000000"
-                maxLength={6}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Nueva contraseña</label>
-              <div className="relative">
-                <Input
-                  type={showPw ? 'text' : 'password'}
-                  value={password}
-                  onChange={setPassword}
-                  placeholder="Mínimo 6 caracteres"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
-              <div className="relative">
-                <Input
-                  type={showConfirmPw ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={setConfirmPassword}
-                  placeholder="Repite la contraseña"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPw(!showConfirmPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            {error && (
-              <div className="mt-3 flex items-start gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
-                <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
-                <span className="break-words whitespace-pre-wrap">{error}</span>
-              </div>
-            )}
-            <Btn
-              variant="primary"
-              className="w-full mt-6 justify-center"
-              onClick={handleVerificar}
-              disabled={loading}
-            >
-              {loading ? 'Restableciendo...' : 'Restablecer contraseña'}
-            </Btn>
-            <div className="mt-4 text-center">
-              <button
-                onClick={() => setStep('solicitar')}
-                className="text-sm text-[#0a4b7a] hover:underline flex items-center justify-center gap-1"
-              >
-                <ArrowLeft size={14} /> Volver atrás
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-
 
 // ── App Shell ─────────────────────────────────────────────────────────────────
 function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
