@@ -25,7 +25,9 @@ import { getSiguienteCorrelativo, guardarFactura } from "../services/facturas";
 import { generarFacturaPDF } from "./GenerarFactura";
 import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
-import { useNavigate, useLocation } from 'react-router-dom'; // si estás usando react-router, si no, puedes usar window.location
+import { useNavigate, useLocation } from 'react-router-dom'; 
+import crypto from 'crypto';
+
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -1185,7 +1187,7 @@ function Ventas({ user }: { user: User }) {
           setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
           try {
             const { numero_control } = await getSiguienteCorrelativo();
-            const codigo_generacion = crypto.randomUUID().toUpperCase();
+            const codigo_generacion = Date.now().toString(36) + Math.random().toString(36).substring(2);
             const fechaHoraLocal = `${year}-${month}-${day} ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
             await guardarFactura({
               numero_control,
@@ -4133,12 +4135,4 @@ export default function App() {
 
   // Fallback
   return <LoginScreen onLogin={handleLogin} />;
-}
-
-
-function setPantalla(arg0: string) {
-  throw new Error("Function not implemented.");
-}
-function setToast(arg0: { message: string; type: string; }) {
-  throw new Error("Function not implemented.");
 }
