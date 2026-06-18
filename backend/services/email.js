@@ -1,14 +1,20 @@
 import nodemailer from 'nodemailer';
 
-// Configuración del transporter
+// Configuración del transporter forzando IPv4
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false, // true para 465
+  secure: false, // true para 465, false para 587
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : '', // ← eliminar espacios
+    pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : '',
   },
+  // 🔥 Forzar IPv4 para evitar ENETUNREACH
+  family: 4,
+  // Opcional: aumentar timeout
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
 });
 
 // Verificar conexión al iniciar (útil para depuración)
@@ -34,7 +40,6 @@ export const sendRecoveryEmail = async (email, codigo) => {
     return info;
   } catch (error) {
     console.error('❌ Error al enviar correo (detallado):', error);
-    // Re-lanzamos el error para que el endpoint lo capture
     throw error;
   }
 };
