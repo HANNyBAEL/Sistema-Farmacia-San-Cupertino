@@ -750,10 +750,10 @@ function Productos({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
       </div>
 
-      {/* Filtros con etiquetas claras (estilo Auditoría) */}
+      {/* Filtros en línea horizontal */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          <div className="sm:col-span-2 lg:col-span-1">
+        <div className="flex flex-wrap items-end gap-3 md:gap-4">
+          <div className="flex-1 min-w-[180px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre o código</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -762,7 +762,7 @@ function Productos({ user }: { user: User }) {
             </div>
           </div>
 
-          <div>
+          <div className="flex-1 min-w-[130px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Stock</label>
             <Select value={filterStock} onChange={setFilterStock} className="w-full">
               <option value="">Todos</option>
@@ -773,7 +773,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div>
+          <div className="flex-1 min-w-[150px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Categoría</label>
             <Select value={filterCat} onChange={setFilterCat} className="w-full">
               <option value="">Todas</option>
@@ -781,7 +781,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div>
+          <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor</label>
             <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
               <option value="">Todos</option>
@@ -793,7 +793,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div>
+          <div className="flex-1 min-w-[140px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Vencimiento</label>
             <Select value={filterVenc} onChange={setFilterVenc} className="w-full">
               <option value="">Todos</option>
@@ -803,7 +803,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div>
+          <div className="flex-1 min-w-[120px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -812,52 +812,40 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="flex items-end justify-end sm:col-span-2 lg:col-span-1">
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="w-full sm:w-auto">
+          <div className="flex items-end">
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
               <X size={14} /> Limpiar filtros
             </Btn>
           </div>
         </div>
       </Card>
 
-      {/* Tabla con todas las columnas visibles y buen scroll */}
+      {/* Tabla con todas las columnas visibles y scroll horizontal */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          <div className="min-w-[900px]">
-            <table className="w-full text-xs sm:text-sm table-fixed">
-              <colgroup>
-                <col className="w-[16%]" />
-                <col className="w-[11%]" />
-                <col className="w-[8%]" />
-                <col className="w-[7%]" />
-                <col className="w-[10%]" />
-                <col className="w-[10%]" />
-                <col className="w-[8%]" />
-                <col className="w-[12%]" />
-                <col className="w-[6%]" />
-                <col className="w-[12%]" />
-              </colgroup>
+          <div className="min-w-[1200px]">
+            <table className="w-full text-xs sm:text-sm table-auto">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-100">
-                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Nombre</th>
-                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Categoría</th>
-                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Precio</th>
-                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Stock</th>
-                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Lote</th>
-                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Código barras</th>
-                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Venc.</th>
-                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Proveedor</th>
-                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Estado</th>
-                  <th className="text-left py-1 px-1 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs break-words">Acciones</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Nombre</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Categoría</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Precio</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Stock</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Lote</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Código barras</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Venc.</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Proveedor</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Estado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Acciones</th>
                  </tr>
               </thead>
               <tbody>
                 {filtered.map(p=>(
                   <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${p.deleted ? 'opacity-60 bg-gray-50' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-gray-50'}`}>
-                    <td className="py-1 px-1 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] whitespace-nowrap">
                       <Expandable text={p.nombre_producto} maxLength={20} />
                     </td>
-                    <td className="py-1 px-1 sm:py-3 sm:px-3 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                       {p.categorias_nombres ? (() => {
                         const cats = p.categorias_nombres.split(', ');
                         const primera = cats[0];
@@ -882,21 +870,21 @@ function Productos({ user }: { user: User }) {
                         );
                       })() : <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="py-1 px-1 sm:py-3 sm:px-3 font-mono text-[#0a4b7a] font-semibold break-words whitespace-normal text-[10px] sm:text-sm">${Number(p.precio).toFixed(2)}</td>
-                    <td className="py-1 px-1 sm:py-3 sm:px-3 break-words whitespace-normal"><span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span></td>
-                    <td className="py-1 px-1 sm:py-3 sm:px-3 font-mono text-gray-500 break-words whitespace-normal text-[9px] sm:text-xs"><Expandable text={p.lote} maxLength={10} /></td>
-                    <td className="py-1 px-1 sm:py-3 sm:px-3 font-mono text-gray-500 break-words whitespace-normal text-[9px] sm:text-xs"><Expandable text={p.codigo_barras} maxLength={12} /></td>
-                    <td className={`py-1 px-1 sm:py-3 sm:px-3 text-[9px] sm:text-xs font-mono break-words whitespace-normal ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
-                    <td className="py-1 px-1 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal text-[9px] sm:text-xs"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
-                    <td className="py-1 px-1 sm:py-3 sm:px-3 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-[#0a4b7a] font-semibold whitespace-nowrap text-[10px] sm:text-sm">${Number(p.precio).toFixed(2)}</td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs"><Expandable text={p.lote} maxLength={10} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs"><Expandable text={p.codigo_barras} maxLength={12} /></td>
+                    <td className={`py-2 px-2 sm:py-3 sm:px-3 text-[9px] sm:text-xs font-mono whitespace-nowrap ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 whitespace-nowrap text-[9px] sm:text-xs"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                       <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                         {p.deleted ? "Inactivo" : "Activo"}
                       </span>
                     </td>
-                    <td className="py-1 px-1 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <div className="flex flex-wrap items-center gap-0.5 sm:gap-2">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                         <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar">
-                          <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={()=>handleToggle(p.id_producto, p.deleted)}
@@ -907,7 +895,7 @@ function Productos({ user }: { user: User }) {
                         </button>
                         {!p.has_ventas && (
                           <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera">
-                            <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
