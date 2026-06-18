@@ -1,6 +1,5 @@
 import nodemailer from 'nodemailer';
 
-// Configuración del transporter usando SendGrid SMTP
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
   port: parseInt(process.env.SMTP_PORT || '587'),
@@ -9,13 +8,12 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER || 'apikey',
     pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : '',
   },
-  family: 4, // 🔥 Forzar IPv4
+  family: 4,
   connectionTimeout: 15000,
   greetingTimeout: 15000,
   socketTimeout: 15000,
 });
 
-// Verificar conexión
 transporter.verify((error, success) => {
   if (error) {
     console.error('❌ Error de conexión SMTP:', error);
@@ -28,7 +26,7 @@ export const sendRecoveryEmail = async (email, codigo) => {
   console.log(`📧 Enviando correo a ${email} con código ${codigo}`);
   try {
     const info = await transporter.sendMail({
-      from: `"Farmacias San Cupertino" <${process.env.SMTP_USER}>`, // Usa el mismo usuario
+      from: '"Farmacias San Cupertino" <farmaciassanjosecupertino@gmail.com>', // ✅ Email verificado
       to: email,
       subject: 'Código de recuperación de contraseña',
       html: `<p>Tu código de recuperación es: <strong>${codigo}</strong></p>
@@ -48,7 +46,7 @@ export const sendInvitationEmail = async (email, nombre, token) => {
   console.log(`📧 Enviando invitación a ${email}...`);
   try {
     const info = await transporter.sendMail({
-      from: `"Farmacias San Cupertino" <${process.env.SMTP_USER}>`,
+      from: '"Farmacias San Cupertino" <farmaciassanjosecupertino@gmail.com>', // ✅ Email verificado
       to: email,
       subject: 'Invitación a Farmacias San Cupertino',
       html: `<p>Hola ${nombre},</p>
