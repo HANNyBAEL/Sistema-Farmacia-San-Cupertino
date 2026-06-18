@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import sequelize from '../config/database.js';
 import { sendInvitationEmail, sendRecoveryEmail } from '../services/email.js';
-import { authenticate, authorize } from '../middlewares/auth.js'; // Si no tienes estos middlewares, elimínalos y protege las rutas manualmente
+import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -37,10 +37,9 @@ router.post('/login', async (req, res) => {
       rol: user.cargo,
       nombre: `${user.nombre} ${user.apellido}`,
       id: user.id_empleado,
-      // No enviamos 'debe_cambiar' para no forzar cambio
     });
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error en login:', error);
     res.status(500).json({ error: 'Error en el servidor' });
   }
 });
@@ -50,18 +49,15 @@ router.post('/registrar-empleado', authenticate, authorize(['administrador']), a
   const { nombre, apellido, correo, cargo, telefono, dui, nit, cuenta_banco, afp, fecha_contratacion } = req.body;
 
   try {
-    // Verificar que el correo no exista
     const [existente] = await sequelize.query(
       `SELECT id_empleado FROM empleados WHERE correo = ?`,
       { replacements: [correo], type: sequelize.QueryTypes.SELECT }
     );
     if (existente) return res.status(400).json({ error: 'El correo ya está registrado' });
 
-    // Generar token de invitación (expira en 24h)
     const invitationToken = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // Insertar empleado (sin contraseña aún)
     await sequelize.query(
       `INSERT INTO empleados 
        (nombre, apellido, correo, cargo, telefono, dui, nit, cuenta_banco, afp, fecha_contratacion, invitation_token, invitation_expires, activo)
@@ -72,12 +68,10 @@ router.post('/registrar-empleado', authenticate, authorize(['administrador']), a
       }
     );
 
-    // Enviar correo de invitación
     await sendInvitationEmail(correo, nombre, invitationToken);
-
     res.json({ message: 'Empleado registrado y correo de invitación enviado' });
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error en registrar-empleado:', error);
     res.status(500).json({ error: 'Error al registrar empleado' });
   }
 });
@@ -90,7 +84,7 @@ router.post('/establecer-contrasena', async (req, res) => {
   }
   try {
     const [empleado] = await sequelize.query(
-      `SELECT id_empleado, invitation_token, invitation_expires FROM empleados 
+      `SELECT id_empleado FROM empleados 
        WHERE invitation_token = :token AND invitation_expires > NOW()`,
       { replacements: { token }, type: sequelize.QueryTypes.SELECT }
     );
@@ -107,7 +101,7 @@ router.post('/establecer-contrasena', async (req, res) => {
 
     res.json({ message: 'Contraseña establecida correctamente' });
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error en establecer-contrasena:', error);
     res.status(500).json({ error: 'Error al establecer contraseña' });
   }
 });
@@ -120,7 +114,7 @@ router.post('/cambiar-contrasena', authenticate, async (req, res) => {
   }
 
   try {
-    const userId = req.user.id; // asumiendo que authenticate decodifica y pone req.user
+    const userId = req.user.id_empleado;
     const [user] = await sequelize.query(
       `SELECT id_empleado, password_hash FROM empleados WHERE id_empleado = ?`,
       { replacements: [userId], type: sequelize.QueryTypes.SELECT }
@@ -138,7 +132,7 @@ router.post('/cambiar-contrasena', authenticate, async (req, res) => {
 
     res.json({ message: 'Contraseña actualizada correctamente' });
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error en cambiar-contrasena:', error);
     res.status(500).json({ error: 'Error al cambiar contraseña' });
   }
 });
@@ -146,6 +140,8 @@ router.post('/cambiar-contrasena', authenticate, async (req, res) => {
 // ─── SOLICITAR RECUPERACIÓN (envía código por correo) ──
 router.post('/solicitar-recuperacion', async (req, res) => {
   const { email } = req.body;
+  console.log(`📧 Solicitud de recuperación para: ${email}`);
+
   if (!email) return res.status(400).json({ error: 'Correo requerido' });
 
   try {
@@ -153,23 +149,31 @@ router.post('/solicitar-recuperacion', async (req, res) => {
       `SELECT id_empleado, nombre FROM empleados WHERE correo = ?`,
       { replacements: [email], type: sequelize.QueryTypes.SELECT }
     );
-    if (!user) return res.status(404).json({ error: 'Correo no registrado' });
+    if (!user) {
+      console.log(`❌ Correo no registrado: ${email}`);
+      return res.status(404).json({ error: 'Correo no registrado' });
+    }
 
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = new Date(Date.now() + 10 * 60000); // 10 minutos
+
+    console.log(`🔑 Código generado para ${email}: ${codigo}`);
 
     // Guardar en tabla recovery_codes
     await sequelize.query(
       `INSERT INTO recovery_codes (id_empleado, codigo, expires) VALUES (?, ?, ?)`,
       { replacements: [user.id_empleado, codigo, expires], type: sequelize.QueryTypes.INSERT }
     );
+    console.log(`✅ Código guardado en BD para ${email}`);
 
+    // Enviar correo
     await sendRecoveryEmail(email, codigo);
+    console.log(`✅ Correo enviado a ${email}`);
 
     res.json({ message: 'Código enviado a tu correo' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al enviar código' });
+    console.error('❌ Error en solicitar-recuperacion:', error);
+    res.status(500).json({ error: 'Error al enviar código. Revisa los logs del servidor.' });
   }
 });
 
@@ -187,7 +191,6 @@ router.post('/recuperar-contrasena', async (req, res) => {
     );
     if (!user) return res.status(404).json({ error: 'Correo no registrado' });
 
-    // Verificar código
     const [record] = await sequelize.query(
       `SELECT id FROM recovery_codes WHERE id_empleado = ? AND codigo = ? AND expires > NOW()`,
       { replacements: [user.id_empleado, codigo], type: sequelize.QueryTypes.SELECT }
@@ -200,7 +203,6 @@ router.post('/recuperar-contrasena', async (req, res) => {
       { replacements: [hashed, user.id_empleado], type: sequelize.QueryTypes.UPDATE }
     );
 
-    // Eliminar código usado
     await sequelize.query(
       `DELETE FROM recovery_codes WHERE id = ?`,
       { replacements: [record.id], type: sequelize.QueryTypes.DELETE }
@@ -208,8 +210,8 @@ router.post('/recuperar-contrasena', async (req, res) => {
 
     res.json({ message: 'Contraseña restablecida correctamente' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al restablecer contraseña' });
+    console.error('❌ Error en recuperar-contrasena:', error);
+    res.status(500).json({ error: 'Error al restablecer la contraseña' });
   }
 });
 
