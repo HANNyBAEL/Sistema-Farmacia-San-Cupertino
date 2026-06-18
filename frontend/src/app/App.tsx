@@ -4141,10 +4141,6 @@ export default function App() {
   return <LoginScreen onLogin={handleLogin} />;
 }
 
-// ── Root ──────────────────────────────────────────────────────────────────────
-
-
-
 
 function setPantalla(arg0: string) {
   throw new Error("Function not implemented.");

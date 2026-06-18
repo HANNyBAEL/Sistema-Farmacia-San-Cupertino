@@ -13,7 +13,7 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const [user] = await sequelize.query(
-      `SELECT id_empleado, nombre, apellido, correo, password, cargo, activo, token_version, debe_cambiar
+      `SELECT id_empleado, nombre, apellido, correo, password_hash, cargo, activo, token_version, debe_cambiar
        FROM empleados 
        WHERE correo = ?`,
       { replacements: [email], type: sequelize.QueryTypes.SELECT }
@@ -25,7 +25,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Usuario desactivado. Contacte al administrador.' });
     }
 
-    const valid = await bcrypt.compare(password, user.password);
+    const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Credenciales inválidas' });
 
     const token = jwt.sign(
@@ -66,7 +66,7 @@ router.post('/establecer-contrasena', async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
     await sequelize.query(
-      `UPDATE empleados SET password = :password, debe_cambiar = 0, invitation_token = NULL, invitation_expires = NULL
+      `UPDATE empleados SET password_hash = :password, debe_cambiar = 0, invitation_token = NULL, invitation_expires = NULL
        WHERE id_empleado = :id`,
       { replacements: { password: hashed, id: empleado.id_empleado }, type: sequelize.QueryTypes.UPDATE }
     );
@@ -96,12 +96,12 @@ router.post('/cambiar-contrasena', async (req, res) => {
     );
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-    const valid = await bcrypt.compare(password_actual, user.password);
+    const valid = await bcrypt.compare(password_actual, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Contraseña actual incorrecta' });
 
     const hashed = await bcrypt.hash(password_nuevo, 10);
     await sequelize.query(
-      `UPDATE empleados SET password = :password, token_version = token_version + 1 WHERE id_empleado = :id`,
+      `UPDATE empleados SET password_hash = :password, token_version = token_version + 1 WHERE id_empleado = :id`,
       { replacements: { password: hashed, id: user.id_empleado }, type: sequelize.QueryTypes.UPDATE }
     );
 
@@ -176,7 +176,7 @@ router.post('/recuperar-contrasena', async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
     await sequelize.query(
-      `UPDATE empleados SET password = :password, token_version = token_version + 1 WHERE id_empleado = :id`,
+      `UPDATE empleados SET password_hash = :password, token_version = token_version + 1 WHERE id_empleado = :id`,
       { replacements: { password: hashed, id: user.id_empleado }, type: sequelize.QueryTypes.UPDATE }
     );
 
