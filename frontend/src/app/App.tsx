@@ -2424,7 +2424,7 @@ function Empleados({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo empleado</Btn>
       </div>
 
-      {/* Filtros con etiquetas claras (estilo Auditoría) */}
+      {/* Filtros con etiquetas claras */}
       <Card className="p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           <div>
@@ -2461,21 +2461,21 @@ function Empleados({ user }: { user: User }) {
         </div>
       </Card>
 
-      {/* Tabla con scroll horizontal y ancho fijo */}
+      {/* Tabla con más ancho (min-w aumentado a 1100px) */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          <div className="min-w-[900px]">
+          <div className="min-w-[1100px]">
             <table className="w-full text-xs sm:text-sm table-fixed">
               <colgroup>
-                <col className="w-[20%]" />
-                <col className="w-[16%]" />
-                <col className="w-[10%]" />
-                <col className="w-[10%]" />
-                <col className="w-[11%]" />
-                <col className="w-[10%]" />
-                <col className="w-[10%]" />
-                <col className="w-[7%]" />
-                <col className="w-[8%]" />
+                <col className="w-[18%]" /> {/* Empleado */}
+                <col className="w-[17%]" /> {/* Correo */}
+                <col className="w-[10%]" /> {/* Teléfono */}
+                <col className="w-[10%]" /> {/* DUI */}
+                <col className="w-[12%]" /> {/* NIT */}
+                <col className="w-[10%]" /> {/* Cargo */}
+                <col className="w-[10%]" /> {/* Contratación */}
+                <col className="w-[7%]" />  {/* Estado */}
+                <col className="w-[8%]" />  {/* Acciones */}
               </colgroup>
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-100">
@@ -2500,10 +2500,10 @@ function Empleados({ user }: { user: User }) {
                           <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
                             {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
                           </div>
-                          <Expandable text={fullName} maxLength={18} />
+                          <Expandable text={fullName} maxLength={20} />
                         </div>
                        </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.correo} maxLength={18} /></td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.correo} maxLength={20} /></td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.telefono} maxLength={12} /></td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.dui} maxLength={12} /></td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.nit} maxLength={14} /></td>
