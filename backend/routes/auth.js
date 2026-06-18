@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import sequelize from '../config/database.js';
-import { sendRecoveryCode } from '../services/email.js';
+//import { sendRecoveryCode } from '../services/email.js';
+// import { sendRecoveryCode } from '../services/email.js';
 
 const router = express.Router();
 
@@ -143,7 +144,9 @@ router.post('/solicitar-recuperacion', async (req, res) => {
     if (!global.recoveryCodes) global.recoveryCodes = {};
     global.recoveryCodes[user.id_empleado] = { codigo, expires: expires.getTime() };
 
-    await sendRecoveryCode(user.correo, user.nombre, codigo);
+    // En lugar de await sendRecoveryCode(...)
+    console.log(`Código de recuperación para ${email}: ${codigo}`);
+    // Luego guardas el código en la base de datos (como ya haces)
 
     res.json({ message: 'Código enviado a tu correo' });
   } catch (error) {
