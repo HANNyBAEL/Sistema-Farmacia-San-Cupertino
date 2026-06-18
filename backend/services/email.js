@@ -34,6 +34,14 @@ export const sendRecoveryEmail = async (email, codigo) => {
              <p>Expira en 10 minutos.</p>
              <p>Si no solicitaste este código, ignora este mensaje.</p>`,
     });
+    const info = await transporter.sendMail({
+    from: `"Farmacias San Cupertino" <${process.env.SMTP_USER}>`, // ← Agregar esto
+    to: email,
+    subject: 'Código de recuperación de contraseña',
+    html: `<p>Tu código de recuperación es: <strong>${codigo}</strong></p>
+            <p>Expira en 10 minutos.</p>
+            <p>Si no solicitaste este código, ignora este mensaje.</p>`,
+    });
     console.log(`✅ Correo enviado: ${info.messageId}`);
     return info;
   } catch (error) {
