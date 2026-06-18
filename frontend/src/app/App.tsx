@@ -381,8 +381,10 @@ function Dashboard() {
         // Procesar ventas para el gráfico
         const processed = s.map((item: { dia: string; ventas: number }) => {
         // Crear fecha local sin UTC
-        const date = new Date(item.dia + 'T00:00:00');
-        const dayName = date.toLocaleDateString('es-ES', {
+        // Opción 2: ajustar la fecha restando la diferencia horaria
+        const date = new Date(item.dia + 'T12:00:00Z');
+        const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        const dayName = localDate.toLocaleDateString('es-ES', {
           weekday: 'short',
           timeZone: 'America/El_Salvador'
         });
