@@ -1952,14 +1952,10 @@ function Proveedores({ user }: { user: User }) {
   const [editSupplier, setEditSupplier] = useState<Supplier | null>(null);
   const [form, setForm]           = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
   const [formError, setFormError] = useState("");
-
-  // Modal de confirmación para eliminar proveedor
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     proveedorId: number | null;
   }>({ isOpen: false, proveedorId: null });
-
-  // Toast para mensajes de error/éxito
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   async function load(){
@@ -1970,7 +1966,6 @@ function Proveedores({ user }: { user: User }) {
   }
   useEffect(()=>{ load(); },[]);
 
-  // Auto-cerrar toast
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
@@ -1978,7 +1973,6 @@ function Proveedores({ user }: { user: User }) {
     }
   }, [toast]);
 
-  // ✅ Función para formatear teléfono: 0000-0000
   function formatPhone(value: string): string {
     const digits = value.replace(/\D/g, '').slice(0, 8);
     if (digits.length <= 4) return digits;
@@ -2006,7 +2000,6 @@ function Proveedores({ user }: { user: User }) {
     } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
   }
 
-  // Nuevas funciones para eliminar con modal
   function handleDelete(id: number) {
     setConfirmModal({ isOpen: true, proveedorId: id });
   }
@@ -2090,16 +2083,16 @@ function Proveedores({ user }: { user: User }) {
   };
 
   return(
-    <div className="p-6 space-y-4">
+    <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Proveedores</h1>
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo proveedor</Btn>
       </div>
 
-      {/* Filtros: búsqueda por nombre, teléfono (con formato) y estado */}
+      {/* Filtros con etiquetas claras (estilo Auditoría) */}
       <Card className="p-4">
-        <div className="flex flex-wrap gap-4">
-          <div className="min-w-[200px] flex-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar proveedor</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -2112,8 +2105,7 @@ function Proveedores({ user }: { user: User }) {
             </div>
           </div>
 
-          {/* ✅ Filtro de Teléfono con formato y límite */}
-          <div className="min-w-[150px]">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
             <input
               value={formatPhone(filterTelefono)}
@@ -2124,7 +2116,7 @@ function Proveedores({ user }: { user: User }) {
             />
           </div>
 
-          <div className="min-w-[130px]">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -2133,84 +2125,88 @@ function Proveedores({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="flex items-end">
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
+          <div className="flex items-end justify-end sm:col-span-2 lg:col-span-1">
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="w-full sm:w-auto">
               <X size={14} /> Limpiar filtros
             </Btn>
           </div>
         </div>
       </Card>
 
-      {/* Tabla (sin cambios) */}
+      {/* Tabla con scroll horizontal y ancho fijo */}
       <Card className="overflow-hidden">
-        <table className="w-full table-fixed text-sm">
-          <colgroup>
-            <col className="w-[22%]" />
-            <col className="w-[15%]" />
-            <col className="w-[20%]" />
-            <col className="w-[20%]" />
-            <col className="w-[8%]" />
-            <col className="w-[15%]" />
-          </colgroup>
-          <thead className="bg-gray-50">
-            <tr className="border-b border-gray-100">
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Nombre</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Teléfono</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Correo</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Dirección</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Estado</th>
-              <th className="text-left py-3 px-3 font-semibold text-gray-500 break-words">Acciones</th>
-             </tr>
-          </thead>
-          <tbody>
-            {filtered.map(s => (
-              <tr key={s.id_proveedor} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${s.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                <td className="py-3 px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
-                  <Expandable text={`${s.nombre} ${s.apellido}`} maxLength={30} />
-                 </td>
-                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
-                  <Expandable text={s.telefono ?? "—"} maxLength={12} />
-                 </td>
-                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
-                  <Expandable text={s.correo ?? "—"} maxLength={30} />
-                 </td>
-                <td className="py-3 px-3 text-gray-600 break-words whitespace-normal">
-                  <Expandable text={s.direccion ?? "—"} maxLength={35} />
-                 </td>
-                <td className="py-3 px-3 break-words whitespace-normal">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                    {s.deleted ? "Inactivo" : "Activo"}
-                  </span>
-                 </td>
-                <td className="py-3 px-3 break-words whitespace-normal">
-                  <div className="flex gap-2 items-center flex-wrap">
-                    <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                    <button
-                      onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
-                      className={`p-1 rounded text-xs font-semibold px-2 py-1 ${s.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
-                      title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
-                    >
-                      {s.deleted ? "Activar" : "Desactivar"}
-                    </button>
-                    {!s.has_productos && (
-                      <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
-                    )}
-                  </div>
-                 </td>
-               </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={6} className="py-10 text-center text-gray-400">Sin proveedores.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="min-w-[900px]">
+            <table className="w-full text-xs sm:text-sm table-fixed">
+              <colgroup>
+                <col className="w-[22%]" />
+                <col className="w-[15%]" />
+                <col className="w-[20%]" />
+                <col className="w-[20%]" />
+                <col className="w-[8%]" />
+                <col className="w-[15%]" />
+              </colgroup>
+              <thead className="bg-gray-50">
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Nombre</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Dirección</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
+                 </tr>
+              </thead>
+              <tbody>
+                {filtered.map(s => (
+                  <tr key={s.id_proveedor} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${s.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                      <Expandable text={`${s.nombre} ${s.apellido}`} maxLength={25} />
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                      <Expandable text={s.telefono ?? "—"} maxLength={12} />
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                      <Expandable text={s.correo ?? "—"} maxLength={25} />
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                      <Expandable text={s.direccion ?? "—"} maxLength={30} />
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                        {s.deleted ? "Inactivo" : "Activo"}
+                      </span>
+                    </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                        <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                        <button
+                          onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
+                          className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${s.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                          title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
+                        >
+                          {s.deleted ? "Activar" : "Desactivar"}
+                        </button>
+                        {!s.has_productos && (
+                          <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-6 sm:py-10 text-center text-gray-400">Sin proveedores.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </Card>
 
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
+          <Card className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-[#1e1e1e]">{editSupplier ? "Editar Proveedor" : "Nuevo Proveedor"}</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
@@ -2252,7 +2248,6 @@ function Proveedores({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Modal de confirmación para eliminar proveedor */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title="Mover a papelera"
@@ -2263,7 +2258,6 @@ function Proveedores({ user }: { user: User }) {
         variant="danger"
       />
 
-      {/* Toast flotante */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
           <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
@@ -2350,7 +2344,6 @@ function Empleados({ user }: { user: User }) {
 
   if(loading) return <LoadingSpinner/>;
 
-  // Funciones de formato
   function formatDUI(value: string): string {
     const digits = value.replace(/\D/g, '').slice(0, 9);
     if (digits.length <= 8) return digits;
@@ -2424,10 +2417,10 @@ function Empleados({ user }: { user: User }) {
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo empleado</Btn>
       </div>
 
-      {/* Filtros responsivos */}
+      {/* Filtros con etiquetas claras (estilo Auditoría) */}
       <Card className="p-4">
-        <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-4">
-          <div className="w-full md:flex-1 md:min-w-[200px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -2436,7 +2429,7 @@ function Empleados({ user }: { user: User }) {
             </div>
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[150px]">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Cargo</label>
             <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
               <option value="">Todos</option>
@@ -2444,7 +2437,7 @@ function Empleados({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[130px]">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -2453,88 +2446,90 @@ function Empleados({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="flex items-end">
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="mb-0.5">
+          <div className="flex items-end justify-end sm:col-span-2 lg:col-span-1">
+            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros} className="w-full sm:w-auto">
               <X size={14} /> Limpiar filtros
             </Btn>
           </div>
         </div>
       </Card>
 
-      {/* Tabla responsiva */}
+      {/* Tabla con scroll horizontal y ancho fijo */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs sm:text-sm table-fixed min-w-[700px]">
-            <colgroup>
-              <col className="w-[22%] sm:w-[20%]" />
-              <col className="w-[18%] sm:w-[16%]" />
-              <col className="w-[12%] sm:w-[10%]" />
-              <col className="w-[12%] sm:w-[10%]" />
-              <col className="hidden sm:table-cell w-[13%]" />
-              <col className="w-[12%] sm:w-[10%]" />
-              <col className="w-[12%] sm:w-[10%]" />
-              <col className="w-[8%] sm:w-[7%]" />
-              <col className="w-[12%] sm:w-[8%]" />
-            </colgroup>
-            <thead className="bg-gray-50">
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Empleado</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
-                <th className="hidden sm:table-cell text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">NIT</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Cargo</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Contratación</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
-                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
-               </tr>
-            </thead>
-            <tbody>
-              {filtered.map(emp=>{
-                const fullName = `${emp.nombre} ${emp.apellido}`;
-                return (
-                  <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
-                          {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
+        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="min-w-[900px]">
+            <table className="w-full text-xs sm:text-sm table-fixed">
+              <colgroup>
+                <col className="w-[20%]" />
+                <col className="w-[16%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[11%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[7%]" />
+                <col className="w-[8%]" />
+              </colgroup>
+              <thead className="bg-gray-50">
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Empleado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">NIT</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Cargo</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Contratación</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
+                 </tr>
+              </thead>
+              <tbody>
+                {filtered.map(emp=>{
+                  const fullName = `${emp.nombre} ${emp.apellido}`;
+                  return (
+                    <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
+                            {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
+                          </div>
+                          <Expandable text={fullName} maxLength={18} />
                         </div>
-                        <Expandable text={fullName} maxLength={18} />
-                      </div>
-                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.correo} maxLength={18} /></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.telefono} maxLength={12} /></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.dui} maxLength={12} /></td>
-                    <td className="hidden sm:table-cell py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.nit} maxLength={14} /></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-gray-100 text-gray-600'}`}>
-                        {CARGO_ICON[emp.cargo]} {emp.cargo}
-                      </span>
-                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-500 text-xs break-words whitespace-normal">{emp.fecha_contratacion || "—"}</td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                        {emp.activo ? "Activo" : "Inactivo"}
-                      </span>
-                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <button onClick={()=>openEdit(emp)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                        <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-[#d32f2f] bg-red-50 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
-                          {emp.activo ? "Desactivar" : "Activar"}
-                        </button>
-                      </div>
-                     </td>
-                   </tr>
-                );
-              })}
-              {filtered.length===0 && (
-                <tr>
-                  <td colSpan={9} className="py-6 sm:py-10 text-center text-gray-400">Sin empleados registrados.</td>
-                </tr>
-              )}
-            </tbody>
-           </table>
+                       </td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.correo} maxLength={18} /></td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.telefono} maxLength={12} /></td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.dui} maxLength={12} /></td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.nit} maxLength={14} /></td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-gray-100 text-gray-600'}`}>
+                          {CARGO_ICON[emp.cargo]} {emp.cargo}
+                        </span>
+                       </td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-500 text-xs break-words whitespace-normal">{emp.fecha_contratacion || "—"}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {emp.activo ? "Activo" : "Inactivo"}
+                        </span>
+                       </td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                        <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                          <button onClick={()=>openEdit(emp)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                          <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-[#d32f2f] bg-red-50 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
+                            {emp.activo ? "Desactivar" : "Activar"}
+                          </button>
+                        </div>
+                       </td>
+                     </tr>
+                  );
+                })}
+                {filtered.length===0 && (
+                  <tr>
+                    <td colSpan={9} className="py-6 sm:py-10 text-center text-gray-400">Sin empleados registrados.</td>
+                  </tr>
+                )}
+              </tbody>
+             </table>
+          </div>
         </div>
       </Card>
 
