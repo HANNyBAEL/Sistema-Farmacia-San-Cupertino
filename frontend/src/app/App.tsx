@@ -383,7 +383,7 @@ function Dashboard() {
         // Crear fecha local sin UTC
         // Opción 2: ajustar la fecha restando la diferencia horaria
         const date = new Date(item.dia + 'T12:00:00Z');
-        const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 90000);
         const dayName = localDate.toLocaleDateString('es-ES', {
           weekday: 'short',
           timeZone: 'America/El_Salvador'
