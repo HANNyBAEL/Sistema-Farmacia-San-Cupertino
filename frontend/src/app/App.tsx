@@ -2464,82 +2464,80 @@ function Empleados({ user }: { user: User }) {
         </div>
       </Card>
 
-      {/* Tabla con más ancho (min-w aumentado a 1100px) */}
+      {/* Tabla más ancha: sin min-w fijo, ocupa todo el ancho disponible */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          <div className="min-w-[1100px]">
-            <table className="w-full text-xs sm:text-sm table-fixed">
-              <colgroup>
-                <col className="w-[18%]" /> {/* Empleado */}
-                <col className="w-[17%]" /> {/* Correo */}
-                <col className="w-[10%]" /> {/* Teléfono */}
-                <col className="w-[10%]" /> {/* DUI */}
-                <col className="w-[12%]" /> {/* NIT */}
-                <col className="w-[10%]" /> {/* Cargo */}
-                <col className="w-[10%]" /> {/* Contratación */}
-                <col className="w-[7%]" />  {/* Estado */}
-                <col className="w-[8%]" />  {/* Acciones */}
-              </colgroup>
-              <thead className="bg-gray-50">
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Empleado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">NIT</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Cargo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Contratación</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
-                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map(emp=>{
-                  const fullName = `${emp.nombre} ${emp.apellido}`;
-                  return (
-                    <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
-                            {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
-                          </div>
-                          <Expandable text={fullName} maxLength={20} />
+          <table className="w-full text-xs sm:text-sm table-fixed">
+            <colgroup>
+              <col className="w-[20%]" /> {/* Empleado */}
+              <col className="w-[18%]" /> {/* Correo */}
+              <col className="w-[10%]" /> {/* Teléfono */}
+              <col className="w-[10%]" /> {/* DUI */}
+              <col className="w-[12%]" /> {/* NIT */}
+              <col className="w-[10%]" /> {/* Cargo */}
+              <col className="w-[8%]" />  {/* Contratación */}
+              <col className="w-[6%]" />  {/* Estado */}
+              <col className="w-[6%]" />  {/* Acciones */}
+            </colgroup>
+            <thead className="bg-gray-50">
+              <tr className="border-b border-gray-100">
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Empleado</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">NIT</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Cargo</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Contratación</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
+                <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
+               </tr>
+            </thead>
+            <tbody>
+              {filtered.map(emp=>{
+                const fullName = `${emp.nombre} ${emp.apellido}`;
+                return (
+                  <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
+                          {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
                         </div>
-                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.correo} maxLength={20} /></td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.telefono} maxLength={12} /></td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.dui} maxLength={12} /></td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.nit} maxLength={14} /></td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-gray-100 text-gray-600'}`}>
-                          {CARGO_ICON[emp.cargo]} {emp.cargo}
-                        </span>
-                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-500 text-xs break-words whitespace-normal">{emp.fecha_contratacion || "—"}</td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {emp.activo ? "Activo" : "Inactivo"}
-                        </span>
-                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                        <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                          <button onClick={()=>openEdit(emp)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                          <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-[#d32f2f] bg-red-50 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
-                            {emp.activo ? "Desactivar" : "Activar"}
-                          </button>
-                        </div>
-                       </td>
-                     </tr>
-                  );
-                })}
-                {filtered.length===0 && (
-                  <tr>
-                    <td colSpan={9} className="py-6 sm:py-10 text-center text-gray-400">Sin empleados registrados.</td>
-                  </tr>
-                )}
-              </tbody>
-             </table>
-          </div>
+                        <Expandable text={fullName} maxLength={20} />
+                      </div>
+                     </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.correo} maxLength={20} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.telefono} maxLength={12} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.dui} maxLength={12} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal"><Expandable text={emp.nit} maxLength={14} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-gray-100 text-gray-600'}`}>
+                        {CARGO_ICON[emp.cargo]} {emp.cargo}
+                      </span>
+                     </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-500 text-xs break-words whitespace-normal">{emp.fecha_contratacion || "—"}</td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {emp.activo ? "Activo" : "Inactivo"}
+                      </span>
+                     </td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                        <button onClick={()=>openEdit(emp)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                        <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-[#d32f2f] bg-red-50 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
+                          {emp.activo ? "Desactivar" : "Activar"}
+                        </button>
+                      </div>
+                     </td>
+                   </tr>
+                );
+              })}
+              {filtered.length===0 && (
+                <tr>
+                  <td colSpan={9} className="py-6 sm:py-10 text-center text-gray-400">Sin empleados registrados.</td>
+                </tr>
+              )}
+            </tbody>
+           </table>
         </div>
       </Card>
 
