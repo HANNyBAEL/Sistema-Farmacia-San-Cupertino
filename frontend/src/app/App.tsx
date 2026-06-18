@@ -529,7 +529,7 @@ function ExpandableCell({ text, maxLength = 30 }: { text?: string | null; maxLen
   );
 }
 
-ffunction Productos({ user }: { user: User }) {
+function Productos({ user }: { user: User }) {
   const [products, setProducts]   = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -892,7 +892,9 @@ ffunction Productos({ user }: { user: User }) {
                     </td>
                     <td className="py-1 px-1 sm:py-3 sm:px-3 break-words whitespace-normal">
                       <div className="flex flex-wrap items-center gap-0.5 sm:gap-2">
-                        <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={12} sm:size={14}/></button>
+                        <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar">
+                          <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        </button>
                         <button
                           onClick={()=>handleToggle(p.id_producto, p.deleted)}
                           className={`p-1 rounded text-[9px] sm:text-xs font-semibold px-1 sm:px-2 py-0.5 ${p.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
@@ -901,7 +903,9 @@ ffunction Productos({ user }: { user: User }) {
                           {p.deleted ? "Activar" : "Desactivar"}
                         </button>
                         {!p.has_ventas && (
-                          <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={12} sm:size={14}/></button>
+                          <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera">
+                            <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          </button>
                         )}
                       </div>
                     </td>
