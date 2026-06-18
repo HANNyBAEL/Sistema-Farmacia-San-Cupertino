@@ -2752,7 +2752,7 @@ function Alertas() {
 
   if(loading) return <LoadingSpinner/>;
   return(
-    <div className="p-6 space-y-4">
+    <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-[#1e1e1e]">Alertas</h1>
@@ -2764,7 +2764,7 @@ function Alertas() {
       </div>
 
       {/* Tarjetas resumen */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
           { label:"Agotados",      value: agotados.length, cls:"bg-red-50 text-[#d32f2f] border-red-100" },
           { label:"Críticos",      value: criticos.length, cls:"bg-orange-50 text-orange-700 border-orange-100" },
@@ -2772,75 +2772,88 @@ function Alertas() {
           { label:"Próx. Vencer",  value: vencer.length,   cls:"bg-purple-50 text-purple-700 border-purple-100" },
           { label:"Vencidos",      value: vencidos.length, cls:"bg-red-50 text-red-800 border-red-200" },
         ].map(k=>(
-          <div key={k.label} className={`rounded-lg border p-4 ${k.cls}`}>
-            <div className="text-2xl font-bold">{k.value}</div>
-            <div className="text-xs font-medium mt-0.5 opacity-80">{k.label}</div>
+          <div key={k.label} className={`rounded-lg border p-3 sm:p-4 ${k.cls}`}>
+            <div className="text-xl sm:text-2xl font-bold">{k.value}</div>
+            <div className="text-[10px] sm:text-xs font-medium mt-0.5 opacity-80">{k.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit flex-wrap">
+      {/* Tabs responsivos */}
+      <div className="flex flex-wrap gap-1 bg-gray-100 rounded-lg p-1 w-fit">
         {tabs.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tab===t.id?"bg-white shadow-sm text-[#1e1e1e]":"text-gray-500 hover:text-gray-700"}`}>
-            {t.label}
-            {t.count>0&&<span className={`text-xs font-bold ${tab===t.id?t.color:"text-gray-400"}`}>({t.count})</span>}
+            className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
+              tab===t.id ? "bg-white shadow-sm text-[#1e1e1e]" : "text-gray-500 hover:text-gray-700"
+            }`}>
+            <span className="hidden sm:inline">{t.label}</span>
+            <span className="sm:hidden">{t.label.replace(/\(.*\)/, '').trim()}</span>
+            {t.count>0 && (
+              <span className={`text-[9px] sm:text-xs font-bold ${tab===t.id ? t.color : "text-gray-400"}`}>
+                ({t.count})
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Tabla */}
+      {/* Tabla con scroll horizontal */}
       <Card className="overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              {["Producto","Lote","Stock","Estado","Vencimiento","Días"].map(h=>(
-                <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {displayed.map(p=>{
-              const fechaDate = p.fecha_vencimiento ? new Date(p.fecha_vencimiento + 'T00:00:00') : null;
-              const dias = fechaDate ? Math.round((fechaDate.getTime() - today.getTime()) / 86400000) : null;
-              const vencido = fechaDate ? isVencido(p.fecha_vencimiento) : false;
-
-              return(
-                <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.stock===0?"bg-red-50/40":vencido?"bg-red-50/20":"hover:bg-gray-50"}`}>
-                  <td className="py-3 px-4 font-medium text-[#1e1e1e]">{p.nombre_producto}</td>
-                  <td className="py-3 px-4 font-mono text-xs text-gray-500">{p.lote}</td>
-                  <td className="py-3 px-4 font-mono font-semibold">{p.stock} uds.</td>
-                  <td className="py-3 px-4">
-                    {vencido ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-200 text-red-900">Vencido</span>
-                    ) : p.stock === 0 || p.stock <= 20 ? (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stockCls(p.stock)}`}>{stockLabel(p.stock)}</span>
-                    ) : (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-purple-100 text-purple-800">Próx. vencer</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-xs text-gray-500">{p.fecha_vencimiento ?? "—"}</td>
-                  <td className="py-3 px-4">
-                    {dias !== null ? (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        dias < 0        ? "bg-red-200 text-red-900" :
-                        dias <= 7       ? "bg-red-100 text-red-800" :
-                        dias <= 15      ? "bg-orange-100 text-orange-800" :
-                                          "bg-amber-100 text-amber-800"
-                      }`}>
-                        {dias < 0 ? `Vencido hace ${Math.abs(dias)} días` : `${dias} días`}
-                      </span>
-                    ) : "—"}
-                  </td>
+        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="min-w-[700px]">
+            <table className="w-full text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  {["Producto","Lote","Stock","Estado","Vencimiento","Días"].map(h=>(
+                    <th key={h} className="text-left py-2 px-2 sm:py-3 sm:px-4 text-[10px] sm:text-xs text-gray-500 font-semibold">{h}</th>
+                  ))}
                 </tr>
-              );
-            })}
-            {displayed.length===0&&(
-              <tr><td colSpan={6} className="py-12 text-center text-gray-400">Sin alertas en esta categoría. ✓</td></tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {displayed.map(p=>{
+                  const fechaDate = p.fecha_vencimiento ? new Date(p.fecha_vencimiento + 'T00:00:00') : null;
+                  const dias = fechaDate ? Math.round((fechaDate.getTime() - today.getTime()) / 86400000) : null;
+                  const vencido = fechaDate ? isVencido(p.fecha_vencimiento) : false;
+
+                  return(
+                    <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.stock===0 ? "bg-red-50/40" : vencido ? "bg-red-50/20" : "hover:bg-gray-50"}`}>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 font-medium text-[#1e1e1e] break-words max-w-[120px] sm:max-w-none">
+                        {p.nombre_producto}
+                      </td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 font-mono text-[10px] sm:text-xs text-gray-500">{p.lote}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 font-mono font-semibold">{p.stock} uds.</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">
+                        {vencido ? (
+                          <span className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium bg-red-200 text-red-900">Vencido</span>
+                        ) : p.stock === 0 || p.stock <= 20 ? (
+                          <span className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium ${stockCls(p.stock)}`}>{stockLabel(p.stock)}</span>
+                        ) : (
+                          <span className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium bg-purple-100 text-purple-800">Próx. vencer</span>
+                        )}
+                      </td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 text-[10px] sm:text-xs text-gray-500">{p.fecha_vencimiento ?? "—"}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">
+                        {dias !== null ? (
+                          <span className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                            dias < 0        ? "bg-red-200 text-red-900" :
+                            dias <= 7       ? "bg-red-100 text-red-800" :
+                            dias <= 15      ? "bg-orange-100 text-orange-800" :
+                                              "bg-amber-100 text-amber-800"
+                          }`}>
+                            {dias < 0 ? `Vencido hace ${Math.abs(dias)} días` : `${dias} días`}
+                          </span>
+                        ) : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {displayed.length===0 && (
+                  <tr><td colSpan={6} className="py-6 sm:py-12 text-center text-gray-400">Sin alertas en esta categoría. ✓</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </Card>
     </div>
   );
