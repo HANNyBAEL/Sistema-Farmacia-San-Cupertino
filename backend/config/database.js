@@ -13,7 +13,8 @@ const sequelize = new Sequelize(
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: false // Solo para pruebas
+        rejectUnauthorized: false, // ✅ Coma agregada correctamente
+        timezone: 'America/El_Salvador', // Ahora es reconocida
       }
     },
     logging: false,
@@ -25,5 +26,3 @@ const sequelize = new Sequelize(
     }
   }
 );
-
-export default sequelize;
