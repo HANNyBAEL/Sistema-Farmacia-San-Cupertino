@@ -935,6 +935,12 @@ function Productos({ user }: { user: User }) {
     productId: number | null;
   }>({ isOpen: false, productId: null });
 
+  const [toggleModal, setToggleModal] = useState<{
+    isOpen: boolean;
+    productId: number | null;
+    deleted: number;
+  }>({ isOpen: false, productId: null, deleted: 0 });
+
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   async function load() {
@@ -1064,14 +1070,23 @@ function Productos({ user }: { user: User }) {
     }
   }
 
-  async function handleToggle(id: number, deleted: number) {
-    const accion = deleted ? "activar" : "desactivar";
-    if (!confirm(`¿Deseas ${accion} este producto?`)) return;
+  function handleToggle(id: number, deleted: number) {
+    setToggleModal({ isOpen: true, productId: id, deleted });
+  }
+
+  async function confirmToggle() {
+    if (toggleModal.productId === null) return;
     try {
-      await api.patch(`/productos/${id}/toggle`, { id_empleado: user.id, nombre_empleado: user.name });
+      await api.patch(`/productos/${toggleModal.productId}/toggle`, {
+        id_empleado: user.id,
+        nombre_empleado: user.name
+      });
+      setToggleModal({ isOpen: false, productId: null, deleted: 0 });
+      setToast({ message: "Estado actualizado correctamente.", type: 'success' });
       load();
     } catch (e: any) {
-      alert(e?.response?.data?.error ?? `Error al ${accion} el producto.`);
+      setToggleModal({ isOpen: false, productId: null, deleted: 0 });
+      setToast({ message: e?.response?.data?.error ?? "Error al cambiar estado.", type: 'error' });
     }
   }
 
@@ -1084,21 +1099,35 @@ function Productos({ user }: { user: User }) {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="p-4 md:p-6 space-y-4 min-w-0 overflow-x-hidden">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-xl font-bold text-foreground">Gestión de Productos</h1>
-        <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
-      </div>
-
-      {/* Filtros en línea horizontal */}
-      <Card className="p-4">
-        <div className="flex flex-wrap items-end gap-3 md:gap-4">
+    <PageLayout
+      title="Gestión de Productos"
+      subtitle={`${filtered.length} de ${products.length} productos`}
+      actions={
+        <Btn onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
+      }
+    >
+      {/* ── Filtros ── */}
+      <SectionCard
+        title="Filtros"
+        actions={
+          hayFiltros && (
+            <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
+              <X size={14} /> Limpiar
+            </Btn>
+          )
+        }
+      >
+        <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
           <div className="flex-1 min-w-[180px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre o código</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o código..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-input-background dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm" />
+              <Input
+                value={search}
+                onChange={setSearch}
+                placeholder="Nombre o código..."
+                className="pl-8"
+              />
             </div>
           </div>
 
@@ -1151,69 +1180,66 @@ function Productos({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
+        </FilterBar>
+      </SectionCard>
 
-          <div className="flex items-end">
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
-              <X size={14} /> Limpiar filtros
-            </Btn>
-          </div>
-        </div>
-      </Card>
-
-      {/* Tabla con todas las columnas visibles y scroll horizontal */}
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      {/* ── Tabla ── */}
+      <SectionCard title="Listado de productos" className="overflow-hidden">
+        <div className="overflow-x-auto">
           <div className="min-w-[1200px]">
-            <table className="w-full text-xs sm:text-sm table-fixed">
+            <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col className="w-[18%]" />  {/* Nombre */}
-                <col className="w-[12%]" />  {/* Categoría */}
-                <col className="w-[8%]" />   {/* Precio */}
-                <col className="w-[7%]" />   {/* Stock */}
-                <col className="w-[10%]" />  {/* Lote */}
-                <col className="w-[12%]" />  {/* Código barras */}
-                <col className="w-[10%]" />  {/* Vencimiento */}
-                <col className="w-[12%]" />  {/* Proveedor */}
-                <col className="w-[7%]" />   {/* Estado */}
-                <col className="w-[14%]" />  {/* Acciones */}
+                <col className="w-[18%]" />
+                <col className="w-[12%]" />
+                <col className="w-[8%]" />
+                <col className="w-[7%]" />
+                <col className="w-[10%]" />
+                <col className="w-[12%]" />
+                <col className="w-[10%]" />
+                <col className="w-[12%]" />
+                <col className="w-[7%]" />
+                <col className="w-[14%]" />
               </colgroup>
               <thead className="bg-muted">
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Nombre</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Categoría</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Precio</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Stock</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Lote</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Código barras</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Venc.</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Proveedor</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Acciones</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Nombre</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Categoría</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Precio</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Stock</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Lote</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Código barras</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Venc.</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Proveedor</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Estado</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {filtered.map(p => (
-                  <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-muted transition-colors ${p.deleted ? 'opacity-60 bg-muted' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-muted'}`}>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-foreground whitespace-nowrap truncate max-w-0">
+                  <tr
+                    key={p.id_producto}
+                    className={`transition-colors ${p.deleted ? 'opacity-60 bg-muted/50' : 'hover:bg-muted/50'} ${expiryStyle(p.fecha_vencimiento).row}`}
+                  >
+                    <td className="py-2.5 px-3 font-medium text-foreground whitespace-nowrap truncate max-w-0">
                       <ExpandableCell text={p.nombre_producto} maxLength={20} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap truncate max-w-0">
+                    <td className="py-2.5 px-3 whitespace-nowrap truncate max-w-0">
                       {p.categorias_nombres ? (() => {
                         const cats = p.categorias_nombres.split(', ');
                         const primera = cats[0];
                         const resto = cats.slice(1);
                         return (
                           <div className="flex items-center gap-0.5 flex-wrap">
-                            <span className="inline-block bg-blue-50 text-blue-700 text-[9px] sm:text-xs px-1 py-0.5 rounded truncate max-w-full">{primera}</span>
+                            <span className="inline-block bg-primary/10 text-primary text-xs px-1.5 py-0.5 rounded truncate max-w-full">{primera}</span>
                             {resto.length > 0 && (
                               <div className="relative group">
-                                <button className="inline-flex items-center justify-center w-4 h-4 bg-blue-100 text-blue-700 text-[9px] rounded-full font-bold hover:bg-blue-200 transition-colors flex-shrink-0">
+                                <button className="inline-flex items-center justify-center w-5 h-5 bg-primary/15 text-primary text-[10px] rounded-full font-bold hover:bg-primary/25 transition-colors flex-shrink-0">
                                   +{resto.length}
                                 </button>
-                                <div className="absolute left-0 top-5 z-50 hidden group-hover:block bg-card border border-border rounded-lg shadow-lg p-1.5 min-w-max">
-                                  <p className="text-[9px] font-semibold text-muted-foreground mb-0.5">Otras categorías:</p>
+                                <div className="absolute left-0 top-6 z-50 hidden group-hover:block bg-card border border-border rounded-lg shadow-lg p-2 min-w-max">
+                                  <p className="text-[10px] font-semibold text-muted-foreground mb-1">Otras categorías:</p>
                                   {resto.map((cat: string, i: number) => (
-                                    <div key={i} className="text-[9px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded mb-0.5">{cat}</div>
+                                    <div key={i} className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded mb-0.5">{cat}</div>
                                   ))}
                                 </div>
                               </div>
@@ -1222,31 +1248,57 @@ function Productos({ user }: { user: User }) {
                         );
                       })() : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-primary font-semibold whitespace-nowrap text-[10px] sm:text-sm">${Number(p.precio).toFixed(2)}</td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-muted-foreground whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.lote} maxLength={10} /></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-muted-foreground whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.codigo_barras} maxLength={12} /></td>
-                    <td className={`py-2 px-2 sm:py-3 sm:px-3 text-[9px] sm:text-xs font-mono whitespace-nowrap ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
-                      <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${p.deleted ? 'bg-destructive/10 text-destructive' : 'bg-green-50 text-green-700'}`}>
+                    <td className="py-2.5 px-3 font-mono text-primary font-semibold whitespace-nowrap">${Number(p.precio).toFixed(2)}</td>
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-muted-foreground whitespace-nowrap truncate max-w-0">
+                      <ExpandableCell text={p.lote} maxLength={10} />
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-muted-foreground whitespace-nowrap truncate max-w-0">
+                      <ExpandableCell text={p.codigo_barras} maxLength={12} />
+                    </td>
+                    <td className={`py-2.5 px-3 text-xs font-mono whitespace-nowrap ${expiryStyle(p.fecha_vencimiento).badge}`}>
+                      {p.fecha_vencimiento}
+                    </td>
+                    <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap truncate max-w-0">
+                      <ExpandableCell text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} />
+                    </td>
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                        p.deleted
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                      }`}>
                         {p.deleted ? "Inactivo" : "Activo"}
                       </span>
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <button onClick={() => openEdit(p)} className="text-primary hover:text-[#0d5c96] p-1 rounded hover:bg-primary/10" title="Editar">
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEdit(p)}
+                          className="text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors"
+                          title="Editar"
+                        >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleToggle(p.id_producto, p.deleted)}
-                          className={`p-1 rounded text-[9px] sm:text-xs font-semibold px-1 sm:px-2 py-0.5 ${p.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                          className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${
+                            p.deleted
+                              ? 'text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30'
+                              : 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/30'
+                          }`}
                           title={p.deleted ? "Activar producto" : "Desactivar producto"}
                         >
                           {p.deleted ? "Activar" : "Desactivar"}
                         </button>
                         {!p.has_ventas && (
-                          <button onClick={() => handleDelete(p.id_producto)} className="text-destructive p-1 rounded hover:bg-destructive/10" title="Mover a papelera">
+                          <button
+                            onClick={() => handleDelete(p.id_producto)}
+                            className="text-destructive p-1 rounded hover:bg-destructive/10 transition-colors"
+                            title="Mover a papelera"
+                          >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -1254,34 +1306,65 @@ function Productos({ user }: { user: User }) {
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={10} className="py-6 sm:py-10 text-center text-muted-foreground">Sin productos.</td></tr>
-                )}
               </tbody>
             </table>
+
+            {filtered.length === 0 && (
+              <EmptyState
+                icon={<Package size={40} />}
+                title="Sin productos"
+                description="No se encontraron productos con los filtros aplicados."
+              />
+            )}
           </div>
         </div>
-      </Card>
+      </SectionCard>
 
+      {/* ── Modal de formulario ── */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-foreground">{editProduct ? "Editar Producto" : "Nuevo Producto"}</h2>
-              <button onClick={()=>setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground"><X size={20}/></button>
+              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground transition-colors p-1">
+                <X size={20} />
+              </button>
             </div>
-            {formError && <div className="mb-4 flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2"><label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label><Input value={form.nombre_producto} onChange={v=>setForm(p=>({...p,nombre_producto:v}))} placeholder="Nombre del medicamento" /></div>
-              <div className="col-span-2"><label className="block text-xs font-semibold text-muted-foreground mb-1">Descripción</label><Input value={form.descripcion} onChange={v=>setForm(p=>({...p,descripcion:v}))} placeholder="Descripción opcional" /></div>
-              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Precio ($) *</label><Input type="number" value={form.precio} onChange={v=>setForm(p=>({...p,precio:v}))} placeholder="0.00" /></div>
-              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Stock *</label><Input type="number" value={form.stock} onChange={v=>setForm(p=>({...p,stock:v}))} placeholder="0" /></div>
-              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Lote *</label><Input value={form.lote} onChange={v=>setForm(p=>({...p,lote:v}))} placeholder="LOT-2024-XXX" /></div>
-              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Código de barras</label><Input value={form.codigo_barras} onChange={v=>setForm(p=>({...p,codigo_barras:v}))} placeholder="Ej: 7501234567890" /></div>
-              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha vencimiento *</label><Input type="date" value={form.fecha_vencimiento} onChange={v=>setForm(p=>({...p,fecha_vencimiento:v}))} /></div>
+
+            <ErrorAlert message={formError} />
+
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
+                <Input value={form.nombre_producto} onChange={v => setForm(p => ({ ...p, nombre_producto: v }))} placeholder="Nombre del medicamento" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Descripción</label>
+                <Input value={form.descripcion} onChange={v => setForm(p => ({ ...p, descripcion: v }))} placeholder="Descripción opcional" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Precio ($) *</label>
+                <Input type="number" value={form.precio} onChange={v => setForm(p => ({ ...p, precio: v }))} placeholder="0.00" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Stock *</label>
+                <Input type="number" value={form.stock} onChange={v => setForm(p => ({ ...p, stock: v }))} placeholder="0" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Lote *</label>
+                <Input value={form.lote} onChange={v => setForm(p => ({ ...p, lote: v }))} placeholder="LOT-2024-XXX" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Código de barras</label>
+                <Input value={form.codigo_barras} onChange={v => setForm(p => ({ ...p, codigo_barras: v }))} placeholder="Ej: 7501234567890" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha vencimiento *</label>
+                <Input type="date" value={form.fecha_vencimiento} onChange={v => setForm(p => ({ ...p, fecha_vencimiento: v }))} />
+              </div>
               <div className="col-span-2">
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor *</label>
-                <Select value={form.id_proveedor} onChange={v=>setForm(p=>({...p,id_proveedor:v}))} className="w-full">
+                <Select value={form.id_proveedor} onChange={v => setForm(p => ({ ...p, id_proveedor: v }))} className="w-full">
                   <option value="">Seleccionar proveedor...</option>
                   {suppliers
                     .filter(s => s.deleted === 0)
@@ -1294,7 +1377,7 @@ function Productos({ user }: { user: User }) {
                 <label className="block text-xs font-semibold text-muted-foreground mb-2">Categorías</label>
                 <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto border border-border rounded-lg p-2 bg-input-background">
                   {CATEGORIAS.map(cat => (
-                    <label key={cat.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-card rounded px-1 py-0.5">
+                    <label key={cat.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-card rounded px-1 py-0.5 transition-colors">
                       <input type="checkbox" checked={selectedCats.includes(cat.id)} onChange={() => toggleCat(cat.id)} className="rounded" />
                       <span className="text-foreground">{cat.nombre}</span>
                     </label>
@@ -1302,14 +1385,16 @@ function Productos({ user }: { user: User }) {
                 </div>
               </div>
             </div>
+
             <div className="flex justify-end gap-3 mt-6">
-              <Btn variant="secondary" onClick={()=>setShowForm(false)}>Cancelar</Btn>
-              <Btn variant="primary" onClick={saveForm}><Check size={14}/> Guardar</Btn>
+              <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
+              <Btn variant="primary" onClick={saveForm}><Check size={14} /> Guardar</Btn>
             </div>
           </Card>
         </div>
       )}
 
+      {/* ── Modales de confirmación ── */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title="Mover a papelera"
@@ -1320,17 +1405,19 @@ function Productos({ user }: { user: User }) {
         variant="danger"
       />
 
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'
-          }`}>
-            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
-            {toast.message}
-          </div>
-        </div>
-      )}
-    </div>
+      <ConfirmModal
+        isOpen={toggleModal.isOpen}
+        title={toggleModal.deleted ? "Activar producto" : "Desactivar producto"}
+        message={`¿Estás seguro de que deseas ${toggleModal.deleted ? 'activar' : 'desactivar'} este producto?`}
+        onConfirm={confirmToggle}
+        onCancel={() => setToggleModal({ isOpen: false, productId: null, deleted: 0 })}
+        confirmText={toggleModal.deleted ? "Activar" : "Desactivar"}
+        variant="primary"
+      />
+
+      {/* ── Toast ── */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </PageLayout>
   );
 }
 
