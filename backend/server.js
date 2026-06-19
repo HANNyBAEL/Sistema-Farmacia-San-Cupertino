@@ -50,8 +50,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
-
 // Registro de rutas
 app.use('/api/auth',        authRoutes);
 app.use('/api/productos',   productoRoutes);
@@ -65,6 +63,7 @@ app.use('/api/eliminados',  eliminadosRoutes);
 app.use('/api/facturas',    facturasRouter);
 app.use('/api/auditoria',   auditoriaRoutes);
 app.use('/api/facturas', facturasRoutes);
+app.use(express.json({ limit: '10mb' }));
 
 const PORT = process.env.PORT || 8000;
 
