@@ -3815,13 +3815,14 @@ function Auditoria({ user }: { user: User }) {
     if (!isoString) return "—";
     const fecha = new Date(isoString);
     if (isNaN(fecha.getTime())) return isoString;
-    const dia = fecha.getDate().toString().padStart(2, '0');
-    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
-    const anio = fecha.getFullYear();
-    const horas = fecha.getHours().toString().padStart(2, '0');
-    const minutos = fecha.getMinutes().toString().padStart(2, '0');
-    const segundos = fecha.getSeconds().toString().padStart(2, '0');
-    return `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
+    return fecha.toLocaleDateString('es-SV', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
   };
 
   async function load(p = 0) {
@@ -3850,66 +3851,58 @@ function Auditoria({ user }: { user: User }) {
     return () => clearTimeout(handler);
   }, [from, to, tabla, accion]);
 
-  useEffect(() => {
-    load(0);
-  }, []);
+  useEffect(() => { load(0); }, []);
 
   const totalPages = Math.ceil(data.total / LIMIT);
 
-  const accionColor: Record<string, string> = {
-    CREAR: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    EDITAR: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    ELIMINAR: "bg-destructive/10 text-destructive dark:bg-red-900/30 dark:text-red-400",
-    DESACTIVAR: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    ACTIVAR: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    PAPELERA: "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    RESTAURAR: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  const accionStyle: Record<string, string> = {
+    CREAR:     "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+    EDITAR:    "bg-primary/10 text-primary",
+    ELIMINAR:   "bg-destructive/10 text-destructive",
+    DESACTIVAR:  "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+    ACTIVAR:   "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+    PAPELERA:  "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400",
+    RESTAURAR: "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400",
   };
 
-  const tablaColor: Record<string, string> = {
-    productos: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    clientes: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    proveedores: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    empleados: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  const tablaStyle: Record<string, string> = {
+    productos:  "bg-primary/10 text-primary",
+    clientes:   "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+    proveedores: "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400",
+    empleados: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
   };
+
+  if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Auditoría del Sistema</h1>
-          <p className="text-sm text-muted-foreground dark:text-gray-400">{data.total} registros de cambios</p>
-        </div>
-      </div>
-
-      {/* Filtros responsivos */}
-      <Card className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
+    <PageLayout
+      title="Auditoría del Sistema"
+      subtitle={`${data.total} registros de cambios`}
+    >
+      {/* ── Filtros ── */}
+      <Card className="p-4">
+        <div className="flex flex-col md:flex-row md:flex-wrap md:items-end gap-3">
           <div className="w-full md:w-auto">
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Desde</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Desde</label>
             <input
               type="date"
               value={from}
               onChange={e => setFrom(e.target.value)}
-              className="w-full md:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full md:w-auto px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors"
             />
           </div>
           <div className="w-full md:w-auto">
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Hasta</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Hasta</label>
             <input
               type="date"
               value={to}
               onChange={e => setTo(e.target.value)}
-              className="w-full md:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full md:w-auto px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors"
             />
           </div>
-          <div className="w-full md:w-auto md:min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Tabla</label>
-            <Select
-              value={tabla}
-              onChange={setTabla}
-              className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-            >
+          <div className="w-full md:w-[130px]">
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Tabla</label>
+            <Select value={tabla} onChange={setTabla} className="w-full">
               <option value="">Todas</option>
               <option value="productos">Productos</option>
               <option value="clientes">Clientes</option>
@@ -3917,13 +3910,9 @@ function Auditoria({ user }: { user: User }) {
               <option value="empleados">Empleados</option>
             </Select>
           </div>
-          <div className="w-full md:w-auto md:min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Acción</label>
-            <Select
-              value={accion}
-              onChange={setAccion}
-              className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-            >
+          <div className="w-full md:w-[130px]">
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Acción</label>
+            <Select value={accion} onChange={setAccion} className="w-full">
               <option value="">Todas</option>
               <option value="CREAR">Crear</option>
               <option value="EDITAR">Editar</option>
@@ -3934,113 +3923,97 @@ function Auditoria({ user }: { user: User }) {
               <option value="RESTAURAR">Restaurar</option>
             </Select>
           </div>
-          <div className="flex gap-2 mt-2 md:mt-0">
-            <Btn
-              variant="ghost"
-              size="sm"
-              onClick={() => { setFrom(""); setTo(""); setTabla(""); setAccion(""); }}
-            >
+          <div className="flex gap-2 md:mt-0">
+            <Btn variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); setTabla(""); setAccion(""); }}>
               <X size={14} /> Limpiar
             </Btn>
           </div>
         </div>
       </Card>
 
-      {/* Tabla responsiva */}
-      <Card className="overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      {/* ── Tabla ── */}
+      <SectionCard title="Registro de auditoría" className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm table-fixed">
-            <colgroup>
-              <col className="w-[12%]" />  {/* Fecha */}
-              <col className="w-[10%]" />  {/* Tabla */}
-              <col className="w-[10%]" />  {/* Acción */}
-              <col className="w-[18%]" />  {/* Descripción */}
-              <col className="w-[10%]" />  {/* Campo */}
-              <col className="w-[15%]" />  {/* Valor anterior */}
-              <col className="w-[15%]" />  {/* Valor nuevo */}
-              <col className="w-[10%]" />  {/* Empleado */}
-            </colgroup>
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+              <tr className="border-b border-border bg-muted">
                 {["Fecha", "Tabla", "Acción", "Descripción", "Campo", "Valor anterior", "Valor nuevo", "Empleado"].map(h => (
-                  <th key={h} className="text-left py-2 px-2 md:py-3 md:px-4 text-xs text-muted-foreground dark:text-gray-400 font-semibold truncate">
-                    {h}
-                  </th>
+                  <th key={h} className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground dark:text-gray-400">Cargando...</td>
-                </tr>
-              ) : data.data.map((r, i) => (
-                <tr key={i} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-muted-foreground dark:text-gray-400 whitespace-nowrap truncate">
+            <tbody className="divide-y divide-border">
+              {data.data.map((r, i) => (
+                <tr
+                  key={i}
+                  className="hover:bg-muted/50 transition-colors"
+                >
+                  <td className="py-2.5 px-4 text-muted-foreground text-xs whitespace-nowrap">
                     {formatFecha(r.fecha)}
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 truncate">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaColor[r.tabla] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}`}>
+                  <td className="py-2.5 px-4 whitespace-nowrap">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaStyle[r.tabla] ?? 'bg-muted text-muted-foreground'}`}>
                       {r.tabla}
                     </span>
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 truncate">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accionColor[r.accion] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}`}>
+                  <td className="py-2.5 px-4 whitespace-nowrap">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accionStyle[r.accion] ?? 'bg-muted text-muted-foreground'}`}>
                       {r.accion}
                     </span>
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-foreground dark:text-gray-300 truncate max-w-0">
+                  <td className="py-2.5 px-4 text-foreground truncate max-w-[250px]" title={r.descripcion}>
                     {r.descripcion}
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-muted-foreground dark:text-gray-400 font-mono truncate max-w-0">
-                    {r.campo_modificado ?? '—'}
+                  <td className="py-2.5 px-4 text-muted-foreground font-mono text-xs truncate max-w-[140px]" title={r.campo_modificado ?? "—"}>
+                    {r.campo_modificado ?? "—"}
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
+                  <td className="py-2.5 px-4 max-w-[160px]">
                     {r.valor_anterior ? (
-                      <span className="bg-destructive/10 dark:bg-red-900/30 text-destructive dark:text-red-400 px-2 py-0.5 rounded font-mono truncate block max-w-full">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-mono truncate block max-w-full" title={r.valor_anterior}>
                         {r.valor_anterior}
                       </span>
                     ) : (
-                      <span className="text-gray-400 dark:text-muted-foreground">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
+                  <td className="py-2.5 px-4 max-w-[140px]">
                     {r.valor_nuevo ? (
-                      <span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded font-mono truncate block max-w-full">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 font-mono truncate block max-w-full" title={r.valor_nuevo}>
                         {r.valor_nuevo}
                       </span>
                     ) : (
-                      <span className="text-gray-400 dark:text-muted-foreground">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 dark:text-gray-400 text-xs truncate max-w-0">
-                    {r.nombre_empleado ?? '—'}
+                  <td className="py-2.5 px-4 text-muted-foreground text-xs truncate max-w-[120px]" title={r.nombre_empleado ?? "—"}>
+                    {r.nombre_empleado ?? "—"}
                   </td>
                 </tr>
               ))}
-              {!loading && data.data.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground dark:text-gray-400">Sin registros de auditoría.</td>
-                </tr>
-              )}
             </tbody>
           </table>
+
+          {data.data.length === 0 && (
+            <EmptyState
+              icon={<Shield size={40} />}
+              title="Sin registros"
+              description="No se encontraron registros de auditoría con los filtros aplicados."
+            />
+          )}
         </div>
+
+        {/* Paginación */}
         {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 gap-2">
-            <span className="text-xs text-muted-foreground dark:text-gray-400">Página {page + 1} de {totalPages}</span>
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-border gap-2">
+            <span className="text-xs text-muted-foreground">Página {page + 1} de {totalPages}</span>
             <div className="flex gap-2">
-              <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>
-                ← Anterior
-              </Btn>
-              <Btn variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => load(page + 1)}>
-                Siguiente →
-              </Btn>
+              <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>← Anterior</Btn>
+              <Btn variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => load(page + 1)}>Siguiente →</Btn>
             </div>
           </div>
         )}
-      </Card>
-    </div>
+      </SectionCard>
+    </PageLayout>
   );
 }
 

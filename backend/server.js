@@ -22,6 +22,11 @@ import eliminadosRoutes from './routes/eliminados.js';
 import facturasRouter from './routes/facturas.js';
 import auditoriaRoutes from './routes/auditoria.js';
 
+
+
+const facturasRoutes = require('./routes/facturasRoutes');
+
+
 const app = express();
 
 // ✅ Configuración CORS mejorada para producción
@@ -61,6 +66,7 @@ app.use('/api/historial',   historialRoutes);
 app.use('/api/eliminados',  eliminadosRoutes);
 app.use('/api/facturas',    facturasRouter);
 app.use('/api/auditoria',   auditoriaRoutes);
+app.use('/api/facturas', facturasRoutes);
 
 const PORT = process.env.PORT || 8000;
 
