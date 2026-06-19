@@ -1,25 +1,52 @@
 import express from 'express';
-import { enviarFacturaPorCorreo } from '../services/emailService.js';
+import sequelize from '../config/database.js';
+import { enviarFacturaPorCorreo } from '../services/email.js';
 
 const router = express.Router();
 
-// Ruta: POST /api/facturas/enviar
+// Obtener siguiente número correlativo
+router.get('/siguiente-correlativo', async (req, res) => {
+  try {
+    const [[{ total }]] = await sequelize.query(
+      `SELECT COUNT(*) as total FROM facturas`
+    );
+    const numero = String(parseInt(total) + 1).padStart(8, '0');
+    res.json({ numero_control: `DTE-01-S003P001-${numero}` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Guardar factura emitida
+router.post('/', async (req, res) => {
+  const { numero_control, codigo_generacion, id_venta, id_cliente, fecha_emision, total } = req.body;
+  try {
+    await sequelize.query(
+      `INSERT INTO facturas (numero_control, codigo_generacion, id_venta, id_cliente, fecha_emision, total)
+       VALUES (:numero_control, :codigo_generacion, :id_venta, :id_cliente, :fecha_emision, :total)`,
+      { replacements: { numero_control, codigo_generacion, id_venta, id_cliente: id_cliente ?? null, fecha_emision, total } }
+    );
+    res.status(201).json({ message: 'Factura registrada' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Enviar factura por correo
 router.post('/enviar', async (req, res) => {
-    try {
-        const dteJson = req.body;
-        
-        const clienteEmail = dteJson?.receptor?.correo;
+  try {
+    const dteJson = req.body;
+    const clienteEmail = dteJson?.receptor?.correo;
 
-        if (!clienteEmail) {
-            return res.status(400).json({ error: 'El cliente no tiene correo electrónico registrado en el JSON' });
-        }
-
-        const resultado = await enviarFacturaPorCorreo(clienteEmail, dteJson);
-
-        res.status(200).json(resultado);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    if (!clienteEmail) {
+      return res.status(400).json({ error: 'El cliente no tiene correo registrado en el JSON' });
     }
+
+    const resultado = await enviarFacturaPorCorreo(clienteEmail, dteJson);
+    res.status(200).json(resultado);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;
