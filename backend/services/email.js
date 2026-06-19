@@ -14,136 +14,75 @@ if (!apiKey) {
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'farmaciassanjosecupertino@gmail.com';
 
-
-// ─── HELPERS ────────────────────────────────────────────
 const formatNumber = (num) => {
   const n = parseFloat(num) || 0;
   return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
-const getTipoDte = (tipo) => {
-  const tipos = { '01': 'Factura', '03': 'Crédito Fiscal', '14': 'Nota de Crédito', '05': 'Nota de Débito' };
-  return tipos[tipo] || 'Documento Tributario Electrónico';
-};
-
 
 // ═══════════════════════════════════════════════════════════
-// 1️⃣  FACTURA ELECTRÓNICA (BONITA Y DECORADA)
+// 1️⃣  FACTURA CON PDF ADJUNTO (LO QUE USA facturasRoutes)
 // ═══════════════════════════════════════════════════════════
-export const enviarFacturaPorCorreo = async (clienteEmail, dteJson) => {
-  console.log(`📧 [SendGrid] Enviando factura a ${clienteEmail}...`);
+export const enviarFacturaPorCorreo = async ({ email, pdfBase64, numero_control, codigo_generacion, total, cliente }) => {
+  console.log(`📧 [SendGrid] Enviando factura PDF a ${email}...`);
   if (!apiKey) throw new Error('SENDGRID_API_KEY no configurada');
 
-  const ident = dteJson.identificacion || {};
-  const emisor = dteJson.emisor || {};
-  const receptor = dteJson.receptor || {};
-  const resumen = dteJson.resumen || {};
-  const items = dteJson.cuerpoDocumento?.detalle || [];
-  const codigoGen = ident.codigoGeneracion || 'N/A';
-  const numeroCtrl = ident.numeroControl || 'N/A';
-  const fecha = ident.fchEmision || 'N/A';
-  const tipoDte = getTipoDte(ident.tipoDte);
-  const condicion = ident.condicionOperacion === '1' ? 'Contado' : 'Crédito';
-
-  const filas = items.map((item, i) => `
-    <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#475569">${item.numeroItem || i + 1}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#1e293b;font-weight:500">${item.descripcion || '-'}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#475569;text-align:center">${item.cantidad || 0}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#475569;text-align:right">$${formatNumber(item.precioUni)}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#475569;text-align:right">$${formatNumber(item.ventaGravada)}</td>
-    </tr>`).join('');
+  const totalFmt = parseFloat(total || 0).toFixed(2);
+  const numeroCtrl = numero_control || 'N/A';
+  const codigoGen = codigo_generacion || 'N/A';
 
   const msg = {
-    to: clienteEmail,
+    to: email,
     from: FROM_EMAIL,
-    subject: `${tipoDte} - ${numeroCtrl}`,
+    subject: `Factura Electrónica - ${numeroCtrl}`,
     html: `
-      <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:680px;margin:0 auto;background:#f1f5f9;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)">
-        <div style="background:linear-gradient(135deg,#0a4b7a,#0d6eaa);padding:28px 32px;color:#fff">
-          <table style="width:100%;border-collapse:collapse"><tr>
-            <td style="vertical-align:top">
-              <h1 style="margin:0 0 4px;font-size:22px;font-weight:700">🏥 Farmacias San Cupertino</h1>
-              <p style="margin:0;font-size:13px;opacity:.85">${emisor.nombre || 'Farmacia San José Cupertino'}</p>
-              <p style="margin:2px 0 0;font-size:12px;opacity:.7">NIT: ${emisor.nit || 'N/A'} | ${emisor.direccion || ''}</p>
-            </td>
-            <td style="vertical-align:top;text-align:right">
-              <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:12px 18px;display:inline-block">
-                <p style="margin:0;font-size:11px;text-transform:uppercase;letter-spacing:1px;opacity:.8">${tipoDte}</p>
-                <p style="margin:4px 0 0;font-size:15px;font-weight:700;letter-spacing:.5px">${numeroCtrl}</p>
-              </div>
-            </td>
-          </tr></table>
+      <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;background:#f1f5f9;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)">
+        <div style="background:linear-gradient(135deg,#0a4b7a,#0d6eaa);padding:28px 32px;text-align:center;color:#fff">
+          <h1 style="margin:0 0 4px;font-size:22px;font-weight:700">🏥 Farmacias San Cupertino</h1>
+          <p style="margin:0;font-size:13px;opacity:.85">Documento Tributario Electrónico</p>
         </div>
-        <div style="padding:20px 32px 0">
-          <table style="width:100%;border-collapse:collapse"><tr>
-            <td style="width:50%;vertical-align:top;padding:12px;background:#fff;border-radius:10px;border:1px solid #e2e8f0">
-              <p style="margin:0 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:600">Fecha de Emisión</p>
-              <p style="margin:0;font-size:14px;color:#1e293b;font-weight:600">📅 ${fecha}</p>
-            </td>
-            <td style="width:10px"></td>
-            <td style="width:50%;vertical-align:top;padding:12px;background:#fff;border-radius:10px;border:1px solid #e2e8f0">
-              <p style="margin:0 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:600">Código Generación</p>
-              <p style="margin:0;font-size:13px;color:#1e293b;font-family:monospace;background:#f8fafc;padding:4px 8px;border-radius:4px;word-break:break-all">${codigoGen}</p>
-            </td>
-          </tr></table>
-        </div>
-        <div style="padding:16px 32px 0">
-          <div style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:16px">
-            <p style="margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:600">👤 Datos del Cliente</p>
-            <p style="margin:0;font-size:15px;color:#1e293b;font-weight:600">${receptor.nombre || 'Cliente General'}</p>
-            <p style="margin:4px 0 0;font-size:13px;color:#64748b">NIT: ${receptor.nit || 'N/A'} | ${receptor.correo || ''}</p>
-            <p style="margin:2px 0 0;font-size:12px;color:#94a3b8">Condición de pago: <strong style="color:#0a4b7a">${condicion}</strong></p>
+        <div style="padding:30px 32px;background:#fff;text-align:center">
+          <div style="width:60px;height:60px;margin:0 auto 16px;background:#f0f7ff;border-radius:50%;display:flex;align-items:center;justify-content:center">
+            <span style="font-size:28px">📄</span>
           </div>
-        </div>
-        <div style="padding:16px 32px 0">
-          <div style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden">
-            <table style="width:100%;border-collapse:collapse">
-              <thead><tr style="background:linear-gradient(135deg,#0a4b7a,#0d6eaa);color:#fff">
-                <th style="padding:12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px">#</th>
-                <th style="padding:12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Descripción</th>
-                <th style="padding:12px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Cant.</th>
-                <th style="padding:12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.5px">P. Unit.</th>
-                <th style="padding:12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Venta</th>
-              </tr></thead>
-              <tbody>${filas}</tbody>
-            </table>
-          </div>
-        </div>
-        <div style="padding:16px 32px 0">
-          <div style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:20px;max-width:320px;margin-left:auto">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px;color:#64748b">Subtotal</span><span style="font-size:13px;color:#475569;font-weight:500">$${formatNumber(resumen.subTotal)}</span></div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px;color:#64748b">IVA (13%)</span><span style="font-size:13px;color:#475569;font-weight:500">$${formatNumber(resumen.ivaRete1)}</span></div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px;color:#64748b">Retención</span><span style="font-size:13px;color:#475569;font-weight:500">$${formatNumber(resumen.reteRenta)}</span></div>
-            <div style="border-top:2px solid #0a4b7a;margin-top:12px;padding-top:12px">
-              <div style="display:flex;justify-content:space-between"><span style="font-size:16px;color:#0a4b7a;font-weight:700">TOTAL</span><span style="font-size:18px;color:#0a4b7a;font-weight:800">$${formatNumber(resumen.totalPagar)}</span></div>
+          <p style="font-size:16px;color:#1e293b;margin:0 0 8px">Hola <strong>${cliente || 'Cliente'}</strong>,</p>
+          <p style="font-size:14px;color:#475569;margin:0 0 20px">Adjuntamos su factura electrónica correspondiente a la operación realizada.</p>
+          <div style="background:#f8fafc;border-radius:10px;padding:16px;margin:0 auto;max-width:320px;text-align:left;border:1px solid #e2e8f0">
+            <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:600">Resumen</p>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:13px;color:#64748b">Número de Control</span>
+              <span style="font-size:13px;color:#1e293b;font-weight:600;font-family:monospace">${numeroCtrl}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:13px;color:#64748b">Código Generación</span>
+              <span style="font-size:11px;color:#1e293b;font-family:monospace;max-width:160px;word-break:break-all;text-align:right">${codigoGen}</span>
+            </div>
+            <div style="border-top:2px solid #0a4b7a;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between">
+              <span style="font-size:15px;color:#0a4b7a;font-weight:700">Total</span>
+              <span style="font-size:17px;color:#0a4b7a;font-weight:800">$${totalFmt}</span>
             </div>
           </div>
+          <p style="font-size:12px;color:#94a3b8;margin:20px 0 0">📎 El archivo PDF de su factura está adjunto a este correo.</p>
         </div>
-        <div style="padding:16px 32px 0">
-          <div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:14px;text-align:center">
-            <p style="margin:0;font-size:12px;color:#92400e">📎 El archivo JSON de la factura electrónica está adjunto a este correo</p>
-          </div>
-        </div>
-        <div style="padding:20px 32px 24px;text-align:center">
+        <div style="padding:16px 32px;text-align:center;background:#f8fafc">
           <p style="margin:0;font-size:11px;color:#94a3b8">Farmacias San Cupertino — Documento Tributario Electrónico</p>
           <p style="margin:4px 0 0;font-size:10px;color:#cbd5e1">Mensaje automático — No responder</p>
         </div>
       </div>`,
     attachments: [{
-      filename: `factura_${codigoGen}.json`,
-      content: Buffer.from(JSON.stringify(dteJson, null, 2)).toString('base64'),
-      type: 'application/json',
+      filename: `Factura_${numeroCtrl.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+      content: pdfBase64,
+      type: 'application/pdf',
       disposition: 'attachment'
     }]
   };
 
   try {
     const response = await sgMail.send(msg);
-    console.log(`✅ [SendGrid] Factura enviada a ${clienteEmail}: Status ${response[0].statusCode}`);
+    console.log(`✅ [SendGrid] Factura PDF enviada a ${email}: Status ${response[0].statusCode}`);
     return { success: true, message: 'Factura enviada correctamente' };
   } catch (error) {
-    console.error(`❌ [SendGrid] Error factura:`, error.response?.body || error.message);
+    console.error(`❌ [SendGrid] Error factura PDF:`, error.response?.body || error.message);
     throw error;
   }
 };
