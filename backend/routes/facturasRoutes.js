@@ -4,7 +4,6 @@ import { enviarFacturaPorCorreo } from '../services/email.js';
 
 const router = express.Router();
 
-// Obtener siguiente número correlativo
 router.get('/siguiente-correlativo', async (req, res) => {
   try {
     const [[{ total }]] = await sequelize.query(
@@ -17,7 +16,6 @@ router.get('/siguiente-correlativo', async (req, res) => {
   }
 });
 
-// Guardar factura emitida
 router.post('/', async (req, res) => {
   const { numero_control, codigo_generacion, id_venta, id_cliente, fecha_emision, total } = req.body;
   try {
@@ -32,17 +30,28 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Enviar factura por correo
+// Enviar factura con PDF adjunto
 router.post('/enviar', async (req, res) => {
   try {
-    const dteJson = req.body;
-    const clienteEmail = dteJson?.receptor?.correo;
+    const { email, pdfBase64, numero_control, codigo_generacion, total, cliente } = req.body;
 
-    if (!clienteEmail) {
-      return res.status(400).json({ error: 'El cliente no tiene correo registrado en el JSON' });
+    if (!email) {
+      return res.status(400).json({ error: 'No se proporcionó correo del cliente' });
     }
 
-    const resultado = await enviarFacturaPorCorreo(clienteEmail, dteJson);
+    if (!pdfBase64) {
+      return res.status(400).json({ error: 'No se proporcionó el PDF' });
+    }
+
+    const resultado = await enviarFacturaPorCorreo({
+      email,
+      pdfBase64,
+      numero_control,
+      codigo_generacion,
+      total,
+      cliente,
+    });
+
     res.status(200).json(resultado);
   } catch (error) {
     res.status(500).json({ error: error.message });
