@@ -2766,7 +2766,7 @@ function Empleados({ user }: { user: User }) {
     nombre:"", apellido:"", correo:"", telefono:"", 
     cargo:"cajero", fecha_contratacion:"", 
     dui:"", nit:"", cuenta_banco:"", afp:"" 
-  }); // ✅ Sin password
+  });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; empleadoId: number | null }>({ isOpen: false, empleadoId: null });
 
@@ -2853,7 +2853,6 @@ function Empleados({ user }: { user: User }) {
         await empleadosApi.update(editEmp.id_empleado, payload);
         setToast({ message: 'Empleado actualizado correctamente.', type: 'success' });
       } else {
-        // Nuevo empleado: usar el endpoint de registro con invitación
         await registrarEmpleado(payload);
         setToast({ message: 'Empleado registrado. Se ha enviado un correo de invitación.', type: 'success' });
       }
@@ -2878,22 +2877,6 @@ function Empleados({ user }: { user: User }) {
     }catch(e){ console.error(e); }
   }
 
-  // ✅ Forzar restablecimiento de contraseña
-  async function handleForzarRestablecimiento(id: number) {
-    if (!confirm('¿Forzar restablecimiento de contraseña para este empleado? El empleado deberá cambiarla en su próximo inicio de sesión.')) return;
-    try {
-      await api.patch(`/empleados/${id}/forzar-restablecimiento`, {
-        id_empleado_sesion: user.id,
-        nombre_empleado_sesion: user.name
-      });
-      setToast({ message: 'Restablecimiento forzado. El empleado deberá cambiar su contraseña.', type: 'success' });
-      load();
-    } catch (e: any) {
-      setToast({ message: e?.response?.data?.error || 'Error al forzar restablecimiento', type: 'error' });
-    }
-  }
-
-  // ✅ Eliminar (mover a papelera) con modal
   function handleDelete(id: number) {
     setConfirmModal({ isOpen: true, empleadoId: id });
   }
@@ -3083,15 +3066,6 @@ function Empleados({ user }: { user: User }) {
                           <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-[#d32f2f] bg-red-50 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
                             {emp.activo ? "Desactivar" : "Activar"}
                           </button>
-                          {/* ✅ Botón Forzar restablecimiento */}
-                          <button 
-                            onClick={() => handleForzarRestablecimiento(emp.id_empleado)} 
-                            className="text-purple-700 bg-purple-50 hover:bg-purple-100 p-1 rounded text-xs font-semibold px-2 py-0.5"
-                            title="Forzar restablecimiento de contraseña"
-                          >
-                            <RefreshCw size={12} />
-                          </button>
-                          {/* ✅ Botón desactivar/eliminar (si no tiene ventas) */}
                           {!emp.has_ventas && (
                             <button onClick={() => handleDelete(emp.id_empleado)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Desactivar empleado">
                               <Trash2 size={14} />
@@ -3197,7 +3171,6 @@ function Empleados({ user }: { user: User }) {
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha contratación</label>
                   <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} className="w-full" />
                 </div>
-                {/* ✅ Ya no hay campo de contraseña */}
               </div>
             </div>
 
@@ -4026,11 +3999,21 @@ function Auditoria({ user }: { user: User }) {
       {/* Tabla responsiva */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[12%]" />  {/* Fecha */}
+              <col className="w-[10%]" />  {/* Tabla */}
+              <col className="w-[10%]" />  {/* Acción */}
+              <col className="w-[18%]" />  {/* Descripción */}
+              <col className="w-[10%]" />  {/* Campo */}
+              <col className="w-[15%]" />  {/* Valor anterior */}
+              <col className="w-[15%]" />  {/* Valor nuevo */}
+              <col className="w-[10%]" />  {/* Empleado */}
+            </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 {["Fecha", "Tabla", "Acción", "Descripción", "Campo", "Valor anterior", "Valor nuevo", "Empleado"].map(h => (
-                  <th key={h} className="text-left py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 font-semibold">{h}</th>
+                  <th key={h} className="text-left py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 font-semibold truncate">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -4039,30 +4022,30 @@ function Auditoria({ user }: { user: User }) {
                 <tr><td colSpan={8} className="py-12 text-center text-gray-400">Cargando...</td></tr>
               ) : data.data.map((r, i) => (
                 <tr key={i} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 whitespace-nowrap">{formatFecha(r.fecha)}</td>
-                  <td className="py-2 px-2 md:py-3 md:px-4">
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 whitespace-nowrap truncate">{formatFecha(r.fecha)}</td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 truncate">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaColor[r.tabla] ?? 'bg-gray-100 text-gray-600'}`}>
                       {r.tabla}
                     </span>
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4">
+                  <td className="py-2 px-2 md:py-3 md:px-4 truncate">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accionColor[r.accion] ?? 'bg-gray-100 text-gray-600'}`}>
                       {r.accion}
                     </span>
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-700">{r.descripcion}</td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 font-mono">{r.campo_modificado ?? '—'}</td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs">
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-700 truncate max-w-0">{r.descripcion}</td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 font-mono truncate max-w-0">{r.campo_modificado ?? '—'}</td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
                     {r.valor_anterior
-                      ? <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded font-mono">{r.valor_anterior}</span>
+                      ? <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded font-mono truncate block max-w-full">{r.valor_anterior}</span>
                       : <span className="text-gray-400">—</span>}
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs">
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
                     {r.valor_nuevo
-                      ? <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded font-mono">{r.valor_nuevo}</span>
+                      ? <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded font-mono truncate block max-w-full">{r.valor_nuevo}</span>
                       : <span className="text-gray-400">—</span>}
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs">{r.nombre_empleado ?? '—'}</td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs truncate max-w-0">{r.nombre_empleado ?? '—'}</td>
                 </tr>
               ))}
               {!loading && data.data.length === 0 && (
