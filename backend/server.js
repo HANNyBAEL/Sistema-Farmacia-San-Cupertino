@@ -19,25 +19,20 @@ import proveedorRoutes from './routes/proveedores.js';
 import empleadoRoutes from './routes/empleados.js';
 import historialRoutes from './routes/historial.js';
 import eliminadosRoutes from './routes/eliminados.js';
-import facturasRouter from './routes/facturas.js';
 import auditoriaRoutes from './routes/auditoria.js';
 import facturasRoutes from './routes/facturasRoutes.js';
 
-
-
 const app = express();
 
-// ✅ Configuración CORS mejorada para producción
+// ✅ CORS primero
 const allowedOrigins = [
-  'https://farmacia-san-cupertino.onrender.com', // Tu frontend en Render
-  'http://localhost:3000',                       // Desarrollo local (React)
-  'http://localhost:5173'                        // Desarrollo local (Vite)
+  'https://farmacia-san-cupertino.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:5173'
 ];
-
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permitir solicitudes sin origen (como Postman) o si el origen está en la lista
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -46,11 +41,15 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // ✅ PATCH agregado
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Registro de rutas
+// ✅ Parsers ANTES de las rutas
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// ✅ Rutas DESPUÉS de los parsers
 app.use('/api/auth',        authRoutes);
 app.use('/api/productos',   productoRoutes);
 app.use('/api/ventas',      ventaRoutes);
@@ -60,10 +59,8 @@ app.use('/api/proveedores', proveedorRoutes);
 app.use('/api/empleados',   empleadoRoutes);
 app.use('/api/historial',   historialRoutes);
 app.use('/api/eliminados',  eliminadosRoutes);
-app.use('/api/facturas',    facturasRouter);
 app.use('/api/auditoria',   auditoriaRoutes);
-app.use('/api/facturas', facturasRoutes);
-app.use(express.json({ limit: '10mb' }));
+app.use('/api/facturas',    facturasRoutes);
 
 const PORT = process.env.PORT || 8000;
 
