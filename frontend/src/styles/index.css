@@ -2,205 +2,143 @@
 @import "tailwindcss";
 @import './theme.css';
 
-@layer base {
-  :root {
-    /* ── Capas base (light) ── */
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 210 70% 28%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 210 70% 28%;
-    --radius: 0.5rem;
-
-    /* ── Sidebar (light) ── */
-    --sidebar-bg: 210 70% 16%;
-    --sidebar-fg: 0 0% 100%;
-    --sidebar-accent: 210 70% 27%;
-    --sidebar-accent-fg: 0 0% 100%;
-    --sidebar-muted: 210 40% 45%;
-  }
-
-  .dark {
-    /* ═══════════════════════════════════════════════
-       MODO OSCURO — 4 capas de profundidad
-       fondo(7%) < muted(14%) < card(11%) < border(19%)
-       ═══════════════════════════════════════════════ */
-    --background: 222 20% 7%;
-    --foreground: 215 20% 90%;
-    --card: 222 16% 11%;
-    --card-foreground: 215 20% 90%;
-    --popover: 222 16% 11%;
-    --popover-foreground: 215 20% 90%;
-    --primary: 210 65% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 222 14% 16%;
-    --secondary-foreground: 215 20% 85%;
-    --muted: 222 14% 16%;
-    --muted-foreground: 215 12% 52%;
-    --accent: 222 12% 19%;
-    --accent-foreground: 215 20% 85%;
-    --border: 222 12% 19%;
-    --input: 222 14% 16%;
-    --ring: 210 65% 50%;
-
-    /* ── Sidebar (dark) — navy oscuro con contraste ── */
-    --sidebar-bg: 215 50% 9%;
-    --sidebar-fg: 215 20% 82%;
-    --sidebar-accent: 210 55% 25%;
-    --sidebar-accent-fg: 0 0% 100%;
-    --sidebar-muted: 215 20% 40%;
-  }
-}
-
 /* ═══════════════════════════════════════════════════════════
-   OVERRIDES DEL MODO OSCURO
-   Corrigen los colores hardcodeados de App.tsx
-   sin tocar el componente — mayor especificidad por .dark
+   OVERRIDES MODO OSCURO
+   Corrigen los colores hardcodeados en App.tsx
+   sin tocar el componente
    ═══════════════════════════════════════════════════════════ */
 
-/* ── Badges y fondos semánticos ── */
+/* ── Badges de stock y estado ── */
 .dark .bg-red-50,
 .dark .bg-red-100 {
-  background-color: hsl(0 50% 14%);
+  background-color: oklch(0.22 0.03 25);
 }
 
 .dark .bg-amber-50,
 .dark .bg-amber-100 {
-  background-color: hsl(38 50% 13%);
+  background-color: oklch(0.22 0.03 80);
 }
 
 .dark .bg-green-50,
 .dark .bg-green-100 {
-  background-color: hsl(142 40% 12%);
+  background-color: oklch(0.20 0.03 155);
 }
 
 .dark .bg-blue-50,
 .dark .bg-blue-100 {
-  background-color: hsl(210 40% 14%);
+  background-color: oklch(0.22 0.03 250);
 }
 
-/* ── Texto semántico ── */
+/* ── Texto semántico sobre fondos oscuros ── */
 .dark .text-red-600,
 .dark .text-red-700 {
-  color: hsl(0 72% 55%);
+  color: oklch(0.65 0.2 25);
 }
 
 .dark .text-amber-600,
 .dark .text-amber-700 {
-  color: hsl(38 90% 55%);
+  color: oklch(0.75 0.15 80);
 }
 
 .dark .text-green-600,
 .dark .text-green-700 {
-  color: hsl(142 70% 50%);
+  color: oklch(0.70 0.15 155);
 }
 
 .dark .text-blue-600,
 .dark .text-blue-700 {
-  color: hsl(210 65% 60%);
+  color: oklch(0.65 0.15 250);
 }
 
-/* ── Grises de Tailwind ── */
+/* ── Grises de Tailwind usados en App.tsx ── */
 .dark .bg-gray-50 {
-  background-color: hsl(var(--muted));
+  background-color: var(--muted);
 }
 
 .dark .text-gray-500 {
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
 }
 
 .dark .text-gray-700 {
-  color: hsl(var(--foreground));
+  color: var(--foreground);
 }
 
 .dark .placeholder-gray-400::placeholder {
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
 }
 
 /* ── Hex hardcodeados en App.tsx ── */
 .dark .bg-\[\#f8fafc\] {
-  background-color: hsl(var(--input));
+  background-color: var(--input-background);
 }
 
 .dark .bg-\[\#e3f2fd\] {
-  background-color: hsl(210 40% 14%);
+  background-color: oklch(0.24 0.03 250);
 }
 
 .dark .bg-\[\#f0f7ff\] {
-  background-color: hsl(210 40% 14%);
+  background-color: oklch(0.22 0.03 250);
 }
 
 .dark .text-\[\#0a2a44\] {
-  color: hsl(var(--foreground));
+  color: var(--foreground);
 }
 
 .dark .text-\[\#0a4b7a\] {
-  color: hsl(210 65% 60%);
+  color: oklch(0.65 0.15 250);
 }
 
-/* ── Botones: danger ── */
+/* ── Botón danger ── */
 .dark .bg-\[\#d32f2f\] {
-  background-color: hsl(0 72% 45%);
+  background-color: oklch(0.55 0.2 25);
 }
 
 .dark .hover\:bg-\[\#c62828\]:hover {
-  background-color: hsl(0 70% 38%);
+  background-color: oklch(0.48 0.18 25);
 }
 
 .dark .hover\:text-\[\#d32f2f\]:hover {
-  color: hsl(0 72% 55%);
+  color: oklch(0.65 0.2 25);
 }
 
-/* ── Botones: primary hover ── */
+/* ── Botón primary hover ── */
 .dark .hover\:bg-\[\#0d5c96\]:hover {
-  background-color: hsl(210 65% 38%);
+  background-color: oklch(0.50 0.14 250);
 }
 
-/* ── Botones: secondary hover ── */
+/* ── Botón secondary hover ── */
 .dark .hover\:bg-\[\#e3f2fd\]:hover {
-  background-color: hsl(210 40% 14%);
+  background-color: oklch(0.26 0.03 250);
 }
 
-/* ── Borders y Focus ── */
+/* ── Borders y focus ── */
 .dark .border-\[\#0a4b7a\] {
-  border-color: hsl(210 55% 30%);
+  border-color: oklch(0.35 0.06 250);
 }
 
 .dark .focus\:border-\[\#0a4b7a\]:focus {
-  border-color: hsl(210 65% 50%);
+  border-color: oklch(0.58 0.14 250);
 }
 
 .dark .focus\:ring-\[\#0a4b7a\]\/30:focus {
-  --tw-ring-color: hsl(210 65% 50% / 0.3);
+  --tw-ring-color: oklch(0.58 0.14 250 / 0.3);
 }
 
-/* ── Scrollbar en modo oscuro ── */
+/* ── Scrollbar ── */
 .dark ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: hsl(222 16% 11%);
+  background: var(--background);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: hsl(222 12% 22%);
+  background: oklch(0.30 0.02 250);
   border-radius: 3px;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: hsl(222 12% 30%);
+  background: oklch(0.38 0.025 250);
 }
