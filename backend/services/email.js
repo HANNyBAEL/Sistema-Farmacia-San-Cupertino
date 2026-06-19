@@ -132,8 +132,9 @@ export const enviarFacturaPorCorreo = async (clienteEmail, dteJson) => {
       </div>`,
     attachments: [{
       filename: `factura_${codigoGen}.json`,
-      content: JSON.stringify(dteJson, null, 2),
-      contentType: 'application/json'
+      content: Buffer.from(JSON.stringify(dteJson, null, 2)).toString('base64'),
+      type: 'application/json',
+      disposition: 'attachment'
     }]
   };
 
