@@ -33,12 +33,14 @@ import crypto from 'crypto';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Role = "administrador" | "farmaceutico" | "cajero";
-type Screen =
-  | "dashboard" | "ventas" | "productos" | "clientes"
-  | "empleados" | "proveedores" | "alertas"
-  | "historial" | "eliminados"| "auditoria";
+type Screen = "dashboard" | "ventas" | "productos" | "clientes" | "empleados" | "proveedores" | "alertas" | "historial" | "eliminados" | "auditoria";
 
-interface User { name: string; role: Role; id: number; }
+
+  interface User {
+  name: string;
+  role: Role;
+  id: number;
+}
 
 interface Product {
   codigo_barras: string;
@@ -1239,38 +1241,50 @@ function Productos({ user }: { user: User }) {
       <Card className="overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <div className="min-w-[1200px]">
-            <table className="w-full text-xs sm:text-sm table-auto">
+            <table className="w-full text-xs sm:text-sm table-fixed">
+              <colgroup>
+                <col className="w-[18%]" />  {/* Nombre */}
+                <col className="w-[12%]" />  {/* Categoría */}
+                <col className="w-[8%]" />   {/* Precio */}
+                <col className="w-[7%]" />   {/* Stock */}
+                <col className="w-[10%]" />  {/* Lote */}
+                <col className="w-[12%]" />  {/* Código barras */}
+                <col className="w-[10%]" />  {/* Vencimiento */}
+                <col className="w-[12%]" />  {/* Proveedor */}
+                <col className="w-[7%]" />   {/* Estado */}
+                <col className="w-[14%]" />  {/* Acciones */}
+              </colgroup>
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-100">
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Nombre</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Categoría</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Precio</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Stock</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Lote</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Código barras</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Venc.</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Proveedor</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">Acciones</th>
-                 </tr>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Nombre</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Categoría</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Precio</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Stock</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Lote</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Código barras</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Venc.</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Proveedor</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Estado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Acciones</th>
+                </tr>
               </thead>
               <tbody>
-                {filtered.map(p=>(
+                {filtered.map(p => (
                   <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${p.deleted ? 'opacity-60 bg-gray-50' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-gray-50'}`}>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] whitespace-nowrap">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] whitespace-nowrap truncate max-w-0">
                       <Expandable text={p.nombre_producto} maxLength={20} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap truncate max-w-0">
                       {p.categorias_nombres ? (() => {
                         const cats = p.categorias_nombres.split(', ');
                         const primera = cats[0];
                         const resto = cats.slice(1);
                         return (
                           <div className="flex items-center gap-0.5 flex-wrap">
-                            <span className="inline-block bg-blue-50 text-blue-700 text-[9px] sm:text-xs px-1 py-0.5 rounded">{primera}</span>
+                            <span className="inline-block bg-blue-50 text-blue-700 text-[9px] sm:text-xs px-1 py-0.5 rounded truncate max-w-full">{primera}</span>
                             {resto.length > 0 && (
                               <div className="relative group">
-                                <button className="inline-flex items-center justify-center w-4 h-4 bg-blue-100 text-blue-700 text-[9px] rounded-full font-bold hover:bg-blue-200 transition-colors">
+                                <button className="inline-flex items-center justify-center w-4 h-4 bg-blue-100 text-blue-700 text-[9px] rounded-full font-bold hover:bg-blue-200 transition-colors flex-shrink-0">
                                   +{resto.length}
                                 </button>
                                 <div className="absolute left-0 top-5 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-1.5 min-w-max">
@@ -1287,10 +1301,10 @@ function Productos({ user }: { user: User }) {
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-[#0a4b7a] font-semibold whitespace-nowrap text-[10px] sm:text-sm">${Number(p.precio).toFixed(2)}</td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs"><Expandable text={p.lote} maxLength={10} /></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs"><Expandable text={p.codigo_barras} maxLength={12} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><Expandable text={p.lote} maxLength={10} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><Expandable text={p.codigo_barras} maxLength={12} /></td>
                     <td className={`py-2 px-2 sm:py-3 sm:px-3 text-[9px] sm:text-xs font-mono whitespace-nowrap ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 whitespace-nowrap text-[9px] sm:text-xs"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                       <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                         {p.deleted ? "Inactivo" : "Activo"}
@@ -1298,18 +1312,18 @@ function Productos({ user }: { user: User }) {
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <button onClick={()=>openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar">
+                        <button onClick={() => openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={()=>handleToggle(p.id_producto, p.deleted)}
+                          onClick={() => handleToggle(p.id_producto, p.deleted)}
                           className={`p-1 rounded text-[9px] sm:text-xs font-semibold px-1 sm:px-2 py-0.5 ${p.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
                           title={p.deleted ? "Activar producto" : "Desactivar producto"}
                         >
                           {p.deleted ? "Activar" : "Desactivar"}
                         </button>
                         {!p.has_ventas && (
-                          <button onClick={()=>handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera">
+                          <button onClick={() => handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -1317,7 +1331,7 @@ function Productos({ user }: { user: User }) {
                     </td>
                   </tr>
                 ))}
-                {filtered.length===0 && (
+                {filtered.length === 0 && (
                   <tr><td colSpan={10} className="py-6 sm:py-10 text-center text-gray-400">Sin productos.</td></tr>
                 )}
               </tbody>
