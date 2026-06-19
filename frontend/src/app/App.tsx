@@ -1451,6 +1451,14 @@ function Ventas({ user }: { user: User }) {
 
   const cartContainerRef = useRef<HTMLDivElement>(null);
 
+  // Helper: extraer string de campos que a veces vienen como objeto de la BD
+  function extraerString(valor: any): string {
+    if (valor == null) return '';
+    if (typeof valor === 'string') return valor.trim();
+    if (typeof valor === 'object') return valor.valor || valor.email || valor.direccion || valor.numero || String(valor);
+    return String(valor);
+  }
+
   function formatDUI(value: string): string {
     const digits = value.replace(/\D/g, '').slice(0, 9);
     if (digits.length <= 8) return digits;
@@ -1642,16 +1650,18 @@ function Ventas({ user }: { user: User }) {
             // =====================================================================
             // GENERAR PDF EN BASE64 Y ENVIAR POR CORREO
             // =====================================================================
+            const clienteCorreo = extraerString(selectedClient?.correo);
+
             const datosFactura = {
               numero_control,
               codigo_generacion,
               fecha_emision: fechaHoraLocal,
               receptor: {
-                nombre: `${selectedClient!.nombre} ${selectedClient!.apellido}`,
-                dui: selectedClient!.dui,
-                correo: selectedClient!.correo,
-                telefono: selectedClient!.telefono,
-                direccion: selectedClient!.direccion,
+                nombre: `${extraerString(selectedClient?.nombre)} ${extraerString(selectedClient?.apellido)}`,
+                dui: extraerString(selectedClient?.dui),
+                correo: clienteCorreo,
+                telefono: extraerString(selectedClient?.telefono),
+                direccion: extraerString(selectedClient?.direccion),
               },
               items: cart.map(i => ({
                 codigo: i.product.id_producto,
@@ -1664,20 +1674,25 @@ function Ventas({ user }: { user: User }) {
               empleado: user.name,
             };
 
-            // Generar el PDF como base64 para enviar por correo
-            const pdfBase64 = generarFacturaPDFBase64(datosFactura);
-
-            // Enviar PDF al backend para que lo mande por correo
-            await api.post('/facturas/enviar', {
-              email: selectedClient?.correo,
-              pdfBase64: pdfBase64,
-              numero_control: numero_control,
-              codigo_generacion: codigo_generacion,
-              total: ventaResp.total,
-              cliente: `${selectedClient!.nombre} ${selectedClient!.apellido}`,
-            });
-
-            setToast({ message: "Factura enviada al correo del cliente.", type: 'success' });
+            if (clienteCorreo && !clienteCorreo.includes('object') && clienteCorreo.includes('@')) {
+              try {
+                const pdfBase64 = generarFacturaPDFBase64(datosFactura);
+                await api.post('/facturas/enviar', {
+                  email: clienteCorreo,
+                  pdfBase64: pdfBase64,
+                  numero_control: numero_control,
+                  codigo_generacion: codigo_generacion,
+                  total: ventaResp.total,
+                  cliente: `${extraerString(selectedClient?.nombre)} ${extraerString(selectedClient?.apellido)}`,
+                });
+                setToast({ message: "Factura enviada al correo del cliente.", type: 'success' });
+              } catch (emailErr) {
+                console.error("Error enviando correo:", emailErr);
+                setToast({ message: "Factura generada pero error al enviar por correo.", type: 'error' });
+              }
+            } else {
+              setToast({ message: "El cliente no tiene correo electrónico válido.", type: 'error' });
+            }
             // =====================================================================
 
             // Generar el PDF visual para descarga local
@@ -2022,7 +2037,6 @@ function Ventas({ user }: { user: User }) {
     </div>
   );
 }
-
 // ── Clientes ──────────────────────────────────────────────────────────────────
 function Clientes({ user }: { user: User }) {
   const [clients, setClients] = useState<Client[]>([]);
