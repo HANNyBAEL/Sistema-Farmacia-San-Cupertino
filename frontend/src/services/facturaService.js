@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/facturas'; // Cambia el puerto según tu backend
+const API_URL = 'https://farmacia-backend-0vrq.onrender.com'; // Cambia el puerto según tu backend
 
 export const generarYEnviarFactura = async (dteJson) => {
     try {
