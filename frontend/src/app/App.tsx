@@ -1989,27 +1989,28 @@ function Ventas({ user }: { user: User }) {
 
 // ── Clientes ──────────────────────────────────────────────────────────────────
 function Clientes({ user }: { user: User }) {
-  const [clients, setClients]   = useState<Client[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState("");
-  const [filterDui, setFilterDui]       = useState("");
-  const [filterTel, setFilterTel]       = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterDui, setFilterDui] = useState("");
+  const [filterTel, setFilterTel] = useState("");
   const [filterCorreo, setFilterCorreo] = useState("");
-  const [filterDir, setFilterDir]       = useState("");
+  const [filterDir, setFilterDir] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editClient, setEditClient] = useState<Client | null>(null);
-  const [form, setForm]         = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
-  const [originalForm, setOriginalForm] = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" });
+  const [form, setForm] = useState({ nombre: "", apellido: "", telefono: "", correo: "", direccion: "", dui: "" });
+  const [originalForm, setOriginalForm] = useState({ nombre: "", apellido: "", telefono: "", correo: "", direccion: "", dui: "" });
   const [formError, setFormError] = useState("");
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; clienteId: number | null }>({ isOpen: false, clienteId: null });
+  const [toggleModal, setToggleModal] = useState<{ isOpen: boolean; clienteId: number | null; deleted: number }>({ isOpen: false, clienteId: null, deleted: 0 });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   async function load() {
     setLoading(true);
-    try { setClients(await clientesApi.getAll()); } catch(e){console.error(e);} finally{setLoading(false);}
+    try { setClients(await clientesApi.getAll()); } catch (e) { console.error(e); } finally { setLoading(false); }
   }
-  useEffect(()=>{load();},[]);
+  useEffect(() => { load(); }, []);
 
   useEffect(() => {
     if (toast) {
@@ -2020,52 +2021,47 @@ function Clientes({ user }: { user: User }) {
 
   const filtered = clients.filter(c => {
     if (search && !`${c.nombre} ${c.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
-    if (filterDui    && !(c.dui ?? "").toLowerCase().startsWith(filterDui.toLowerCase())) return false;
-    if (filterTel    && !c.telefono.toLowerCase().startsWith(filterTel.toLowerCase())) return false;
+    if (filterDui && !(c.dui ?? "").toLowerCase().startsWith(filterDui.toLowerCase())) return false;
+    if (filterTel && !c.telefono.toLowerCase().startsWith(filterTel.toLowerCase())) return false;
     if (filterCorreo && !c.correo.toLowerCase().startsWith(filterCorreo.toLowerCase())) return false;
-    if (filterDir    && !(c.direccion ?? "").toLowerCase().startsWith(filterDir.toLowerCase())) return false;
-    if (filterEstado === "activo"   &&  c.deleted) return false;
+    if (filterDir && !(c.direccion ?? "").toLowerCase().startsWith(filterDir.toLowerCase())) return false;
+    if (filterEstado === "activo" && c.deleted) return false;
     if (filterEstado === "inactivo" && !c.deleted) return false;
     return true;
   });
 
-  const hayFiltros = !!(filterDui||filterTel||filterCorreo||filterDir||filterEstado);
+  const hayFiltros = !!(filterDui || filterTel || filterCorreo || filterDir || filterEstado);
   function limpiarFiltros() {
     setFilterDui(""); setFilterTel(""); setFilterCorreo("");
     setFilterDir(""); setFilterEstado("");
   }
 
-  const hasChanges = () => {
-    return (
-      form.nombre !== originalForm.nombre ||
-      form.apellido !== originalForm.apellido ||
-      form.telefono !== originalForm.telefono ||
-      form.correo !== originalForm.correo ||
-      form.direccion !== originalForm.direccion ||
-      form.dui !== originalForm.dui
-    );
-  };
+  const hasChanges = () =>
+    form.nombre !== originalForm.nombre ||
+    form.apellido !== originalForm.apellido ||
+    form.telefono !== originalForm.telefono ||
+    form.correo !== originalForm.correo ||
+    form.direccion !== originalForm.direccion ||
+    form.dui !== originalForm.dui;
 
-  function openNew(){
+  function openNew() {
     setEditClient(null);
-    const initialForm = { nombre:"", apellido:"", telefono:"", correo:"", direccion:"", dui:"" };
-    setForm(initialForm);
-    setOriginalForm(initialForm);
+    const initial = { nombre: "", apellido: "", telefono: "", correo: "", direccion: "", dui: "" };
+    setForm(initial);
+    setOriginalForm(initial);
     setFormError("");
     setShowForm(true);
   }
-  function openEdit(c:Client){
+
+  function openEdit(c: Client) {
     setEditClient(c);
-    const initialForm = {
-      nombre: c.nombre,
-      apellido: c.apellido,
-      telefono: c.telefono ?? "",
-      correo: c.correo ?? "",
-      direccion: c.direccion ?? "",
-      dui: c.dui ?? ""
+    const initial = {
+      nombre: c.nombre, apellido: c.apellido,
+      telefono: c.telefono ?? "", correo: c.correo ?? "",
+      direccion: c.direccion ?? "", dui: c.dui ?? ""
     };
-    setForm(initialForm);
-    setOriginalForm(initialForm);
+    setForm(initial);
+    setOriginalForm(initial);
     setFormError("");
     setShowForm(true);
   }
@@ -2075,10 +2071,14 @@ function Clientes({ user }: { user: User }) {
       setFormError("Complete los campos obligatorios."); return;
     }
     try {
-      if (editClient) await clientesApi.update(editClient.id_cliente, { ...form, id_empleado: user.id, nombre_empleado: user.name });
-      else            await clientesApi.create({ ...form, id_empleado: user.id, nombre_empleado: user.name });
-      setShowForm(false); load();
-    } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
+      const payload = { ...form, id_empleado: user.id, nombre_empleado: user.name };
+      if (editClient) await clientesApi.update(editClient.id_cliente, payload);
+      else await clientesApi.create(payload);
+      setShowForm(false);
+      load();
+    } catch (e: any) {
+      setFormError(e?.response?.data?.error ?? "Error al guardar.");
+    }
   }
 
   function handleDelete(id: number) {
@@ -2089,126 +2089,87 @@ function Clientes({ user }: { user: User }) {
     if (confirmModal.clienteId === null) return;
     try {
       await api.patch(`/clientes/${confirmModal.clienteId}/papelera`, {
-        id_empleado: user.id,
-        nombre_empleado: user.name
+        id_empleado: user.id, nombre_empleado: user.name
       });
       setConfirmModal({ isOpen: false, clienteId: null });
       setToast({ message: "Cliente movido a papelera correctamente.", type: 'success' });
       load();
     } catch (e: any) {
       setConfirmModal({ isOpen: false, clienteId: null });
-      setToast({
-        message: e?.response?.data?.error ?? "No se puede mover este cliente a la papelera porque tiene ventas asociadas.",
-        type: 'error'
-      });
+      setToast({ message: e?.response?.data?.error ?? "No se puede mover a la papelera porque tiene ventas asociadas.", type: 'error' });
     }
   }
 
-  async function handleToggle(id: number, deleted: number) {
-    const accion = deleted ? "activar" : "desactivar";
-    if (!confirm(`¿Deseas ${accion} este cliente?`)) return;
+  function handleToggle(id: number, deleted: number) {
+    setToggleModal({ isOpen: true, clienteId: id, deleted });
+  }
+
+  async function confirmToggle() {
+    if (toggleModal.clienteId === null) return;
     try {
-      await api.patch(`/clientes/${id}/toggle`, { id_empleado: user.id, nombre_empleado: user.name });
+      await api.patch(`/clientes/${toggleModal.clienteId}/toggle`, {
+        id_empleado: user.id, nombre_empleado: user.name
+      });
+      setToggleModal({ isOpen: false, clienteId: null, deleted: 0 });
+      setToast({ message: "Estado actualizado correctamente.", type: 'success' });
       load();
     } catch (e: any) {
-      alert(e?.response?.data?.error ?? `Error al ${accion} el cliente.`);
+      setToggleModal({ isOpen: false, clienteId: null, deleted: 0 });
+      setToast({ message: e?.response?.data?.error ?? "Error al cambiar estado.", type: 'error' });
     }
   }
 
-  if(loading) return <LoadingSpinner/>;
+  if (loading) return <LoadingSpinner />;
 
-  function formatDUI(value: string): string {
-    const digits = value.replace(/\D/g, '').slice(0, 9);
-    if (digits.length <= 8) return digits;
-    return `${digits.slice(0, 8)}-${digits.slice(8, 9)}`;
+  function formatDUI(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 9);
+    if (d.length <= 8) return d;
+    return `${d.slice(0, 8)}-${d.slice(8, 9)}`;
   }
 
-  function formatPhone(value: string): string {
-    const digits = value.replace(/\D/g, '').slice(0, 8);
-    if (digits.length <= 4) return digits;
-    return `${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
+  function formatPhone(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 8);
+    if (d.length <= 4) return d;
+    return `${d.slice(0, 4)}-${d.slice(4)}`;
   }
 
-  const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
-    const [show, setShow] = useState(false);
-    if (!text) return <span className="text-muted-foreground">—</span>;
-    const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
-    const isLong = text.length > maxLength;
-    return (
-      <>
-        <span className="inline-flex items-center gap-1">
-          {truncated}
-          {isLong && (
-            <button
-              onClick={() => setShow(true)}
-              className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
-              title="Ver completo"
-            >
-              +
-            </button>
-          )}
-        </span>
-        {show && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
-            <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-lg">Información completa</h3>
-                <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
-              </div>
-              <div className="text-sm text-foreground break-words max-h-96 overflow-y-auto">
-                {text}
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Btn variant="secondary" size="sm" onClick={() => setShow(false)}>Cerrar</Btn>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
+  const fmtClass = "w-full px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors";
 
-  return(
-    <div className="p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-xl font-bold text-foreground">Gestión de Clientes</h1>
-        <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo cliente</Btn>
-      </div>
-
-      {/* Filtros en línea horizontal */}
-      <Card className="p-4">
-        <div className="flex flex-wrap items-end gap-3 md:gap-4">
+  return (
+    <PageLayout
+      title="Gestión de Clientes"
+      subtitle={`${filtered.length} de ${clients.length} clientes`}
+      actions={
+        <Btn onClick={openNew}><Plus size={14} /> Nuevo cliente</Btn>
+      }
+    >
+      {/* ── Filtros ── */}
+      <SectionCard
+        title="Filtros"
+        actions={
+          hayFiltros && (
+            <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
+              <X size={14} /> Limpiar
+            </Btn>
+          )
+        }
+      >
+        <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
           <div className="flex-1 min-w-[180px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
+              <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
             </div>
           </div>
-
           <div className="flex-1 min-w-[130px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI</label>
-            <input
-              value={formatDUI(filterDui)}
-              onChange={e => setFilterDui(e.target.value)}
-              placeholder="00000000-0"
-              maxLength={10}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
-            />
+            <input value={formatDUI(filterDui)} onChange={e => setFilterDui(e.target.value)} placeholder="00000000-0" maxLength={10} className={fmtClass} />
           </div>
-
           <div className="flex-1 min-w-[130px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
-            <input
-              value={formatPhone(filterTel)}
-              onChange={e => setFilterTel(e.target.value)}
-              placeholder="0000-0000"
-              maxLength={9}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
-            />
+            <input value={formatPhone(filterTel)} onChange={e => setFilterTel(e.target.value)} placeholder="0000-0000" maxLength={9} className={fmtClass} />
           </div>
-
           <div className="flex-1 min-w-[130px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
@@ -2217,32 +2178,22 @@ function Clientes({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
-
           <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
-            <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
-              className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
+            <input value={filterCorreo} onChange={e => setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com" className={fmtClass} />
           </div>
-
           <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Dirección</label>
-            <input value={filterDir} onChange={e=>setFilterDir(e.target.value)} placeholder="Calle, colonia..."
-              className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
+            <input value={filterDir} onChange={e => setFilterDir(e.target.value)} placeholder="Calle, colonia..." className={fmtClass} />
           </div>
+        </FilterBar>
+      </SectionCard>
 
-          <div className="flex items-end">
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
-              <X size={14} /> Limpiar filtros
-            </Btn>
-          </div>
-        </div>
-      </Card>
-
-      {/* Tabla (sin cambios) */}
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      {/* ── Tabla ── */}
+      <SectionCard title="Listado de clientes" className="overflow-hidden">
+        <div className="overflow-x-auto">
           <div className="min-w-[900px]">
-            <table className="w-full text-xs sm:text-sm table-fixed">
+            <table className="w-full text-sm table-fixed">
               <colgroup>
                 <col className="w-[20%]" />
                 <col className="w-[12%]" />
@@ -2254,124 +2205,157 @@ function Clientes({ user }: { user: User }) {
               </colgroup>
               <thead className="bg-muted">
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Nombre</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">DUI</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Teléfono</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Correo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Dirección</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Acciones</th>
-                 </tr>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Nombre</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">DUI</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Teléfono</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Correo</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Dirección</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Estado</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Acciones</th>
+                </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {filtered.map(c => (
-                  <tr key={c.id_cliente} className={`border-b border-gray-50 hover:bg-muted transition-colors ${c.deleted ? 'opacity-60 bg-muted' : ''}`}>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-foreground break-words whitespace-normal">
-                      <Expandable text={`${c.nombre} ${c.apellido}`} maxLength={25} />
+                  <tr
+                    key={c.id_cliente}
+                    className={`transition-colors ${c.deleted ? 'opacity-50 bg-muted/50' : 'hover:bg-muted/50'}`}
+                  >
+                    <td className="py-2.5 px-3 font-medium text-foreground whitespace-nowrap">
+                      <ExpandableCell text={`${c.nombre} ${c.apellido}`} maxLength={22} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                      {c.dui ? <Expandable text={c.dui} maxLength={12} /> : <span className="text-muted-foreground">—</span>}
+                    <td className="py-2.5 px-3 text-muted-foreground font-mono text-xs whitespace-nowrap">
+                      {c.dui ? <ExpandableCell text={c.dui} maxLength={12} /> : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                      <Expandable text={c.telefono} maxLength={12} />
+                    <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                      <ExpandableCell text={c.telefono} maxLength={12} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                      <Expandable text={c.correo} maxLength={25} />
+                    <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                      <ExpandableCell text={c.correo} maxLength={22} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                      <Expandable text={c.direccion ?? "—"} maxLength={30} />
+                    <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                      <ExpandableCell text={c.direccion ?? "—"} maxLength={28} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.deleted ? 'bg-destructive/10 text-destructive' : 'bg-green-50 text-green-700'}`}>
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        c.deleted
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                      }`}>
                         {c.deleted ? "Inactivo" : "Activo"}
                       </span>
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <button onClick={()=>openEdit(c)} className="text-primary hover:text-[#0d5c96] p-1 rounded hover:bg-primary/10" title="Editar"><Edit2 size={14}/></button>
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1">
                         <button
-                          onClick={()=>handleToggle(c.id_cliente, c.deleted ?? 0)}
-                          className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${c.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                          onClick={() => openEdit(c)}
+                          className="text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleToggle(c.id_cliente, c.deleted ?? 0)}
+                          className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${
+                            c.deleted
+                              ? 'text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30'
+                              : 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/30'
+                          }`}
                           title={c.deleted ? "Activar cliente" : "Desactivar cliente"}
                         >
                           {c.deleted ? "Activar" : "Desactivar"}
                         </button>
                         {!c.has_ventas && (
-                          <button onClick={()=>handleDelete(c.id_cliente)} className="text-destructive p-1 rounded hover:bg-destructive/10" title="Mover a papelera"><Trash2 size={14}/></button>
+                          <button
+                            onClick={() => handleDelete(c.id_cliente)}
+                            className="text-destructive p-1 rounded hover:bg-destructive/10 transition-colors"
+                            title="Mover a papelera"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         )}
                       </div>
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="py-6 sm:py-10 text-center text-muted-foreground">Sin clientes.</td>
-                  </tr>
-                )}
               </tbody>
             </table>
+
+            {filtered.length === 0 && (
+              <EmptyState
+                icon={<Users size={40} />}
+                title="Sin clientes"
+                description="No se encontraron clientes con los filtros aplicados."
+              />
+            )}
           </div>
         </div>
-      </Card>
+      </SectionCard>
 
-      {showForm&&(
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+      {/* ── Modal de formulario ── */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-foreground">{editClient?"Editar Cliente":"Nuevo Cliente"}</h2>
-              <button onClick={()=>setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground"><X size={20}/></button>
+              <h2 className="text-lg font-bold text-foreground">{editClient ? "Editar Cliente" : "Nuevo Cliente"}</h2>
+              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground transition-colors p-1">
+                <X size={20} />
+              </button>
             </div>
-            {formError&&<div className="mb-4 flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
-            <div className="space-y-3">
+
+            <ErrorAlert message={formError} />
+
+            <div className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input value={form.nombre} onChange={v=>setForm(p=>({...p,nombre:v}))} placeholder="Nombre" className="w-full" />
+                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input value={form.apellido} onChange={v=>setForm(p=>({...p,apellido:v}))} placeholder="Apellido" className="w-full" />
+                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI</label>
                 <input
-                  value={formatDUI(form.dui)} 
-                  onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} 
-                  placeholder="00000000-0" 
+                  value={formatDUI(form.dui)}
+                  onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))}
+                  placeholder="00000000-0"
                   maxLength={10}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
+                  className={fmtClass}
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono *</label>
                 <input
-                  value={formatPhone(form.telefono)} 
-                  onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} 
-                  placeholder="0000-0000" 
+                  value={formatPhone(form.telefono)}
+                  onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
+                  placeholder="0000-0000"
                   maxLength={9}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
+                  className={fmtClass}
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
-                <Input type="email" value={form.correo} onChange={v=>setForm(p=>({...p,correo:v}))} placeholder="correo@ejemplo.com" className="w-full" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo *</label>
+                <Input type="email" value={form.correo} onChange={v => setForm(p => ({ ...p, correo: v }))} placeholder="correo@ejemplo.com" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Dirección</label>
-                <Input value={form.direccion} onChange={v=>setForm(p=>({...p,direccion:v}))} placeholder="Dirección opcional" className="w-full" />
+                <Input value={form.direccion} onChange={v => setForm(p => ({ ...p, direccion: v }))} placeholder="Dirección opcional" />
               </div>
             </div>
-            <div className="flex justify-end gap-3 mt-5">
-              <Btn variant="secondary" onClick={()=>setShowForm(false)}>Cancelar</Btn>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
               <Btn variant="primary" onClick={saveForm} disabled={!hasChanges()}>
-                <Check size={14}/> Registrar
+                <Check size={14} /> {editClient ? "Guardar cambios" : "Registrar"}
               </Btn>
             </div>
           </Card>
         </div>
       )}
 
+      {/* ── Modales de confirmación ── */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title="Mover a papelera"
@@ -2382,17 +2366,19 @@ function Clientes({ user }: { user: User }) {
         variant="danger"
       />
 
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'
-          }`}>
-            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
-            {toast.message}
-          </div>
-        </div>
-      )}
-    </div>
+      <ConfirmModal
+        isOpen={toggleModal.isOpen}
+        title={toggleModal.deleted ? "Activar cliente" : "Desactivar cliente"}
+        message={`¿Estás seguro de que deseas ${toggleModal.deleted ? 'activar' : 'desactivar'} este cliente?`}
+        onConfirm={confirmToggle}
+        onCancel={() => setToggleModal({ isOpen: false, clienteId: null, deleted: 0 })}
+        confirmText={toggleModal.deleted ? "Activar" : "Desactivar"}
+        variant={toggleModal.deleted ? "primary" : "danger"}
+      />
+
+      {/* ── Toast ── */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </PageLayout>
   );
 }
 
@@ -2765,40 +2751,41 @@ function Proveedores({ user }: { user: User }) {
 // ── Empleados ─────────────────────────────────────────────────────────────────
 function Empleados({ user }: { user: User }) {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState("");
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [filterCargo, setFilterCargo] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
-  const [showForm, setShowForm]   = useState(false);
-  const [editEmp, setEditEmp]     = useState<Empleado | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editEmp, setEditEmp] = useState<Empleado | null>(null);
   const [formError, setFormError] = useState("");
-  const [form, setForm] = useState({ 
-    nombre:"", apellido:"", correo:"", telefono:"", 
-    cargo:"cajero", fecha_contratacion:"", 
-    dui:"", nit:"", cuenta_banco:"", afp:"" 
+  const [form, setForm] = useState({
+    nombre: "", apellido: "", correo: "", telefono: "",
+    cargo: "cajero", fecha_contratacion: "",
+    dui: "", nit: "", cuenta_banco: "", afp: ""
   });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; empleadoId: number | null }>({ isOpen: false, empleadoId: null });
+  const [toggleModal, setToggleModal] = useState<{ isOpen: boolean; empleadoId: number | null; activo: number }>({ isOpen: false, empleadoId: null, activo: 0 });
 
-  const CARGOS = ["administrador","farmaceutico","cajero"];
-  const CARGO_COLOR: Record<string,string> = { 
-    administrador:"bg-primary/10 text-primary", 
-    farmaceutico:"bg-[#e8f5e9] text-green-800", 
-    cajero:"bg-[#fff3e0] text-amber-800" 
+  const CARGOS = ["administrador", "farmaceutico", "cajero"];
+  const CARGO_STYLE: Record<string, string> = {
+    administrador: "bg-primary/10 text-primary",
+    farmaceutico: "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+    cajero: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
   };
-  const CARGO_ICON: Record<string,React.ReactNode> = { 
-    administrador:<Shield size={12}/>, 
-    farmaceutico:<Package size={12}/>, 
-    cajero:<ShoppingCart size={12}/> 
+  const CARGO_ICON: Record<string, React.ReactNode> = {
+    administrador: <Shield size={12} />,
+    farmaceutico: <Package size={12} />,
+    cajero: <ShoppingCart size={12} />,
   };
 
-  async function load(){
+  async function load() {
     setLoading(true);
-    try{ setEmpleados(await empleadosApi.getAll()); }
-    catch(e){ console.error(e); }
-    finally{ setLoading(false); }
+    try { setEmpleados(await empleadosApi.getAll()); }
+    catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }
-  useEffect(()=>{ load(); },[]);
+  useEffect(() => { load(); }, []);
 
   useEffect(() => {
     if (toast) {
@@ -2811,55 +2798,44 @@ function Empleados({ user }: { user: User }) {
 
   const filtered = empleados.filter(e => {
     if (search && !`${e.nombre} ${e.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
-    if (filterCargo) {
-      if (normalize(e.cargo) !== normalize(filterCargo)) return false;
-    }
-    if (filterEstado === "activo"   && !e.activo) return false;
-    if (filterEstado === "inactivo" &&  e.activo) return false;
+    if (filterCargo && normalize(e.cargo) !== normalize(filterCargo)) return false;
+    if (filterEstado === "activo" && !e.activo) return false;
+    if (filterEstado === "inactivo" && e.activo) return false;
     return true;
   });
 
-  function openNew(){
+  function openNew() {
     setEditEmp(null);
-    setForm({ 
-      nombre:"", apellido:"", correo:"", telefono:"", 
-      cargo:"cajero", fecha_contratacion:"", 
-      dui:"", nit:"", cuenta_banco:"", afp:"" 
-    });
+    setForm({ nombre: "", apellido: "", correo: "", telefono: "", cargo: "cajero", fecha_contratacion: "", dui: "", nit: "", cuenta_banco: "", afp: "" });
     setFormError("");
     setShowForm(true);
   }
 
-  function openEdit(emp:Empleado){
+  function openEdit(emp: Empleado) {
     setEditEmp(emp);
     setForm({
-      nombre: emp.nombre,
-      apellido: emp.apellido,
-      correo: emp.correo,
-      telefono: emp.telefono ?? "",
-      cargo: emp.cargo,
+      nombre: emp.nombre, apellido: emp.apellido, correo: emp.correo,
+      telefono: emp.telefono ?? "", cargo: emp.cargo,
       fecha_contratacion: emp.fecha_contratacion ?? "",
-      dui: emp.dui ?? "",
-      nit: emp.nit ?? "",
-      cuenta_banco: emp.cuenta_banco ?? "",
-      afp: emp.afp ?? ""
+      dui: emp.dui ?? "", nit: emp.nit ?? "",
+      cuenta_banco: emp.cuenta_banco ?? "", afp: emp.afp ?? ""
     });
     setFormError("");
     setShowForm(true);
   }
 
-  async function saveForm(){
-    if(!form.nombre||!form.apellido||!form.correo||!form.cargo){
+  async function saveForm() {
+    if (!form.nombre || !form.apellido || !form.correo || !form.cargo) {
       setFormError("Complete los campos obligatorios.");
       return;
     }
-    try{
-      const payload:any={
+    try {
+      const payload: any = {
         ...form,
         id_empleado_sesion: user.id,
         nombre_empleado_sesion: user.name,
       };
-      if(editEmp) {
+      if (editEmp) {
         await empleadosApi.update(editEmp.id_empleado, payload);
         setToast({ message: 'Empleado actualizado correctamente.', type: 'success' });
       } else {
@@ -2868,23 +2844,33 @@ function Empleados({ user }: { user: User }) {
       }
       setShowForm(false);
       load();
-    }catch(e:any){
+    } catch (e: any) {
       setFormError(e?.response?.data?.error ?? "Error al guardar.");
     }
   }
 
-  async function handleToggle(emp: Empleado){
-    const action = emp.activo ? "desactivar" : "activar";
-    if(!confirm(`¿${action.charAt(0).toUpperCase()+action.slice(1)} a ${emp.nombre}?`)) return;
-    try{
+  function handleToggle(emp: Empleado) {
+    setToggleModal({ isOpen: true, empleadoId: emp.id_empleado, activo: emp.activo });
+  }
+
+  async function confirmToggle() {
+    if (toggleModal.empleadoId === null) return;
+    try {
+      const emp = empleados.find(e => e.id_empleado === toggleModal.empleadoId);
+      if (!emp) return;
       await empleadosApi.update(emp.id_empleado, {
         ...emp,
         activo: emp.activo ? 0 : 1,
         id_empleado_sesion: user.id,
         nombre_empleado_sesion: user.name,
       });
+      setToggleModal({ isOpen: false, empleadoId: null, activo: 0 });
+      setToast({ message: "Estado actualizado correctamente.", type: 'success' });
       load();
-    }catch(e){ console.error(e); }
+    } catch (e: any) {
+      setToggleModal({ isOpen: false, empleadoId: null, activo: 0 });
+      setToast({ message: e?.response?.data?.error ?? "Error al cambiar estado.", type: 'error' });
+    }
   }
 
   function handleDelete(id: number) {
@@ -2898,114 +2884,79 @@ function Empleados({ user }: { user: User }) {
         data: { id_empleado_sesion: user.id, nombre_empleado_sesion: user.name }
       });
       setConfirmModal({ isOpen: false, empleadoId: null });
-      setToast({ message: "Empleado desactivado correctamente.", type: 'success' });
+      setToast({ message: "Empleado eliminado correctamente.", type: 'success' });
       load();
     } catch (e: any) {
       setConfirmModal({ isOpen: false, empleadoId: null });
-      setToast({
-        message: e?.response?.data?.error ?? "Error al desactivar el empleado.",
-        type: 'error'
-      });
+      setToast({ message: e?.response?.data?.error ?? "Error al eliminar el empleado.", type: 'error' });
     }
   }
 
-  const hayFiltros = !!(filterCargo||filterEstado);
+  const hayFiltros = !!(filterCargo || filterEstado);
   function limpiarFiltros() {
     setFilterCargo("");
     setFilterEstado("");
   }
 
-  if(loading) return <LoadingSpinner/>;
+  if (loading) return <LoadingSpinner />;
 
-  function formatDUI(value: string): string {
-    const digits = value.replace(/\D/g, '').slice(0, 9);
-    if (digits.length <= 8) return digits;
-    return `${digits.slice(0, 8)}-${digits.slice(8, 9)}`;
+  // ── Formateadores ──
+  function formatDUI(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 9);
+    if (d.length <= 8) return d;
+    return `${d.slice(0, 8)}-${d.slice(8, 9)}`;
+  }
+  function formatNIT(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 14);
+    if (d.length <= 4) return d;
+    if (d.length <= 10) return `${d.slice(0, 4)}-${d.slice(4)}`;
+    if (d.length <= 13) return `${d.slice(0, 4)}-${d.slice(4, 10)}-${d.slice(10)}`;
+    return `${d.slice(0, 4)}-${d.slice(4, 10)}-${d.slice(10, 13)}-${d.slice(13)}`;
+  }
+  function formatPhone(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 8);
+    if (d.length <= 4) return d;
+    return `${d.slice(0, 4)}-${d.slice(4)}`;
+  }
+  function formatCuentaBanco(v: string): string {
+    return v.replace(/\D/g, '').slice(0, 20);
   }
 
-  function formatNIT(value: string): string {
-    const digits = value.replace(/\D/g, '').slice(0, 14);
-    if (digits.length <= 4) return digits;
-    if (digits.length <= 10) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
-    if (digits.length <= 13) return `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10)}`;
-    return `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13, 14)}`;
-  }
+  // Clase compartida para inputs con formato especial
+  const fmtInputClass = "w-full px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors";
 
-  function formatPhone(value: string): string {
-    const digits = value.replace(/\D/g, '').slice(0, 8);
-    if (digits.length <= 4) return digits;
-    return `${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
-  }
-
-  function formatCuentaBanco(value: string): string {
-    return value.replace(/\D/g, '').slice(0, 20);
-  }
-
-  const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
-    const [show, setShow] = useState(false);
-    if (!text) return <span className="text-muted-foreground">—</span>;
-    const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
-    const isLong = text.length > maxLength;
-    return (
-      <>
-        <span className="inline-flex items-center gap-1">
-          {truncated}
-          {isLong && (
-            <button
-              onClick={() => setShow(true)}
-              className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
-              title="Ver completo"
-            >
-              +
-            </button>
-          )}
-        </span>
-        {show && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
-            <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-lg">Información completa</h3>
-                <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
-              </div>
-              <div className="text-sm text-foreground break-words max-h-96 overflow-y-auto">
-                {text}
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Btn variant="secondary" size="sm" onClick={() => setShow(false)}>Cerrar</Btn>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
-
-  return(
-    <div className="p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Gestión de Empleados</h1>
-          <p className="text-sm text-muted-foreground">{filtered.length} empleados encontrados</p>
-        </div>
-        <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo empleado</Btn>
-      </div>
-
-      {/* Filtros en línea horizontal */}
-      <Card className="p-4">
-        <div className="flex flex-wrap items-end gap-3 md:gap-4">
+  return (
+    <PageLayout
+      title="Gestión de Empleados"
+      subtitle={`${filtered.length} empleados encontrados`}
+      actions={
+        <Btn onClick={openNew}><Plus size={14} /> Nuevo empleado</Btn>
+      }
+    >
+      {/* ── Filtros ── */}
+      <SectionCard
+        title="Filtros"
+        actions={
+          hayFiltros && (
+            <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
+              <X size={14} /> Limpiar
+            </Btn>
+          )
+        }
+      >
+        <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
           <div className="flex-1 min-w-[180px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
+              <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
             </div>
           </div>
           <div className="flex-1 min-w-[150px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Cargo</label>
             <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
               <option value="">Todos</option>
-              {CARGOS.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
+              {CARGOS.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
             </Select>
           </div>
           <div className="flex-1 min-w-[130px]">
@@ -3016,90 +2967,110 @@ function Empleados({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
-          <div className="flex items-end">
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
-              <X size={14} /> Limpiar filtros
-            </Btn>
-          </div>
-        </div>
-      </Card>
+        </FilterBar>
+      </SectionCard>
 
-      {/* Tabla ESTILO PROVEEDORES */}
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      {/* ── Tabla ── */}
+      <SectionCard title="Listado de empleados" className="overflow-hidden">
+        <div className="overflow-x-auto">
           <div className="min-w-[1200px]">
-            <table className="w-full text-xs sm:text-sm table-fixed">
+            <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col className="w-[16%]" />  {/* Empleado */}
-                <col className="w-[14%]" />  {/* Correo */}
-                <col className="w-[10%]" />  {/* Teléfono */}
-                <col className="w-[12%]" />  {/* DUI */}
-                <col className="w-[14%]" />  {/* NIT */}
-                <col className="w-[10%]" />  {/* Cargo */}
-                <col className="w-[10%]" />  {/* Contratación */}
-                <col className="w-[7%]" />   {/* Estado */}
-                <col className="w-[14%]" />  {/* Acciones */}
+                <col className="w-[16%]" />
+                <col className="w-[14%]" />
+                <col className="w-[10%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[7%]" />
+                <col className="w-[14%]" />
               </colgroup>
               <thead className="bg-muted">
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Empleado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Correo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Teléfono</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">DUI</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">NIT</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Cargo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Contratación</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Acciones</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Empleado</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Correo</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Teléfono</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">DUI</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">NIT</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Cargo</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Contratación</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Estado</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
-              <tbody>
-                {filtered.map(emp=>{
+              <tbody className="divide-y divide-border">
+                {filtered.map(emp => {
                   const fullName = `${emp.nombre} ${emp.apellido}`;
                   return (
-                    <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-muted transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-foreground break-words whitespace-normal">
+                    <tr
+                      key={emp.id_empleado}
+                      className={`transition-colors ${!emp.activo ? 'opacity-50' : 'hover:bg-muted/50'}`}
+                    >
+                      <td className="py-2.5 px-3 font-medium text-foreground whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
+                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold flex-shrink-0">
                             {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
                           </div>
-                          <Expandable text={fullName} maxLength={25} />
+                          <ExpandableCell text={fullName} maxLength={22} />
                         </div>
                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                        <Expandable text={emp.correo} maxLength={25} />
+                      <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                        <ExpandableCell text={emp.correo} maxLength={22} />
                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                        <Expandable text={emp.telefono} maxLength={12} />
+                      <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                        <ExpandableCell text={emp.telefono} maxLength={12} />
                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                        <Expandable text={emp.dui} maxLength={12} />
+                      <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap font-mono text-xs">
+                        {emp.dui || "—"}
                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                        <Expandable text={emp.nit} maxLength={20} />
+                      <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap font-mono text-xs">
+                        <ExpandableCell text={emp.nit} maxLength={18} />
                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-muted text-muted-foreground'}`}>
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_STYLE[emp.cargo] || 'bg-muted text-muted-foreground'}`}>
                           {CARGO_ICON[emp.cargo]} {emp.cargo}
                         </span>
                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap text-xs">
                         {emp.fecha_contratacion || "—"}
                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-muted text-muted-foreground'}`}>
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          emp.activo
+                            ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
                           {emp.activo ? "Activo" : "Inactivo"}
                         </span>
                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
-                        <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                          <button onClick={()=>openEdit(emp)} className="text-primary hover:text-[#0d5c96] p-1 rounded hover:bg-primary/10" title="Editar"><Edit2 size={14}/></button>
-                          <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-destructive bg-destructive/10 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => openEdit(emp)}
+                            className="text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors"
+                            title="Editar"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleToggle(emp)}
+                            className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${
+                              emp.activo
+                                ? 'text-destructive bg-destructive/10 hover:bg-destructive/20'
+                                : 'text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30'
+                            }`}
+                            title={emp.activo ? "Desactivar" : "Activar"}
+                          >
                             {emp.activo ? "Desactivar" : "Activar"}
                           </button>
                           {!emp.has_ventas && (
-                            <button onClick={() => handleDelete(emp.id_empleado)} className="text-destructive p-1 rounded hover:bg-destructive/10" title="Desactivar empleado">
-                              <Trash2 size={14} />
+                            <button
+                              onClick={() => handleDelete(emp.id_empleado)}
+                              className="text-destructive p-1 rounded hover:bg-destructive/10 transition-colors"
+                              title="Eliminar empleado"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
@@ -3107,81 +3078,98 @@ function Empleados({ user }: { user: User }) {
                     </tr>
                   );
                 })}
-                {filtered.length===0 && (
-                  <tr>
-                    <td colSpan={9} className="py-6 sm:py-10 text-center text-muted-foreground">Sin empleados registrados.</td>
-                  </tr>
-                )}
               </tbody>
             </table>
+
+            {filtered.length === 0 && (
+              <EmptyState
+                icon={<Users size={40} />}
+                title="Sin empleados"
+                description="No se encontraron empleados con los filtros aplicados."
+              />
+            )}
           </div>
         </div>
-      </Card>
+      </SectionCard>
 
-      {/* Formulario y modales - SIN CAMBIOS */}
+      {/* ── Modal de formulario ── */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-foreground">
                 {editEmp ? "Editar Empleado" : "Nuevo Empleado"}
               </h2>
-              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground transition-colors">
+              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground transition-colors p-1">
                 <X size={20} />
               </button>
             </div>
 
-            {formError && (
-              <div className="mb-4 flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2">
-                <AlertTriangle size={14} />
-                {formError}
-              </div>
-            )}
+            <ErrorAlert message={formError} />
 
-            <div className="space-y-4">
-              {/* ... el resto del formulario es idéntico al que ya tienes ... */}
+            <div className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} className="w-full" />
+                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} className="w-full" />
+                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo *</label>
-                <Input type="email" value={form.correo} onChange={v => setForm(p => ({ ...p, correo: v }))} className="w-full" placeholder="correo@ejemplo.com" />
+                <Input type="email" value={form.correo} onChange={v => setForm(p => ({ ...p, correo: v }))} placeholder="correo@ejemplo.com" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
-                  <input value={formatPhone(form.telefono)} onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} placeholder="0000-0000" maxLength={9} className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
+                  <input
+                    value={formatPhone(form.telefono)}
+                    onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
+                    placeholder="0000-0000" maxLength={9}
+                    className={fmtInputClass}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI <span className="text-muted-foreground font-normal">(00000000-0)</span></label>
-                  <input value={formatDUI(form.dui)} onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} placeholder="00000000-0" maxLength={10} className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
+                  <input
+                    value={formatDUI(form.dui)}
+                    onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))}
+                    placeholder="00000000-0" maxLength={10}
+                    className={fmtInputClass}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">NIT</label>
-                  <input value={formatNIT(form.nit)} onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))} placeholder="0000-000000-000-0" maxLength={17} className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
+                  <input
+                    value={formatNIT(form.nit)}
+                    onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))}
+                    placeholder="0000-000000-000-0" maxLength={17}
+                    className={fmtInputClass}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Cuenta Bancaria</label>
-                  <input value={formatCuentaBanco(form.cuenta_banco)} onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))} placeholder="Número de cuenta" maxLength={20} className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
+                  <input
+                    value={formatCuentaBanco(form.cuenta_banco)}
+                    onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))}
+                    placeholder="Número de cuenta" maxLength={20}
+                    className={fmtInputClass}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">AFP</label>
-                  <Select value={form.afp} onChange={v => setForm(p => ({ ...p, afp: v }))} className="w-full">
+                  <Select value={form.afp} onChange={v => setForm(p => ({ ...p, afp: v }))}>
                     <option value="">Sin AFP</option>
                     <option value="CRECER">CRECER</option>
                     <option value="CONFÍA">CONFÍA</option>
@@ -3189,21 +3177,17 @@ function Empleados({ user }: { user: User }) {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Cargo *</label>
-                  <Select value={form.cargo} onChange={v => setForm(p => ({ ...p, cargo: v }))} className="w-full">
+                  <Select value={form.cargo} onChange={v => setForm(p => ({ ...p, cargo: v }))}>
                     {CARGOS.map(c => (
-                      <option key={c} value={c}>
-                        {c.charAt(0).toUpperCase() + c.slice(1)}
-                      </option>
+                      <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
                     ))}
                   </Select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha contratación</label>
-                  <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} className="w-full" />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha contratación</label>
+                <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} />
               </div>
             </div>
 
@@ -3215,28 +3199,30 @@ function Empleados({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Modal y Toast (igual que antes) */}
+      {/* ── Modales de confirmación ── */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
-        title="Desactivar empleado"
-        message="¿Estás seguro de que deseas desactivar este empleado? Podrá ser reactivado más tarde."
+        title="Eliminar empleado"
+        message="¿Estás seguro de que deseas eliminar este empleado? Esta acción no se puede deshacer."
         onConfirm={confirmDelete}
         onCancel={() => setConfirmModal({ isOpen: false, empleadoId: null })}
-        confirmText="Sí, desactivar"
+        confirmText="Sí, eliminar"
         variant="danger"
       />
 
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'
-          }`}>
-            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
-            {toast.message}
-          </div>
-        </div>
-      )}
-    </div>
+      <ConfirmModal
+        isOpen={toggleModal.isOpen}
+        title={toggleModal.activo ? "Desactivar empleado" : "Activar empleado"}
+        message={`¿Estás seguro de que deseas ${toggleModal.activo ? 'desactivar' : 'activar'} este empleado?`}
+        onConfirm={confirmToggle}
+        onCancel={() => setToggleModal({ isOpen: false, empleadoId: null, activo: 0 })}
+        confirmText={toggleModal.activo ? "Desactivar" : "Activar"}
+        variant={toggleModal.activo ? "danger" : "primary"}
+      />
+
+      {/* ── Toast ── */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </PageLayout>
   );
 }
 
