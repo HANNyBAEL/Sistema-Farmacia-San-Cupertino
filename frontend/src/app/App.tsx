@@ -147,14 +147,26 @@ function Btn({ children, variant = "primary", size = "md", className = "", onCli
   return <button type={type} disabled={disabled} onClick={onClick} className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}>{children}</button>;
 }
 
-function Card({ children, className = "", accent }: { children: React.ReactNode; className?: string; accent?: "blue"|"red"|"green"|"amber" }) {
+function Card({ children, className = "", accent, onClick }: { 
+  children: React.ReactNode; 
+  className?: string; 
+  accent?: "blue"|"red"|"green"|"amber"; 
+  onClick?: (e: React.MouseEvent) => void;
+}) {
   const borders = {
     blue:  "border-l-4 border-l-primary",
     red:   "border-l-4 border-l-destructive",
     green: "border-l-4 border-l-green-600 dark:border-l-green-400",
     amber: "border-l-4 border-l-amber-500",
   };
-  return <div className={`bg-card rounded-lg shadow-sm border border-border ${accent ? borders[accent] : ""} ${className}`}>{children}</div>;
+  return (
+    <div 
+      onClick={onClick}
+      className={`bg-card rounded-lg shadow-sm border border-border ${accent ? borders[accent] : ""} ${onClick ? 'cursor-pointer' : ''} ${className}`}
+    >
+      {children}
+    </div>
+  );
 }
 
 function Input({ placeholder, value, onChange, type = "text", className = "", maxLength, disabled = false }: {
@@ -246,7 +258,7 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
       <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${
         type === 'success'
           ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800/30 dark:text-green-400'
-          : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800/30 dark:text-red-400'
+          : 'bg-destructive/10 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800/30 dark:text-red-400'
       }`}>
         {type === 'success' ? <Check size={18} className="flex-shrink-0" /> : <AlertTriangle size={18} className="flex-shrink-0" />}
         <span className="text-sm font-medium">{message}</span>
@@ -256,13 +268,7 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
   );
 }
 
-function LoadingSpinner() {
-  return (
-    <div className="flex items-center justify-center py-16">
-      <div className="w-8 h-8 border-[3px] border-primary/20 border-t-primary rounded-full animate-spin" />
-    </div>
-  );
-}
+
 
 function EmptyState({ icon, title, description, action }: {
   icon: React.ReactNode; title: string; description?: string; action?: React.ReactNode;
@@ -288,7 +294,7 @@ function ConfirmModal({
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onCancel}>
-      <Card className="max-w-md w-full p-6 animate-in zoom-in-95 fade-in duration-200" onClick={e => e.stopPropagation()}>
+      <Card className="max-w-md w-full p-6 animate-in zoom-in-95 fade-in duration-200" onClick ={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
             variant === 'danger' ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'
@@ -310,7 +316,7 @@ function ConfirmModal({
 }
 
 function LoadingSpinner() {
-  return <div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-[#0a4b7a] border-t-transparent rounded-full animate-spin" /></div>;
+  return <div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 }
 
 // ── Auth Card Wrapper (consistente en todas las pantallas de auth) ──
@@ -1092,7 +1098,7 @@ function Productos({ user }: { user: User }) {
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o código..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm" />
+                className="w-full pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-input-background dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm" />
             </div>
           </div>
 
@@ -1173,16 +1179,16 @@ function Productos({ user }: { user: User }) {
               </colgroup>
               <thead className="bg-muted">
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Nombre</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Categoría</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Precio</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Stock</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Lote</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Código barras</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Venc.</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Proveedor</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Acciones</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Nombre</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Categoría</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Precio</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Stock</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Lote</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Código barras</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Venc.</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Proveedor</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Estado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-foreground text-[10px] sm:text-xs whitespace-nowrap truncate">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -1205,7 +1211,7 @@ function Productos({ user }: { user: User }) {
                                   +{resto.length}
                                 </button>
                                 <div className="absolute left-0 top-5 z-50 hidden group-hover:block bg-card border border-border rounded-lg shadow-lg p-1.5 min-w-max">
-                                  <p className="text-[9px] font-semibold text-gray-500 mb-0.5">Otras categorías:</p>
+                                  <p className="text-[9px] font-semibold text-muted-foreground mb-0.5">Otras categorías:</p>
                                   {resto.map((cat: string, i: number) => (
                                     <div key={i} className="text-[9px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded mb-0.5">{cat}</div>
                                   ))}
@@ -1216,20 +1222,20 @@ function Productos({ user }: { user: User }) {
                         );
                       })() : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-[#0a4b7a] font-semibold whitespace-nowrap text-[10px] sm:text-sm">${Number(p.precio).toFixed(2)}</td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-primary font-semibold whitespace-nowrap text-[10px] sm:text-sm">${Number(p.precio).toFixed(2)}</td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.lote} maxLength={10} /></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.codigo_barras} maxLength={12} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-muted-foreground whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.lote} maxLength={10} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-muted-foreground whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.codigo_barras} maxLength={12} /></td>
                     <td className={`py-2 px-2 sm:py-3 sm:px-3 text-[9px] sm:text-xs font-mono whitespace-nowrap ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
-                      <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                      <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${p.deleted ? 'bg-destructive/10 text-destructive' : 'bg-green-50 text-green-700'}`}>
                         {p.deleted ? "Inactivo" : "Activo"}
                       </span>
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <button onClick={() => openEdit(p)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar">
+                        <button onClick={() => openEdit(p)} className="text-primary hover:text-[#0d5c96] p-1 rounded hover:bg-primary/10" title="Editar">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
@@ -1240,7 +1246,7 @@ function Productos({ user }: { user: User }) {
                           {p.deleted ? "Activar" : "Desactivar"}
                         </button>
                         {!p.has_ventas && (
-                          <button onClick={() => handleDelete(p.id_producto)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera">
+                          <button onClick={() => handleDelete(p.id_producto)} className="text-destructive p-1 rounded hover:bg-destructive/10" title="Mover a papelera">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -1264,7 +1270,7 @@ function Productos({ user }: { user: User }) {
               <h2 className="text-lg font-bold text-foreground">{editProduct ? "Editar Producto" : "Nuevo Producto"}</h2>
               <button onClick={()=>setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground"><X size={20}/></button>
             </div>
-            {formError && <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
+            {formError && <div className="mb-4 flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2"><label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label><Input value={form.nombre_producto} onChange={v=>setForm(p=>({...p,nombre_producto:v}))} placeholder="Nombre del medicamento" /></div>
               <div className="col-span-2"><label className="block text-xs font-semibold text-muted-foreground mb-1">Descripción</label><Input value={form.descripcion} onChange={v=>setForm(p=>({...p,descripcion:v}))} placeholder="Descripción opcional" /></div>
@@ -1286,11 +1292,11 @@ function Productos({ user }: { user: User }) {
               </div>
               <div className="col-span-2">
                 <label className="block text-xs font-semibold text-muted-foreground mb-2">Categorías</label>
-                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto border border-border rounded-lg p-2 bg-[#f8fafc]">
+                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto border border-border rounded-lg p-2 bg-input-background">
                   {CATEGORIAS.map(cat => (
                     <label key={cat.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-card rounded px-1 py-0.5">
                       <input type="checkbox" checked={selectedCats.includes(cat.id)} onChange={() => toggleCat(cat.id)} className="rounded" />
-                      <span className="text-gray-700">{cat.nombre}</span>
+                      <span className="text-foreground">{cat.nombre}</span>
                     </label>
                   ))}
                 </div>
@@ -1317,7 +1323,7 @@ function Productos({ user }: { user: User }) {
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
           <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+            toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'
           }`}>
             {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
             {toast.message}
@@ -1613,7 +1619,7 @@ function Ventas({ user }: { user: User }) {
       {/* Toast flotante */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'}`}>
+          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'}`}>
             {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
             {toast.message}
           </div>
@@ -1630,7 +1636,7 @@ function Ventas({ user }: { user: User }) {
               </div>
               <h2 className="text-lg font-bold text-foreground">Medicamento Controlado</h2>
             </div>
-            <p className="text-gray-700 mb-2">
+            <p className="text-foreground mb-2">
               <strong>{controlledModal.product.nombre_producto}</strong> pertenece a una categoría controlada.
             </p>
             <p className="text-muted-foreground text-sm mb-4">
@@ -1657,7 +1663,7 @@ function Ventas({ user }: { user: User }) {
               </div>
               <h2 className="text-lg font-bold text-foreground">Cliente no seleccionado</h2>
             </div>
-            <p className="text-gray-700 mb-4">Debes seleccionar un cliente antes de finalizar la venta.</p>
+            <p className="text-foreground mb-4">Debes seleccionar un cliente antes de finalizar la venta.</p>
             <div className="flex justify-end">
               <Btn variant="primary" onClick={() => setNoClientModal(false)}>Aceptar</Btn>
             </div>
@@ -1674,7 +1680,7 @@ function Ventas({ user }: { user: User }) {
               </div>
               <h2 className="text-lg font-bold text-foreground">Generar Factura</h2>
             </div>
-            <p className="text-gray-700 mb-4">¿Desea generar factura electrónica para esta venta?</p>
+            <p className="text-foreground mb-4">¿Desea generar factura electrónica para esta venta?</p>
             <div className="flex justify-end gap-3">
               <Btn variant="secondary" onClick={facturaModal.onCancel}>Cancelar</Btn>
               <Btn variant="primary" onClick={facturaModal.onConfirm}>Sí, generar</Btn>
@@ -1698,7 +1704,7 @@ function Ventas({ user }: { user: User }) {
               <button onClick={() => { setShowNewClient(false); setNewClientError(""); }} className="text-muted-foreground hover:text-muted-foreground"><X size={20} /></button>
             </div>
             {newClientError && (
-              <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+              <div className="mb-4 flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2">
                 <AlertTriangle size={14} />{newClientError}
               </div>
             )}
@@ -1720,7 +1726,7 @@ function Ventas({ user }: { user: User }) {
                   onChange={e => setNewClientForm(prev => ({ ...prev, dui: e.target.value }))}
                   placeholder="00000000-0"
                   maxLength={10}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
                 />
               </div>
               <div>
@@ -1730,7 +1736,7 @@ function Ventas({ user }: { user: User }) {
                   onChange={e => setNewClientForm(prev => ({ ...prev, telefono: e.target.value }))}
                   placeholder="0000-0000"
                   maxLength={9}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
                 />
               </div>
               <div>
@@ -1755,19 +1761,19 @@ function Ventas({ user }: { user: User }) {
         <div className="p-3 md:p-4 border-b border-border">
           <div className="flex items-center justify-between mb-2 md:mb-3">
             <h2 className="font-semibold text-foreground text-sm">Buscar Producto</h2>
-            <button onClick={() => setShowScanner(true)} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:bg-[#e3f2fd] px-2 py-1 rounded-lg font-medium transition-colors"><Camera size={13} /> Escanear</button>
+            <button onClick={() => setShowScanner(true)} className="flex items-center gap-1 text-xs text-primary hover:bg-primary/10 px-2 py-1 rounded-lg font-medium transition-colors"><Camera size={13} /> Escanear</button>
           </div>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nombre o código de barras..." className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nombre o código de barras..." className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2 max-h-[300px] md:max-h-none">
           {search && results.map(p => (
-            <button key={p.id_producto} onClick={() => addToCart(p)} className="w-full text-left p-2 md:p-3 rounded-lg hover:bg-[#e3f2fd] transition-colors border border-transparent hover:border-[#0a4b7a]/20 mb-1">
+            <button key={p.id_producto} onClick={() => addToCart(p)} className="w-full text-left p-2 md:p-3 rounded-lg hover:bg-primary/10 transition-colors border border-transparent hover:border-primary/20 mb-1">
               <div className="text-sm font-medium text-foreground">{p.nombre_producto}</div>
               <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="text-xs text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</span>
+                <span className="text-xs text-primary font-semibold">${Number(p.precio).toFixed(2)}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${stockColor(p.stock)}`}>Stock: {p.stock}</span>
                 {p.codigo_barras && <span className="text-xs text-muted-foreground">Código: {p.codigo_barras}</span>}
               </div>
@@ -1785,7 +1791,7 @@ function Ventas({ user }: { user: User }) {
           {cart.length > 0 && <Btn variant="ghost" size="sm" onClick={() => { setCart([]); setSaleError(""); }}><X size={13} /> Limpiar</Btn>}
         </div>
         {saleDone && <div className="mx-3 md:mx-4 mt-3 md:mt-4 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2"><Check size={16} /> Venta registrada exitosamente.</div>}
-        {saleError && <div className="mx-3 md:mx-4 mt-3 md:mt-4 bg-red-50 border border-red-200 text-[#d32f2f] rounded-lg px-4 py-3 text-sm flex items-center gap-2"><AlertTriangle size={14} />{saleError}</div>}
+        {saleError && <div className="mx-3 md:mx-4 mt-3 md:mt-4 bg-destructive/10 border border-red-200 text-destructive rounded-lg px-4 py-3 text-sm flex items-center gap-2"><AlertTriangle size={14} />{saleError}</div>}
         <div className="flex-1 overflow-auto p-3 md:p-4" ref={cartContainerRef}>
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3"><ShoppingCart size={40} strokeWidth={1} /><span className="text-sm">El carrito está vacío</span></div>
@@ -1794,7 +1800,7 @@ function Ventas({ user }: { user: User }) {
               <table className="w-full text-xs md:text-sm">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Producto", "P.Unit", "Cant.", "Subtotal", ""].map(h => <th key={h} className="text-left py-2 px-2 text-xs text-gray-500 font-medium">{h}</th>)}
+                    {["Producto", "P.Unit", "Cant.", "Subtotal", ""].map(h => <th key={h} className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -1804,13 +1810,13 @@ function Ventas({ user }: { user: User }) {
                       <td className="py-2 px-2 text-muted-foreground">${Number(item.product.precio).toFixed(2)}</td>
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => setQty(item.product.id_producto, item.qty - 1)} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center border border-border rounded text-gray-500 hover:bg-muted text-sm">−</button>
+                          <button onClick={() => setQty(item.product.id_producto, item.qty - 1)} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center border border-border rounded text-muted-foreground hover:bg-muted text-sm">−</button>
                           <span className="w-6 text-center font-medium text-sm">{item.qty}</span>
-                          <button onClick={() => setQty(item.product.id_producto, item.qty + 1)} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center border border-border rounded text-gray-500 hover:bg-muted text-sm">+</button>
+                          <button onClick={() => setQty(item.product.id_producto, item.qty + 1)} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center border border-border rounded text-muted-foreground hover:bg-muted text-sm">+</button>
                         </div>
                       </td>
-                      <td className="py-2 px-2 font-semibold text-[#0a4b7a]">${(Number(item.product.precio) * item.qty).toFixed(2)}</td>
-                      <td className="py-2 px-2"><button onClick={() => removeFromCart(item.product.id_producto)} className="text-muted-foreground hover:text-[#d32f2f]"><X size={15} /></button></td>
+                      <td className="py-2 px-2 font-semibold text-primary">${(Number(item.product.precio) * item.qty).toFixed(2)}</td>
+                      <td className="py-2 px-2"><button onClick={() => removeFromCart(item.product.id_producto)} className="text-muted-foreground hover:text-destructive"><X size={15} /></button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1825,25 +1831,25 @@ function Ventas({ user }: { user: User }) {
         <div className="p-3 md:p-4 border-b border-border">
           <div className="flex items-center justify-between mb-2 md:mb-3">
             <h2 className="font-semibold text-foreground text-sm">Cliente</h2>
-            <button onClick={() => { setShowNewClient(true); setNewClientError(""); }} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:text-[#0d5c96] font-medium hover:bg-[#e3f2fd] px-2 py-1 rounded-lg transition-colors"><Plus size={12} /> Nuevo</button>
+            <button onClick={() => { setShowNewClient(true); setNewClientError(""); }} className="flex items-center gap-1 text-xs text-primary hover:text-[#0d5c96] font-medium hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors"><Plus size={12} /> Nuevo</button>
           </div>
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Buscar por DUI..." className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <input value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Buscar por DUI..." className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-input-background text-xs focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
           </div>
           {clientSearch && (
             <div className="mt-1 border border-border rounded-lg overflow-hidden shadow-sm max-h-40 overflow-y-auto">
               {clients.filter(c => (c.dui ?? "").toLowerCase().startsWith(clientSearch.toLowerCase()) && !c.deleted && !c.papelera).map(c => (
-                <button key={c.id_cliente} onClick={() => { setSelectedClient(c); setClientSearch(""); }} className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">
+                <button key={c.id_cliente} onClick={() => { setSelectedClient(c); setClientSearch(""); }} className="w-full text-left px-3 py-2 text-xs hover:bg-primary/10 border-b border-gray-50 last:border-0">
                   {c.nombre} {c.apellido} {c.dui && <span className="text-muted-foreground ml-1">({c.dui})</span>}
                 </button>
               ))}
             </div>
           )}
           {selectedClient && (
-            <div className="mt-2 flex items-center justify-between bg-[#e3f2fd] rounded-lg px-3 py-2">
-              <span className="text-xs text-[#0a4b7a] font-medium">{selectedClient.nombre} {selectedClient.apellido}</span>
-              <button onClick={() => setSelectedClient(null)} className="text-[#0a4b7a]/50 hover:text-[#d32f2f]"><X size={13} /></button>
+            <div className="mt-2 flex items-center justify-between bg-primary/10 rounded-lg px-3 py-2">
+              <span className="text-xs text-primary font-medium">{selectedClient.nombre} {selectedClient.apellido}</span>
+              <button onClick={() => setSelectedClient(null)} className="text-primary/50 hover:text-destructive"><X size={13} /></button>
             </div>
           )}
         </div>
@@ -1860,7 +1866,7 @@ function Ventas({ user }: { user: User }) {
                 { id: "paypal", label: "🅿️ PayPal" },
                 { id: "western", label: "🌐 Western Union" },
               ] as const).map(m => (
-                <button key={m.id} onClick={() => { setMetodoPago(m.id); setEfectivo(""); }} className={`text-[10px] md:text-xs px-2 py-1.5 rounded-lg border font-medium transition-colors text-left ${metodoPago === m.id ? 'bg-sidebar-accent text-sidebar-accent-foreground border-[#0a4b7a]' : 'bg-card text-muted-foreground border-border hover:border-[#0a4b7a] hover:text-[#0a4b7a]'}`}>{m.label}</button>
+                <button key={m.id} onClick={() => { setMetodoPago(m.id); setEfectivo(""); }} className={`text-[10px] md:text-xs px-2 py-1.5 rounded-lg border font-medium transition-colors text-left ${metodoPago === m.id ? 'bg-sidebar-accent text-sidebar-accent-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:border-primary hover:text-primary'}`}>{m.label}</button>
               ))}
             </div>
           </div>
@@ -1869,10 +1875,10 @@ function Ventas({ user }: { user: User }) {
           {metodoPago === "applepay" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">Apple Pay desde su dispositivo.</div>}
           {metodoPago === "paypal" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🅿️ PayPal. Confirme pago recibido.</div>}
           {metodoPago === "western" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🌐 Western Union. Verifique número de transferencia.</div>}
-          <div className="flex justify-between text-foreground font-bold text-base border-t border-border pt-2"><span>Total</span><span className="text-[#0a4b7a]">${total.toFixed(2)}</span></div>
+          <div className="flex justify-between text-foreground font-bold text-base border-t border-border pt-2"><span>Total</span><span className="text-primary">${total.toFixed(2)}</span></div>
           {soloEfectivo && (
             <div className="space-y-2">
-              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Efectivo recibido *</label><input type="number" min={0} value={efectivo} onChange={e => setEfectivo(e.target.value)} placeholder="$0.00" className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" /></div>
+              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Efectivo recibido *</label><input type="number" min={0} value={efectivo} onChange={e => setEfectivo(e.target.value)} placeholder="$0.00" className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" /></div>
               {parseFloat(efectivo) >= total && (
                 <div className="flex justify-between text-green-700 font-bold text-base bg-green-50 rounded-lg px-3 py-2">
                   <span>Cambio</span>
@@ -1880,7 +1886,7 @@ function Ventas({ user }: { user: User }) {
                 </div>
               )}
               {efectivo && parseFloat(efectivo) < total && (
-                <div className="flex items-center gap-1 text-[#d32f2f] text-xs"><AlertTriangle size={12} /> Monto insuficiente</div>
+                <div className="flex items-center gap-1 text-destructive text-xs"><AlertTriangle size={12} /> Monto insuficiente</div>
               )}
             </div>
           )}
@@ -2062,7 +2068,7 @@ function Clientes({ user }: { user: User }) {
                 <h3 className="font-bold text-lg">Información completa</h3>
                 <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
               </div>
-              <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
+              <div className="text-sm text-foreground break-words max-h-96 overflow-y-auto">
                 {text}
               </div>
               <div className="mt-4 flex justify-end">
@@ -2090,7 +2096,7 @@ function Clientes({ user }: { user: User }) {
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
             </div>
           </div>
 
@@ -2101,7 +2107,7 @@ function Clientes({ user }: { user: User }) {
               onChange={e => setFilterDui(e.target.value)}
               placeholder="00000000-0"
               maxLength={10}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
             />
           </div>
 
@@ -2112,7 +2118,7 @@ function Clientes({ user }: { user: User }) {
               onChange={e => setFilterTel(e.target.value)}
               placeholder="0000-0000"
               maxLength={9}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
             />
           </div>
 
@@ -2128,13 +2134,13 @@ function Clientes({ user }: { user: User }) {
           <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
             <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
-              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+              className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
           </div>
 
           <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Dirección</label>
             <input value={filterDir} onChange={e=>setFilterDir(e.target.value)} placeholder="Calle, colonia..."
-              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+              className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
           </div>
 
           <div className="flex items-end">
@@ -2161,13 +2167,13 @@ function Clientes({ user }: { user: User }) {
               </colgroup>
               <thead className="bg-muted">
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Nombre</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Dirección</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Nombre</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">DUI</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Teléfono</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Correo</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Dirección</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Estado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Acciones</th>
                  </tr>
               </thead>
               <tbody>
@@ -2189,13 +2195,13 @@ function Clientes({ user }: { user: User }) {
                       <Expandable text={c.direccion ?? "—"} maxLength={30} />
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.deleted ? 'bg-destructive/10 text-destructive' : 'bg-green-50 text-green-700'}`}>
                         {c.deleted ? "Inactivo" : "Activo"}
                       </span>
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <button onClick={()=>openEdit(c)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                        <button onClick={()=>openEdit(c)} className="text-primary hover:text-[#0d5c96] p-1 rounded hover:bg-primary/10" title="Editar"><Edit2 size={14}/></button>
                         <button
                           onClick={()=>handleToggle(c.id_cliente, c.deleted ?? 0)}
                           className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${c.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
@@ -2204,7 +2210,7 @@ function Clientes({ user }: { user: User }) {
                           {c.deleted ? "Activar" : "Desactivar"}
                         </button>
                         {!c.has_ventas && (
-                          <button onClick={()=>handleDelete(c.id_cliente)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
+                          <button onClick={()=>handleDelete(c.id_cliente)} className="text-destructive p-1 rounded hover:bg-destructive/10" title="Mover a papelera"><Trash2 size={14}/></button>
                         )}
                       </div>
                     </td>
@@ -2228,7 +2234,7 @@ function Clientes({ user }: { user: User }) {
               <h2 className="text-lg font-bold text-foreground">{editClient?"Editar Cliente":"Nuevo Cliente"}</h2>
               <button onClick={()=>setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground"><X size={20}/></button>
             </div>
-            {formError&&<div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
+            {formError&&<div className="mb-4 flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -2247,7 +2253,7 @@ function Clientes({ user }: { user: User }) {
                   onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} 
                   placeholder="00000000-0" 
                   maxLength={10}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
                 />
               </div>
               <div>
@@ -2257,7 +2263,7 @@ function Clientes({ user }: { user: User }) {
                   onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} 
                   placeholder="0000-0000" 
                   maxLength={9}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
                 />
               </div>
               <div>
@@ -2292,7 +2298,7 @@ function Clientes({ user }: { user: User }) {
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
           <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+            toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'
           }`}>
             {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
             {toast.message}
@@ -2464,7 +2470,7 @@ function Proveedores({ user }: { user: User }) {
                 <h3 className="font-bold text-lg">Información completa</h3>
                 <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
               </div>
-              <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
+              <div className="text-sm text-foreground break-words max-h-96 overflow-y-auto">
                 {text}
               </div>
               <div className="mt-4 flex justify-end">
@@ -2495,7 +2501,7 @@ function Proveedores({ user }: { user: User }) {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
               />
             </div>
           </div>
@@ -2507,7 +2513,7 @@ function Proveedores({ user }: { user: User }) {
               onChange={e => setFilterTelefono(e.target.value)}
               placeholder="0000-0000"
               maxLength={9}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
             />
           </div>
 
@@ -2543,12 +2549,12 @@ function Proveedores({ user }: { user: User }) {
               </colgroup>
               <thead className="bg-muted">
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Nombre</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Dirección</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Nombre</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Teléfono</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Correo</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Dirección</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Estado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Acciones</th>
                  </tr>
               </thead>
               <tbody>
@@ -2567,13 +2573,13 @@ function Proveedores({ user }: { user: User }) {
                       <Expandable text={s.direccion ?? "—"} maxLength={30} />
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.deleted ? 'bg-destructive/10 text-destructive' : 'bg-green-50 text-green-700'}`}>
                         {s.deleted ? "Inactivo" : "Activo"}
                       </span>
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <button onClick={()=>openEdit(s)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
+                        <button onClick={()=>openEdit(s)} className="text-primary hover:text-[#0d5c96] p-1 rounded hover:bg-primary/10" title="Editar"><Edit2 size={14}/></button>
                         <button
                           onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
                           className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${s.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
@@ -2582,7 +2588,7 @@ function Proveedores({ user }: { user: User }) {
                           {s.deleted ? "Activar" : "Desactivar"}
                         </button>
                         {!s.has_productos && (
-                          <button onClick={()=>handleDelete(s.id_proveedor)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Mover a papelera"><Trash2 size={14}/></button>
+                          <button onClick={()=>handleDelete(s.id_proveedor)} className="text-destructive p-1 rounded hover:bg-destructive/10" title="Mover a papelera"><Trash2 size={14}/></button>
                         )}
                       </div>
                     </td>
@@ -2607,7 +2613,7 @@ function Proveedores({ user }: { user: User }) {
               <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground"><X size={20}/></button>
             </div>
             {formError && (
-              <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+              <div className="mb-4 flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2">
                 <AlertTriangle size={14}/>{formError}
               </div>
             )}
@@ -2658,7 +2664,7 @@ function Proveedores({ user }: { user: User }) {
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
           <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+            toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'
           }`}>
             {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
             {toast.message}
@@ -2689,7 +2695,7 @@ function Empleados({ user }: { user: User }) {
 
   const CARGOS = ["administrador","farmaceutico","cajero"];
   const CARGO_COLOR: Record<string,string> = { 
-    administrador:"bg-[#e3f2fd] text-[#0a4b7a]", 
+    administrador:"bg-primary/10 text-primary", 
     farmaceutico:"bg-[#e8f5e9] text-green-800", 
     cajero:"bg-[#fff3e0] text-amber-800" 
   };
@@ -2874,7 +2880,7 @@ function Empleados({ user }: { user: User }) {
                 <h3 className="font-bold text-lg">Información completa</h3>
                 <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
               </div>
-              <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
+              <div className="text-sm text-foreground break-words max-h-96 overflow-y-auto">
                 {text}
               </div>
               <div className="mt-4 flex justify-end">
@@ -2905,7 +2911,7 @@ function Empleados({ user }: { user: User }) {
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
             </div>
           </div>
           <div className="flex-1 min-w-[150px]">
@@ -2967,7 +2973,7 @@ function Empleados({ user }: { user: User }) {
                     <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-muted transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-foreground break-words whitespace-normal">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
+                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
                             {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
                           </div>
                           <Expandable text={fullName} maxLength={25} />
@@ -3000,12 +3006,12 @@ function Empleados({ user }: { user: User }) {
                       </td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                         <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                          <button onClick={()=>openEdit(emp)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
-                          <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-[#d32f2f] bg-red-50 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
+                          <button onClick={()=>openEdit(emp)} className="text-primary hover:text-[#0d5c96] p-1 rounded hover:bg-primary/10" title="Editar"><Edit2 size={14}/></button>
+                          <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-destructive bg-destructive/10 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
                             {emp.activo ? "Desactivar" : "Activar"}
                           </button>
                           {!emp.has_ventas && (
-                            <button onClick={() => handleDelete(emp.id_empleado)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Desactivar empleado">
+                            <button onClick={() => handleDelete(emp.id_empleado)} className="text-destructive p-1 rounded hover:bg-destructive/10" title="Desactivar empleado">
                               <Trash2 size={14} />
                             </button>
                           )}
@@ -3039,7 +3045,7 @@ function Empleados({ user }: { user: User }) {
             </div>
 
             {formError && (
-              <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+              <div className="mb-4 flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2">
                 <AlertTriangle size={14} />
                 {formError}
               </div>
@@ -3066,22 +3072,22 @@ function Empleados({ user }: { user: User }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
-                  <input value={formatPhone(form.telefono)} onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} placeholder="0000-0000" maxLength={9} className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                  <input value={formatPhone(form.telefono)} onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} placeholder="0000-0000" maxLength={9} className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI <span className="text-muted-foreground font-normal">(00000000-0)</span></label>
-                  <input value={formatDUI(form.dui)} onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} placeholder="00000000-0" maxLength={10} className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                  <input value={formatDUI(form.dui)} onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} placeholder="00000000-0" maxLength={10} className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">NIT</label>
-                  <input value={formatNIT(form.nit)} onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))} placeholder="0000-000000-000-0" maxLength={17} className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                  <input value={formatNIT(form.nit)} onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))} placeholder="0000-000000-000-0" maxLength={17} className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Cuenta Bancaria</label>
-                  <input value={formatCuentaBanco(form.cuenta_banco)} onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))} placeholder="Número de cuenta" maxLength={20} className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                  <input value={formatCuentaBanco(form.cuenta_banco)} onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))} placeholder="Número de cuenta" maxLength={20} className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary" />
                 </div>
               </div>
 
@@ -3136,7 +3142,7 @@ function Empleados({ user }: { user: User }) {
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
           <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+            toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'
           }`}>
             {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
             {toast.message}
@@ -3183,12 +3189,12 @@ function Alertas() {
   const totalTodos = totalStock + vencer.length + vencidos.length;
 
   const tabs = [
-    { id:"todos",   label:"Todos",          count: totalTodos,      color:"text-[#0a4b7a]" },
-    { id:"agotado", label:"Agotados",        count: agotados.length, color:"text-[#d32f2f]" },
+    { id:"todos",   label:"Todos",          count: totalTodos,      color:"text-primary" },
+    { id:"agotado", label:"Agotados",        count: agotados.length, color:"text-destructive" },
     { id:"critico", label:"Críticos (1–10)", count: criticos.length, color:"text-orange-600" },
     { id:"bajo",    label:"Bajo (11–20)",    count: bajos.length,    color:"text-amber-600" },
     { id:"vencer",  label:"Próx. vencer",    count: vencer.length,   color:"text-purple-600" },
-    { id:"vencido", label:"Vencidos",        count: vencidos.length, color:"text-red-700" },
+    { id:"vencido", label:"Vencidos",        count: vencidos.length, color:"text-destructive" },
   ];
 
   const displayed =
@@ -3221,7 +3227,7 @@ function Alertas() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-foreground">Alertas</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             {agotados.length} agotados · {criticos.length} críticos · {bajos.length} bajos · {vencer.length} próx. vencer · {vencidos.length} vencidos
           </p>
         </div>
@@ -3231,11 +3237,11 @@ function Alertas() {
       {/* Tarjetas resumen */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label:"Agotados",      value: agotados.length, cls:"bg-red-50 text-[#d32f2f] border-red-100" },
+          { label:"Agotados",      value: agotados.length, cls:"bg-destructive/10 text-destructive border-red-100" },
           { label:"Críticos",      value: criticos.length, cls:"bg-orange-50 text-orange-700 border-orange-100" },
           { label:"Stock Bajo",    value: bajos.length,    cls:"bg-amber-50 text-amber-700 border-amber-100" },
           { label:"Próx. Vencer",  value: vencer.length,   cls:"bg-purple-50 text-purple-700 border-purple-100" },
-          { label:"Vencidos",      value: vencidos.length, cls:"bg-red-50 text-red-800 border-red-200" },
+          { label:"Vencidos",      value: vencidos.length, cls:"bg-destructive/10 text-red-800 border-red-200" },
         ].map(k=>(
           <div key={k.label} className={`rounded-lg border p-3 sm:p-4 ${k.cls}`}>
             <div className="text-xl sm:text-2xl font-bold">{k.value}</div>
@@ -3249,7 +3255,7 @@ function Alertas() {
         {tabs.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
             className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
-              tab===t.id ? "bg-card shadow-sm text-foreground" : "text-gray-500 hover:text-gray-700"
+              tab===t.id ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}>
             <span className="hidden sm:inline">{t.label}</span>
             <span className="sm:hidden">{t.label.replace(/\(.*\)/, '').trim()}</span>
@@ -3270,7 +3276,7 @@ function Alertas() {
               <thead>
                 <tr className="border-b border-border bg-muted">
                   {["Producto","Lote","Stock","Estado","Vencimiento","Días"].map(h=>(
-                    <th key={h} className="text-left py-2 px-2 sm:py-3 sm:px-4 text-[10px] sm:text-xs text-gray-500 font-semibold">{h}</th>
+                    <th key={h} className="text-left py-2 px-2 sm:py-3 sm:px-4 text-[10px] sm:text-xs text-muted-foreground font-semibold">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -3281,11 +3287,11 @@ function Alertas() {
                   const vencido = fechaDate ? isVencido(p.fecha_vencimiento) : false;
 
                   return(
-                    <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.stock===0 ? "bg-red-50/40" : vencido ? "bg-red-50/20" : "hover:bg-muted"}`}>
+                    <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.stock===0 ? "bg-destructive/10/40" : vencido ? "bg-destructive/10/20" : "hover:bg-muted"}`}>
                       <td className="py-2 px-2 sm:py-3 sm:px-4 font-medium text-foreground break-words max-w-[120px] sm:max-w-none">
                         {p.nombre_producto}
                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4 font-mono text-[10px] sm:text-xs text-gray-500">{p.lote}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 font-mono text-[10px] sm:text-xs text-muted-foreground">{p.lote}</td>
                       <td className="py-2 px-2 sm:py-3 sm:px-4 font-mono font-semibold">{p.stock} uds.</td>
                       <td className="py-2 px-2 sm:py-3 sm:px-4">
                         {vencido ? (
@@ -3296,7 +3302,7 @@ function Alertas() {
                           <span className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium bg-purple-100 text-purple-800">Próx. vencer</span>
                         )}
                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4 text-[10px] sm:text-xs text-gray-500">{p.fecha_vencimiento ?? "—"}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 text-[10px] sm:text-xs text-muted-foreground">{p.fecha_vencimiento ?? "—"}</td>
                       <td className="py-2 px-2 sm:py-3 sm:px-4">
                         {dias !== null ? (
                           <span className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium ${
@@ -3395,7 +3401,7 @@ function Historial() {
 
   const totalPages = Math.ceil(data.total / LIMIT);
 
-  const inputCls = "px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] w-full";
+  const inputCls = "px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary w-full";
   const labelCls = "block text-xs font-semibold text-muted-foreground mb-1";
 
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
@@ -3424,7 +3430,7 @@ function Historial() {
                 <h3 className="font-bold text-lg">Información completa</h3>
                 <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
               </div>
-              <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
+              <div className="text-sm text-foreground break-words max-h-96 overflow-y-auto">
                 {text}
               </div>
               <div className="mt-4 flex justify-end">
@@ -3443,7 +3449,7 @@ function Historial() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-foreground">Historial de Ventas</h1>
-          <p className="text-sm text-gray-500">{data.total} ventas registradas</p>
+          <p className="text-sm text-muted-foreground">{data.total} ventas registradas</p>
         </div>
       </div>
 
@@ -3488,32 +3494,32 @@ function Historial() {
             </colgroup>
             <thead className="bg-muted">
               <tr className="border-b border-border">
-                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words"># Venta</th>
-                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Fecha</th>
-                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Cliente</th>
-                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Empleado</th>
-                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Total</th>
-                <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Detalle</th>
+                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words"># Venta</th>
+                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words">Fecha</th>
+                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words">Cliente</th>
+                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words">Empleado</th>
+                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words">Total</th>
+                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words">Detalle</th>
                </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Cargando...</td></tr>
               ) : data.ventas.map(v => (
-                <tr key={v.id_venta} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
-                  <td className="py-3 px-3 font-mono text-xs text-[#0a4b7a] font-semibold break-words whitespace-normal">#{v.id_venta}</td>
+                <tr key={v.id_venta} className="border-b border-gray-50 hover:bg-primary/10 transition-colors">
+                  <td className="py-3 px-3 font-mono text-xs text-primary font-semibold break-words whitespace-normal">#{v.id_venta}</td>
                   <td className="py-3 px-3 text-muted-foreground text-xs break-words whitespace-normal">{v.fecha}</td>
-                  <td className="py-3 px-3 text-gray-700 break-words whitespace-normal">
+                  <td className="py-3 px-3 text-foreground break-words whitespace-normal">
                     <Expandable text={v.cliente ?? "Consumidor final"} maxLength={30} />
                   </td>
-                  <td className="py-3 px-3 text-gray-700 break-words whitespace-normal">
+                  <td className="py-3 px-3 text-foreground break-words whitespace-normal">
                     <Expandable text={v.empleado ?? "—"} maxLength={30} />
                   </td>
-                  <td className="py-3 px-3 font-mono font-semibold text-[#0a4b7a] break-words whitespace-normal">${Number(v.total).toFixed(2)}</td>
+                  <td className="py-3 px-3 font-mono font-semibold text-primary break-words whitespace-normal">${Number(v.total).toFixed(2)}</td>
                   <td className="py-3 px-3 break-words whitespace-normal">
                     <button
                       onClick={() => verDetalle(v)}
-                      className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]"
+                      className="text-primary hover:text-[#0d5c96] p-1 rounded hover:bg-primary/10"
                       title="Ver detalle"
                     >
                       <Eye size={14} />
@@ -3531,7 +3537,7 @@ function Historial() {
         {/* paginación */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-            <span className="text-xs text-gray-500">Página {page + 1} de {totalPages}</span>
+            <span className="text-xs text-muted-foreground">Página {page + 1} de {totalPages}</span>
             <div className="flex gap-2">
               <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>← Anterior</Btn>
               <Btn variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => load(page + 1)}>Siguiente →</Btn>
@@ -3547,20 +3553,20 @@ function Historial() {
             <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border">
               <div>
                 <h2 className="text-lg font-bold text-foreground">
-                  Detalle de Venta <span className="text-[#0a4b7a]">#{detalle.venta?.id_venta}</span>
+                  Detalle de Venta <span className="text-primary">#{detalle.venta?.id_venta}</span>
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">{detalle.venta?.fecha}</p>
               </div>
               <button onClick={() => setDetalle(null)} className="text-muted-foreground hover:text-muted-foreground mt-1"><X size={20}/></button>
             </div>
-            <div className="grid grid-cols-2 gap-3 px-6 py-4 bg-[#f8fafc] border-b border-border">
+            <div className="grid grid-cols-2 gap-3 px-6 py-4 bg-input-background border-b border-border">
               <div>
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Cliente</p>
                 <p className="text-sm font-semibold text-foreground">
                   {detalle.venta?.cliente ?? <span className="text-muted-foreground font-normal italic">Consumidor final</span>}
                 </p>
-                {detalle.venta?.dui && <p className="text-xs text-gray-500 mt-0.5">DUI: {detalle.venta.dui}</p>}
-                {detalle.venta?.cliente_telefono && <p className="text-xs text-gray-500">Tel: {detalle.venta.cliente_telefono}</p>}
+                {detalle.venta?.dui && <p className="text-xs text-muted-foreground mt-0.5">DUI: {detalle.venta.dui}</p>}
+                {detalle.venta?.cliente_telefono && <p className="text-xs text-muted-foreground">Tel: {detalle.venta.cliente_telefono}</p>}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Atendido por</p>
@@ -3568,12 +3574,12 @@ function Historial() {
               </div>
             </div>
             <div className="px-6 py-4">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Productos comprados</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Productos comprados</p>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted">
                     {["Producto", "Cant.", "P. Unit.", "Subtotal"].map(h => (
-                      <th key={h} className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">{h}</th>
+                      <th key={h} className="text-left py-2 px-3 text-xs text-muted-foreground font-semibold">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -3581,14 +3587,14 @@ function Historial() {
                   {detailLoading ? (
                     <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">Cargando productos...</td></tr>
                   ) : detalle.detalle?.map((d: any) => (
-                    <tr key={d.id_detalle_venta} className="border-b border-gray-50 hover:bg-[#f0f7ff]">
+                    <tr key={d.id_detalle_venta} className="border-b border-gray-50 hover:bg-primary/10">
                       <td className="py-2 px-3">
                         <p className="font-medium text-foreground">{d.nombre_producto}</p>
                         {d.lote && <p className="text-xs text-muted-foreground">Lote: {d.lote}</p>}
                       </td>
                       <td className="py-2 px-3 text-muted-foreground text-center">{d.cantidad}</td>
                       <td className="py-2 px-3 font-mono text-muted-foreground">${Number(d.precio_unitario).toFixed(2)}</td>
-                      <td className="py-2 px-3 font-mono font-semibold text-[#0a4b7a]">${Number(d.subtotal).toFixed(2)}</td>
+                      <td className="py-2 px-3 font-mono font-semibold text-primary">${Number(d.subtotal).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -3704,7 +3710,7 @@ function Eliminados() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-foreground">Registros Eliminados</h1>
-          <p className="text-sm text-gray-500">{records.length} registros en papelera</p>
+          <p className="text-sm text-muted-foreground">{records.length} registros en papelera</p>
         </div>
         <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
       </div>
@@ -3721,9 +3727,9 @@ function Eliminados() {
           const count = t.id === "todos" ? records.length : records.filter(r => r.tipo === t.id).length;
           return(
             <button key={t.id} onClick={()=>setTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tab===t.id?"bg-card shadow-sm text-foreground":"text-gray-500 hover:text-gray-700"}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tab===t.id?"bg-card shadow-sm text-foreground":"text-muted-foreground hover:text-foreground"}`}>
               {t.label}
-              {count > 0 && <span className={`text-xs font-bold ${tab===t.id?"text-[#0a4b7a]":"text-muted-foreground"}`}>({count})</span>}
+              {count > 0 && <span className={`text-xs font-bold ${tab===t.id?"text-primary":"text-muted-foreground"}`}>({count})</span>}
             </button>
           );
         })}
@@ -3733,7 +3739,7 @@ function Eliminados() {
         <div className="relative max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar registro..."
-            className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
+            className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"/>
         </div>
       </Card>
 
@@ -3743,13 +3749,13 @@ function Eliminados() {
             <thead>
               <tr className="border-b border-border bg-muted">
                 {["Tipo","Nombre","Detalle","Acciones"].map(h=>(
-                  <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
+                  <th key={h} className="text-left py-3 px-4 text-xs text-muted-foreground font-semibold">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((r, i)=>(
-                <tr key={`${r.tipo}-${r.id}-${i}`} className="border-b border-gray-50 hover:bg-red-50/30 transition-colors">
+                <tr key={`${r.tipo}-${r.id}-${i}`} className="border-b border-gray-50 hover:bg-destructive/10/30 transition-colors">
                   <td className="py-3 px-4">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tipoCls[r.tipo]}`}>
                       {tipoLabel[r.tipo]}
@@ -3767,7 +3773,7 @@ function Eliminados() {
                       </button>
                       <button
                         onClick={()=>handlePermanent(r.tipo, r.id)}
-                        className="flex items-center gap-1 text-xs text-[#d32f2f] bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg font-medium transition-colors"
+                        className="flex items-center gap-1 text-xs text-destructive bg-destructive/10 hover:bg-red-100 px-2 py-1 rounded-lg font-medium transition-colors"
                       >
                         <Trash2 size={12}/> Eliminar
                       </button>
@@ -3804,7 +3810,7 @@ function Eliminados() {
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
           <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+            toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'
           }`}>
             {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
             {toast.message}
@@ -3873,7 +3879,7 @@ function Auditoria({ user }: { user: User }) {
   const accionColor: Record<string, string> = {
     CREAR: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     EDITAR: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    ELIMINAR: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    ELIMINAR: "bg-destructive/10 text-destructive dark:bg-red-900/30 dark:text-red-400",
     DESACTIVAR: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     ACTIVAR: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     PAPELERA: "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
@@ -3892,7 +3898,7 @@ function Auditoria({ user }: { user: User }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">Auditoría del Sistema</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{data.total} registros de cambios</p>
+          <p className="text-sm text-muted-foreground dark:text-gray-400">{data.total} registros de cambios</p>
         </div>
       </div>
 
@@ -3977,7 +3983,7 @@ function Auditoria({ user }: { user: User }) {
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                 {["Fecha", "Tabla", "Acción", "Descripción", "Campo", "Valor anterior", "Valor nuevo", "Empleado"].map(h => (
-                  <th key={h} className="text-left py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 dark:text-gray-400 font-semibold truncate">
+                  <th key={h} className="text-left py-2 px-2 md:py-3 md:px-4 text-xs text-muted-foreground dark:text-gray-400 font-semibold truncate">
                     {h}
                   </th>
                 ))}
@@ -3986,11 +3992,11 @@ function Auditoria({ user }: { user: User }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-500 dark:text-gray-400">Cargando...</td>
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground dark:text-gray-400">Cargando...</td>
                 </tr>
               ) : data.data.map((r, i) => (
                 <tr key={i} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap truncate">
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-muted-foreground dark:text-gray-400 whitespace-nowrap truncate">
                     {formatFecha(r.fecha)}
                   </td>
                   <td className="py-2 px-2 md:py-3 md:px-4 truncate">
@@ -4003,19 +4009,19 @@ function Auditoria({ user }: { user: User }) {
                       {r.accion}
                     </span>
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-700 dark:text-gray-300 truncate max-w-0">
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-foreground dark:text-gray-300 truncate max-w-0">
                     {r.descripcion}
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 dark:text-gray-400 font-mono truncate max-w-0">
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-muted-foreground dark:text-gray-400 font-mono truncate max-w-0">
                     {r.campo_modificado ?? '—'}
                   </td>
                   <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
                     {r.valor_anterior ? (
-                      <span className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded font-mono truncate block max-w-full">
+                      <span className="bg-destructive/10 dark:bg-red-900/30 text-destructive dark:text-red-400 px-2 py-0.5 rounded font-mono truncate block max-w-full">
                         {r.valor_anterior}
                       </span>
                     ) : (
-                      <span className="text-gray-400 dark:text-gray-500">—</span>
+                      <span className="text-gray-400 dark:text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
@@ -4024,7 +4030,7 @@ function Auditoria({ user }: { user: User }) {
                         {r.valor_nuevo}
                       </span>
                     ) : (
-                      <span className="text-gray-400 dark:text-gray-500">—</span>
+                      <span className="text-gray-400 dark:text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 dark:text-gray-400 text-xs truncate max-w-0">
@@ -4034,7 +4040,7 @@ function Auditoria({ user }: { user: User }) {
               ))}
               {!loading && data.data.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-500 dark:text-gray-400">Sin registros de auditoría.</td>
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground dark:text-gray-400">Sin registros de auditoría.</td>
                 </tr>
               )}
             </tbody>
@@ -4042,7 +4048,7 @@ function Auditoria({ user }: { user: User }) {
         </div>
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Página {page + 1} de {totalPages}</span>
+            <span className="text-xs text-muted-foreground dark:text-gray-400">Página {page + 1} de {totalPages}</span>
             <div className="flex gap-2">
               <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>
                 ← Anterior
@@ -4093,7 +4099,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
       <Sidebar user={user} current={screen} onNav={setScreen} onLogout={handleLogoutClick} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header con padding adaptado para móvil */}
-        <header className="h-14 bg-card border-b-2 border-[#0a4b7a]/10 flex items-center px-3 md:px-6 gap-4 flex-shrink-0 pl-14 md:pl-6">
+        <header className="h-14 bg-card border-b-2 border-primary/10 flex items-center px-3 md:px-6 gap-4 flex-shrink-0 pl-14 md:pl-6">
           <h2 className="font-semibold text-foreground text-sm truncate">{screenTitle[screen]}</h2>
           <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center gap-2 pl-3 border-l border-border">
@@ -4107,7 +4113,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
             </div>
             <button
               onClick={handleLogoutClick}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#d32f2f] border border-red-200 rounded-lg hover:bg-red-50 transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-destructive border border-red-200 rounded-lg hover:bg-destructive/10 transition-colors whitespace-nowrap"
             >
               <LogOut size={13} /> Salir
             </button>
