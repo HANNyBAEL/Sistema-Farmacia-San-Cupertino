@@ -27,8 +27,6 @@ import { generarFacturaPDF } from "./GenerarFactura";
 import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
 import { useNavigate, useLocation } from 'react-router-dom'; 
-import crypto from 'crypto';
-
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
