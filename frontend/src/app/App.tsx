@@ -109,7 +109,7 @@ function expiryStyle(fecha: string) {
   const dias = Math.ceil((vence.getTime() - hoy.getTime()) / (1000*60*60*24));
   if (dias < 0)  return { row: 'bg-red-50',    badge: 'bg-red-100 text-red-700 font-semibold' };
   if (dias <= 30) return { row: 'bg-yellow-50', badge: 'bg-yellow-100 text-yellow-700 font-semibold' };
-  return { row: '', badge: 'text-gray-600' };
+  return { row: '', badge: 'text-muted-foreground' };
 }
 function stockColor(stock: number): string {
   if (stock === 0) return "text-red-600 bg-red-50";
@@ -136,31 +136,31 @@ function Btn({ children, variant = "primary", size = "md", className = "", onCli
   const base = "inline-flex items-center gap-1.5 font-medium rounded-lg transition-all cursor-pointer select-none disabled:opacity-50";
   const sizes = { sm: "px-3 py-1.5 text-xs", md: "px-4 py-2 text-sm", lg: "px-5 py-2.5 text-base" };
   const variants = {
-    primary:   "bg-[#0a4b7a] text-white hover:bg-[#0d5c96]",
-    secondary: "border border-[#0a4b7a] text-[#0a4b7a] bg-white hover:bg-[#e3f2fd]",
-    danger:    "bg-[#d32f2f] text-white hover:bg-[#c62828]",
-    ghost:     "text-[#6b7280] hover:bg-gray-100 bg-transparent",
+    primary:   "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-[#0d5c96]",
+    secondary: "border border-[#0a4b7a] text-[#0a4b7a] bg-card hover:bg-[#e3f2fd]",
+    danger:    "bg-[#d32f2f] text-sidebar-accent-foreground hover:bg-[#c62828]",
+    ghost:     "text-[#6b7280] hover:bg-muted bg-transparent",
   };
   return <button disabled={disabled} onClick={onClick} className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}>{children}</button>;
 }
 
 function Card({ children, className = "", accent }: { children: React.ReactNode; className?: string; accent?: "blue"|"red"|"green"|"amber" }) {
   const borders = { blue: "border-l-4 border-l-[#0a4b7a]", red: "border-l-4 border-l-[#d32f2f]", green: "border-l-4 border-l-green-500", amber: "border-l-4 border-l-amber-500" };
-  return <div className={`bg-white rounded-lg shadow-sm border border-gray-100 ${accent ? borders[accent] : ""} ${className}`}>{children}</div>;
+  return <div className={`bg-card rounded-lg shadow-sm border border-border ${accent ? borders[accent] : ""} ${className}`}>{children}</div>;
 }
 
 function Input({ placeholder, value, onChange, type = "text", className = "", maxLength }: {
   placeholder?: string; value: string; onChange: (v: string) => void; type?: string; className?: string; maxLength?: number;
 }) {
   return <input type={type} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength}
-    className={`w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-[#1e1e1e] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] transition-all text-sm ${className}`} />;
+    className={`w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-foreground placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] transition-all text-sm ${className}`} />;
 }
 
 function Select({ children, value, onChange, className = "" }: {
   children: React.ReactNode; value: string; onChange: (v: string) => void; className?: string;
 }) {
   return <select value={value} onChange={e => onChange(e.target.value)}
-    className={`px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-[#1e1e1e] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] cursor-pointer ${className}`}>
+    className={`px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] cursor-pointer ${className}`}>
     {children}
   </select>;
 }
@@ -192,7 +192,7 @@ function ConfirmModal({
           <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
             <AlertTriangle size={20} />
           </div>
-          <h2 className="text-lg font-bold text-[#1e1e1e]">{title}</h2>
+          <h2 className="text-lg font-bold text-foreground">{title}</h2>
         </div>
         <p className="text-gray-700 mb-6">{message}</p>
         <div className="flex justify-end gap-3">
@@ -243,30 +243,30 @@ function CambiarContrasenaForzado({ token, onSuccess, onCancel }: { token: strin
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+    <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+      <div className="w-full max-w-md bg-card rounded-2xl shadow-lg border border-border p-8">
         <div className="flex flex-col items-center mb-6">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
             <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <h2 className="text-xl font-bold text-[#1e1e1e]">Cambio de contraseña obligatorio</h2>
+          <h2 className="text-xl font-bold text-foreground">Cambio de contraseña obligatorio</h2>
           <p className="text-sm text-gray-500 text-center mt-1">Por seguridad, debes cambiar tu contraseña antes de continuar.</p>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Nueva contraseña</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Nueva contraseña</label>
             <div className="relative">
               <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground">
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Confirmar contraseña</label>
             <div className="relative">
               <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
-              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground">
                 {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
@@ -321,10 +321,10 @@ function EstablecerContrasena({ token, onSuccess }: { token: string | null; onSu
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-full max-w-sm bg-card rounded-2xl shadow-lg border border-border p-8">
           <div className="text-green-500 text-5xl mb-4">✅</div>
-          <h2 className="text-xl font-bold text-[#1e1e1e]">¡Contraseña establecida!</h2>
+          <h2 className="text-xl font-bold text-foreground">¡Contraseña establecida!</h2>
           <p className="text-gray-500 mt-2">Ya puedes iniciar sesión con tu nueva contraseña.</p>
           <Btn variant="primary" className="w-full mt-6 justify-center" onClick={onSuccess}>Ir al inicio de sesión</Btn>
         </div>
@@ -333,30 +333,30 @@ function EstablecerContrasena({ token, onSuccess }: { token: string | null; onSu
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+    <div className="min-h-screen flex items-center justify-center bg-background" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="w-full max-w-md bg-card rounded-2xl shadow-lg border border-border p-8">
         <div className="flex flex-col items-center mb-6">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
             <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <h2 className="text-xl font-bold text-[#1e1e1e]">Establecer contraseña</h2>
+          <h2 className="text-xl font-bold text-foreground">Establecer contraseña</h2>
           <p className="text-sm text-gray-500 text-center mt-1">Has sido invitado a unirte al sistema. Establece tu contraseña.</p>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Contraseña</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Contraseña</label>
             <div className="relative">
               <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground">
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Confirmar contraseña</label>
             <div className="relative">
               <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
-              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground">
                 {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
@@ -429,10 +429,10 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-full max-w-sm bg-card rounded-2xl shadow-lg border border-border p-8 text-center">
           <div className="text-green-500 text-5xl mb-4">✅</div>
-          <h2 className="text-xl font-bold text-[#1e1e1e]">¡Contraseña restablecida!</h2>
+          <h2 className="text-xl font-bold text-foreground">¡Contraseña restablecida!</h2>
           <p className="text-gray-500 mt-2">Ahora puedes iniciar sesión con tu nueva contraseña.</p>
           <Btn variant="primary" className="w-full mt-6 justify-center" onClick={onSuccess}>
             Ir al inicio de sesión
@@ -443,13 +443,13 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+    <div className="min-h-screen flex items-center justify-center bg-background" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="w-full max-w-sm bg-card rounded-2xl shadow-lg border border-border p-8">
         <div className="flex flex-col items-center mb-6">
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-4">
             <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <h2 className="text-xl font-bold text-[#1e1e1e]">
+          <h2 className="text-xl font-bold text-foreground">
             {step === 'solicitar' ? 'Recuperar contraseña' : 'Verificar código'}
           </h2>
           <p className="text-sm text-gray-500 text-center mt-1">
@@ -462,7 +462,7 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
         {step === 'solicitar' ? (
           <>
             <div>
-              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Correo electrónico</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Correo electrónico</label>
               <Input
                 type="email"
                 value={email}
@@ -493,7 +493,7 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
         ) : (
           <>
             <div>
-              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Código de verificación</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Código de verificación</label>
               <Input
                 value={codigo}
                 onChange={setCodigo}
@@ -502,7 +502,7 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Nueva contraseña</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Nueva contraseña</label>
               <div className="relative">
                 <Input
                   type={showPw ? 'text' : 'password'}
@@ -513,14 +513,14 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                 >
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Confirmar contraseña</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Confirmar contraseña</label>
               <div className="relative">
                 <Input
                   type={showConfirmPw ? 'text' : 'password'}
@@ -531,7 +531,7 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPw(!showConfirmPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                 >
                   {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -598,8 +598,8 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: "Inter, sans-serif" }}>
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+    <div className="min-h-screen flex items-center justify-center bg-background" style={{ fontFamily: "Inter, sans-serif" }}>
+      <div className="w-full max-w-sm bg-card rounded-2xl shadow-lg border border-border p-8">
         
         {/* ✅ LOGO (ahora visible) */}
         <div className="flex flex-col items-center mb-6">
@@ -607,19 +607,19 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
             <img src={logoImg} alt="Farmacia San Cupertino" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-lg font-bold text-[#0a2a44] text-center">Farmacias San Cupertino</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Sistema de gestión</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Sistema de gestión</p>
         </div>
 
-        <h2 className="text-xl font-bold text-[#1e1e1e] mb-1">Iniciar sesión</h2>
+        <h2 className="text-xl font-bold text-foreground mb-1">Iniciar sesión</h2>
         <p className="text-gray-500 text-sm mb-6">Ingrese sus credenciales para continuar</p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Correo</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Correo</label>
             <Input placeholder="correo@farmacia.com" value={email} onChange={setEmail} type="email" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Contraseña</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Contraseña</label>
             <div className="relative">
               <Input
                 placeholder="Contraseña"
@@ -630,7 +630,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
               >
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -698,7 +698,7 @@ function Sidebar({ user, current, onNav, onLogout }: {
       {/* Botón hamburguesa para móvil */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-3 left-3 z-50 md:hidden bg-[#0a2a44] text-white p-2 rounded-lg shadow-lg hover:bg-[#0a4b7a] transition-colors"
+        className="fixed top-3 left-3 z-50 md:hidden bg-sidebar text-sidebar-accent-foreground p-2 rounded-lg shadow-lg hover:bg-sidebar-accent transition-colors"
         aria-label="Menú"
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -715,7 +715,7 @@ function Sidebar({ user, current, onNav, onLogout }: {
       {/* Sidebar - SIEMPRE VISIBLE EN ESCRITORIO */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-40 flex flex-col bg-[#0a2a44] w-64 transform transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-40 flex flex-col bg-sidebar w-64 transform transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           md:relative md:translate-x-0 md:w-60 md:flex md:flex-col md:shrink-0
         `}
@@ -723,17 +723,17 @@ function Sidebar({ user, current, onNav, onLogout }: {
         {/* Logo y botón de cierre en móvil */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-1">
+            <div className="w-9 h-9 flex-shrink-0 bg-card rounded-xl flex items-center justify-center p-1">
               <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-white font-bold text-sm block leading-tight">Farmacias San Cupertino</span>
-              <span className="text-white/40 text-[10px]">Gestión Farmaceutica</span>
+              <span className="text-sidebar-accent-foreground font-bold text-sm block leading-tight">Farmacias San Cupertino</span>
+              <span className="text-sidebar-accent-foreground/40 text-[10px]">Gestión Farmaceutica</span>
             </div>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="md:hidden text-white/70 hover:text-white transition-colors"
+            className="md:hidden text-sidebar-foreground/70 hover:text-sidebar-accent-foreground transition-colors"
           >
             <X size={20} />
           </button>
@@ -748,7 +748,7 @@ function Sidebar({ user, current, onNav, onLogout }: {
                 key={item.screen}
                 onClick={() => { onNav(item.screen); setIsOpen(false); }}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all ${
-                  active ? "bg-[#0a4b7a] text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+                  active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-accent-foreground"
                 }`}
               >
                 <span className="flex-shrink-0">{item.icon}</span>
@@ -763,12 +763,12 @@ function Sidebar({ user, current, onNav, onLogout }: {
           {/* ... avatar, nombre, etc. ... */}
           <button 
             onClick={toggleTheme} 
-            className="text-white/40 hover:text-white transition-colors p-1"
+            className="text-sidebar-accent-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
             title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
           >
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
-          <button onClick={onLogout} className="text-white/40 hover:text-[#d32f2f] transition-colors">
+          <button onClick={onLogout} className="text-sidebar-accent-foreground/40 hover:text-[#d32f2f] transition-colors">
             <LogOut size={15} />
           </button>
         </div>
@@ -776,14 +776,14 @@ function Sidebar({ user, current, onNav, onLogout }: {
         {/* Usuario y logout */}
         <div className="border-t border-white/10 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            <div className="w-8 h-8 bg-sidebar-accent rounded-full flex items-center justify-center text-sidebar-accent-foreground text-xs font-bold flex-shrink-0">
               {user.name.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-white text-xs font-medium truncate">{user.name}</div>
-              <div className="text-white/50 text-xs capitalize">{user.role}</div>
+              <div className="text-sidebar-accent-foreground text-xs font-medium truncate">{user.name}</div>
+              <div className="text-sidebar-accent-foreground/50 text-xs capitalize">{user.role}</div>
             </div>
-            <button onClick={onLogout} className="text-white/40 hover:text-[#d32f2f] transition-colors">
+            <button onClick={onLogout} className="text-sidebar-accent-foreground/40 hover:text-[#d32f2f] transition-colors">
               <LogOut size={15} />
             </button>
           </div>
@@ -861,7 +861,7 @@ function Dashboard() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-[#1e1e1e]">Tablero Principal</h1>
+        <h1 className="text-xl font-bold text-foreground">Tablero Principal</h1>
         <p className="text-gray-500 text-sm">Resumen operativo — {new Date().toLocaleDateString('es-SV')}</p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -874,13 +874,13 @@ function Dashboard() {
             }`}>
               {k.icon}
             </div>
-            <div className="text-2xl font-bold text-[#1e1e1e]">{k.value}</div>
+            <div className="text-2xl font-bold text-foreground">{k.value}</div>
             <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
           </Card>
         ))}
       </div>
       <Card className="p-5">
-        <h2 className="text-sm font-semibold text-[#1e1e1e] mb-4">Ventas últimos 7 días</h2>
+        <h2 className="text-sm font-semibold text-foreground mb-4">Ventas últimos 7 días</h2>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={salesData} barSize={28}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -928,7 +928,7 @@ const CATEGORIAS = [
 // ── Componente para celdas con texto largo que se pueden expandir ──
 function ExpandableCell({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) {
   const [showModal, setShowModal] = useState(false);
-  if (!text || text.length === 0) return <span className="text-gray-400">—</span>;
+  if (!text || text.length === 0) return <span className="text-muted-foreground">—</span>;
 
   const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
   const isTruncated = text.length > maxLength;
@@ -946,10 +946,10 @@ function ExpandableCell({ text, maxLength = 30 }: { text?: string | null; maxLen
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-bold text-lg">Información completa</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+              <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
             </div>
             <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
               {text}
@@ -1138,7 +1138,7 @@ function Productos({ user }: { user: User }) {
 
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
-    if (!text) return <span className="text-gray-400">—</span>;
+    if (!text) return <span className="text-muted-foreground">—</span>;
     const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
     const isLong = text.length > maxLength;
     return (
@@ -1157,10 +1157,10 @@ function Productos({ user }: { user: User }) {
         </span>
         {show && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+            <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-bold text-lg">Información completa</h3>
-                <button onClick={() => setShow(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+                <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
               </div>
               <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
                 {text}
@@ -1178,7 +1178,7 @@ function Productos({ user }: { user: User }) {
   return (
     <div className="p-4 md:p-6 space-y-4 min-w-0 overflow-x-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Productos</h1>
+        <h1 className="text-xl font-bold text-foreground">Gestión de Productos</h1>
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
       </div>
 
@@ -1186,16 +1186,16 @@ function Productos({ user }: { user: User }) {
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-3 md:gap-4">
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre o código</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre o código</label>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o código..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
 
           <div className="flex-1 min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Stock</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Stock</label>
             <Select value={filterStock} onChange={setFilterStock} className="w-full">
               <option value="">Todos</option>
               <option value="agotado">Agotado</option>
@@ -1206,7 +1206,7 @@ function Productos({ user }: { user: User }) {
           </div>
 
           <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Categoría</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Categoría</label>
             <Select value={filterCat} onChange={setFilterCat} className="w-full">
               <option value="">Todas</option>
               {CATEGORIAS.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
@@ -1214,7 +1214,7 @@ function Productos({ user }: { user: User }) {
           </div>
 
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor</label>
             <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
               <option value="">Todos</option>
               {suppliers
@@ -1226,7 +1226,7 @@ function Productos({ user }: { user: User }) {
           </div>
 
           <div className="flex-1 min-w-[140px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Vencimiento</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Vencimiento</label>
             <Select value={filterVenc} onChange={setFilterVenc} className="w-full">
               <option value="">Todos</option>
               <option value="vencido">Vencidos</option>
@@ -1236,7 +1236,7 @@ function Productos({ user }: { user: User }) {
           </div>
 
           <div className="flex-1 min-w-[120px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
               <option value="activo">Activo</option>
@@ -1269,8 +1269,8 @@ function Productos({ user }: { user: User }) {
                 <col className="w-[7%]" />   {/* Estado */}
                 <col className="w-[14%]" />  {/* Acciones */}
               </colgroup>
-              <thead className="bg-gray-50">
-                <tr className="border-b border-gray-100">
+              <thead className="bg-muted">
+                <tr className="border-b border-border">
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Nombre</th>
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Categoría</th>
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Precio</th>
@@ -1285,8 +1285,8 @@ function Productos({ user }: { user: User }) {
               </thead>
               <tbody>
                 {filtered.map(p => (
-                  <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${p.deleted ? 'opacity-60 bg-gray-50' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-gray-50'}`}>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] whitespace-nowrap truncate max-w-0">
+                  <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-muted transition-colors ${p.deleted ? 'opacity-60 bg-muted' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-muted'}`}>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-foreground whitespace-nowrap truncate max-w-0">
                       <Expandable text={p.nombre_producto} maxLength={20} />
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap truncate max-w-0">
@@ -1302,7 +1302,7 @@ function Productos({ user }: { user: User }) {
                                 <button className="inline-flex items-center justify-center w-4 h-4 bg-blue-100 text-blue-700 text-[9px] rounded-full font-bold hover:bg-blue-200 transition-colors flex-shrink-0">
                                   +{resto.length}
                                 </button>
-                                <div className="absolute left-0 top-5 z-50 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-lg p-1.5 min-w-max">
+                                <div className="absolute left-0 top-5 z-50 hidden group-hover:block bg-card border border-border rounded-lg shadow-lg p-1.5 min-w-max">
                                   <p className="text-[9px] font-semibold text-gray-500 mb-0.5">Otras categorías:</p>
                                   {resto.map((cat: string, i: number) => (
                                     <div key={i} className="text-[9px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded mb-0.5">{cat}</div>
@@ -1312,14 +1312,14 @@ function Productos({ user }: { user: User }) {
                             )}
                           </div>
                         );
-                      })() : <span className="text-gray-400">—</span>}
+                      })() : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-[#0a4b7a] font-semibold whitespace-nowrap text-[10px] sm:text-sm">${Number(p.precio).toFixed(2)}</td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span></td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><Expandable text={p.lote} maxLength={10} /></td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><Expandable text={p.codigo_barras} maxLength={12} /></td>
                     <td className={`py-2 px-2 sm:py-3 sm:px-3 text-[9px] sm:text-xs font-mono whitespace-nowrap ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                       <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                         {p.deleted ? "Inactivo" : "Activo"}
@@ -1347,7 +1347,7 @@ function Productos({ user }: { user: User }) {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={10} className="py-6 sm:py-10 text-center text-gray-400">Sin productos.</td></tr>
+                  <tr><td colSpan={10} className="py-6 sm:py-10 text-center text-muted-foreground">Sin productos.</td></tr>
                 )}
               </tbody>
             </table>
@@ -1359,20 +1359,20 @@ function Productos({ user }: { user: User }) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-[#1e1e1e]">{editProduct ? "Editar Producto" : "Nuevo Producto"}</h2>
-              <button onClick={()=>setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+              <h2 className="text-lg font-bold text-foreground">{editProduct ? "Editar Producto" : "Nuevo Producto"}</h2>
+              <button onClick={()=>setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground"><X size={20}/></button>
             </div>
             {formError && <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
             <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2"><label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label><Input value={form.nombre_producto} onChange={v=>setForm(p=>({...p,nombre_producto:v}))} placeholder="Nombre del medicamento" /></div>
-              <div className="col-span-2"><label className="block text-xs font-semibold text-gray-600 mb-1">Descripción</label><Input value={form.descripcion} onChange={v=>setForm(p=>({...p,descripcion:v}))} placeholder="Descripción opcional" /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Precio ($) *</label><Input type="number" value={form.precio} onChange={v=>setForm(p=>({...p,precio:v}))} placeholder="0.00" /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Stock *</label><Input type="number" value={form.stock} onChange={v=>setForm(p=>({...p,stock:v}))} placeholder="0" /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Lote *</label><Input value={form.lote} onChange={v=>setForm(p=>({...p,lote:v}))} placeholder="LOT-2024-XXX" /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Código de barras</label><Input value={form.codigo_barras} onChange={v=>setForm(p=>({...p,codigo_barras:v}))} placeholder="Ej: 7501234567890" /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Fecha vencimiento *</label><Input type="date" value={form.fecha_vencimiento} onChange={v=>setForm(p=>({...p,fecha_vencimiento:v}))} /></div>
+              <div className="col-span-2"><label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label><Input value={form.nombre_producto} onChange={v=>setForm(p=>({...p,nombre_producto:v}))} placeholder="Nombre del medicamento" /></div>
+              <div className="col-span-2"><label className="block text-xs font-semibold text-muted-foreground mb-1">Descripción</label><Input value={form.descripcion} onChange={v=>setForm(p=>({...p,descripcion:v}))} placeholder="Descripción opcional" /></div>
+              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Precio ($) *</label><Input type="number" value={form.precio} onChange={v=>setForm(p=>({...p,precio:v}))} placeholder="0.00" /></div>
+              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Stock *</label><Input type="number" value={form.stock} onChange={v=>setForm(p=>({...p,stock:v}))} placeholder="0" /></div>
+              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Lote *</label><Input value={form.lote} onChange={v=>setForm(p=>({...p,lote:v}))} placeholder="LOT-2024-XXX" /></div>
+              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Código de barras</label><Input value={form.codigo_barras} onChange={v=>setForm(p=>({...p,codigo_barras:v}))} placeholder="Ej: 7501234567890" /></div>
+              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha vencimiento *</label><Input type="date" value={form.fecha_vencimiento} onChange={v=>setForm(p=>({...p,fecha_vencimiento:v}))} /></div>
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Proveedor *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor *</label>
                 <Select value={form.id_proveedor} onChange={v=>setForm(p=>({...p,id_proveedor:v}))} className="w-full">
                   <option value="">Seleccionar proveedor...</option>
                   {suppliers
@@ -1383,10 +1383,10 @@ function Productos({ user }: { user: User }) {
                 </Select>
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-600 mb-2">Categorías</label>
-                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-[#f8fafc]">
+                <label className="block text-xs font-semibold text-muted-foreground mb-2">Categorías</label>
+                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto border border-border rounded-lg p-2 bg-[#f8fafc]">
                   {CATEGORIAS.map(cat => (
-                    <label key={cat.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-white rounded px-1 py-0.5">
+                    <label key={cat.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-card rounded px-1 py-0.5">
                       <input type="checkbox" checked={selectedCats.includes(cat.id)} onChange={() => toggleCat(cat.id)} className="rounded" />
                       <span className="text-gray-700">{cat.nombre}</span>
                     </label>
@@ -1726,12 +1726,12 @@ function Ventas({ user }: { user: User }) {
               <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                 <AlertTriangle size={20} />
               </div>
-              <h2 className="text-lg font-bold text-[#1e1e1e]">Medicamento Controlado</h2>
+              <h2 className="text-lg font-bold text-foreground">Medicamento Controlado</h2>
             </div>
             <p className="text-gray-700 mb-2">
               <strong>{controlledModal.product.nombre_producto}</strong> pertenece a una categoría controlada.
             </p>
-            <p className="text-gray-600 text-sm mb-4">
+            <p className="text-muted-foreground text-sm mb-4">
               Debe pedir y retener la receta médica del cliente antes de vender.
             </p>
             <div className="flex justify-end gap-3">
@@ -1753,7 +1753,7 @@ function Ventas({ user }: { user: User }) {
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                 <Users size={20} />
               </div>
-              <h2 className="text-lg font-bold text-[#1e1e1e]">Cliente no seleccionado</h2>
+              <h2 className="text-lg font-bold text-foreground">Cliente no seleccionado</h2>
             </div>
             <p className="text-gray-700 mb-4">Debes seleccionar un cliente antes de finalizar la venta.</p>
             <div className="flex justify-end">
@@ -1770,7 +1770,7 @@ function Ventas({ user }: { user: User }) {
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                 <FileSpreadsheet size={20} />
               </div>
-              <h2 className="text-lg font-bold text-[#1e1e1e]">Generar Factura</h2>
+              <h2 className="text-lg font-bold text-foreground">Generar Factura</h2>
             </div>
             <p className="text-gray-700 mb-4">¿Desea generar factura electrónica para esta venta?</p>
             <div className="flex justify-end gap-3">
@@ -1792,8 +1792,8 @@ function Ventas({ user }: { user: User }) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-[#1e1e1e]">Nuevo Cliente</h2>
-              <button onClick={() => { setShowNewClient(false); setNewClientError(""); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <h2 className="text-lg font-bold text-foreground">Nuevo Cliente</h2>
+              <button onClick={() => { setShowNewClient(false); setNewClientError(""); }} className="text-muted-foreground hover:text-muted-foreground"><X size={20} /></button>
             </div>
             {newClientError && (
               <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
@@ -1803,40 +1803,40 @@ function Ventas({ user }: { user: User }) {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
                   <Input value={newClientForm.nombre} onChange={v => setNewClientForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" className="w-full" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
                   <Input value={newClientForm.apellido} onChange={v => setNewClientForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" className="w-full" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">DUI *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI *</label>
                 <input
                   value={formatDUI(newClientForm.dui)}
                   onChange={e => setNewClientForm(prev => ({ ...prev, dui: e.target.value }))}
                   placeholder="00000000-0"
                   maxLength={10}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono *</label>
                 <input
                   value={formatPhone(newClientForm.telefono)}
                   onChange={e => setNewClientForm(prev => ({ ...prev, telefono: e.target.value }))}
                   placeholder="0000-0000"
                   maxLength={9}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
                 <Input type="email" value={newClientForm.correo} onChange={v => setNewClientForm(p => ({ ...p, correo: v }))} placeholder="correo@ejemplo.com" className="w-full" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Dirección</label>
                 <Input value={newClientForm.direccion} onChange={v => setNewClientForm(p => ({ ...p, direccion: v }))} placeholder="Dirección opcional" className="w-full" />
               </div>
             </div>
@@ -1849,66 +1849,66 @@ function Ventas({ user }: { user: User }) {
       )}
 
       {/* Panel izquierdo: búsqueda de productos */}
-      <div className="w-full md:w-72 border-b md:border-b-0 md:border-r border-gray-100 flex flex-col bg-white">
-        <div className="p-3 md:p-4 border-b border-gray-100">
+      <div className="w-full md:w-72 border-b md:border-b-0 md:border-r border-border flex flex-col bg-card">
+        <div className="p-3 md:p-4 border-b border-border">
           <div className="flex items-center justify-between mb-2 md:mb-3">
-            <h2 className="font-semibold text-[#1e1e1e] text-sm">Buscar Producto</h2>
+            <h2 className="font-semibold text-foreground text-sm">Buscar Producto</h2>
             <button onClick={() => setShowScanner(true)} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:bg-[#e3f2fd] px-2 py-1 rounded-lg font-medium transition-colors"><Camera size={13} /> Escanear</button>
           </div>
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nombre o código de barras..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nombre o código de barras..." className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2 max-h-[300px] md:max-h-none">
           {search && results.map(p => (
             <button key={p.id_producto} onClick={() => addToCart(p)} className="w-full text-left p-2 md:p-3 rounded-lg hover:bg-[#e3f2fd] transition-colors border border-transparent hover:border-[#0a4b7a]/20 mb-1">
-              <div className="text-sm font-medium text-[#1e1e1e]">{p.nombre_producto}</div>
+              <div className="text-sm font-medium text-foreground">{p.nombre_producto}</div>
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 <span className="text-xs text-[#0a4b7a] font-semibold">${Number(p.precio).toFixed(2)}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${stockColor(p.stock)}`}>Stock: {p.stock}</span>
-                {p.codigo_barras && <span className="text-xs text-gray-400">Código: {p.codigo_barras}</span>}
+                {p.codigo_barras && <span className="text-xs text-muted-foreground">Código: {p.codigo_barras}</span>}
               </div>
             </button>
           ))}
-          {search && results.length === 0 && <p className="text-sm text-gray-400 text-center py-6">Sin resultados</p>}
-          {!search && <p className="text-sm text-gray-400 text-center py-6">Escriba para buscar</p>}
+          {search && results.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Sin resultados</p>}
+          {!search && <p className="text-sm text-muted-foreground text-center py-6">Escriba para buscar</p>}
         </div>
       </div>
 
       {/* Panel central: carrito */}
       <div className="flex-1 flex flex-col border-b md:border-b-0" style={{ minWidth: 0 }}>
-        <div className="p-3 md:p-4 border-b border-gray-100 bg-white flex items-center justify-between">
-          <h2 className="font-semibold text-[#1e1e1e] text-sm">Carrito</h2>
+        <div className="p-3 md:p-4 border-b border-border bg-card flex items-center justify-between">
+          <h2 className="font-semibold text-foreground text-sm">Carrito</h2>
           {cart.length > 0 && <Btn variant="ghost" size="sm" onClick={() => { setCart([]); setSaleError(""); }}><X size={13} /> Limpiar</Btn>}
         </div>
         {saleDone && <div className="mx-3 md:mx-4 mt-3 md:mt-4 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2"><Check size={16} /> Venta registrada exitosamente.</div>}
         {saleError && <div className="mx-3 md:mx-4 mt-3 md:mt-4 bg-red-50 border border-red-200 text-[#d32f2f] rounded-lg px-4 py-3 text-sm flex items-center gap-2"><AlertTriangle size={14} />{saleError}</div>}
         <div className="flex-1 overflow-auto p-3 md:p-4" ref={cartContainerRef}>
           {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3"><ShoppingCart size={40} strokeWidth={1} /><span className="text-sm">El carrito está vacío</span></div>
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3"><ShoppingCart size={40} strokeWidth={1} /><span className="text-sm">El carrito está vacío</span></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs md:text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100">
+                  <tr className="border-b border-border">
                     {["Producto", "P.Unit", "Cant.", "Subtotal", ""].map(h => <th key={h} className="text-left py-2 px-2 text-xs text-gray-500 font-medium">{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {cart.map(item => (
-                    <tr key={item.product.id_producto} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="py-2 px-2 font-medium text-[#1e1e1e]">{item.product.nombre_producto}</td>
-                      <td className="py-2 px-2 text-gray-600">${Number(item.product.precio).toFixed(2)}</td>
+                    <tr key={item.product.id_producto} className="border-b border-gray-50 hover:bg-muted">
+                      <td className="py-2 px-2 font-medium text-foreground">{item.product.nombre_producto}</td>
+                      <td className="py-2 px-2 text-muted-foreground">${Number(item.product.precio).toFixed(2)}</td>
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => setQty(item.product.id_producto, item.qty - 1)} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100 text-sm">−</button>
+                          <button onClick={() => setQty(item.product.id_producto, item.qty - 1)} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center border border-border rounded text-gray-500 hover:bg-muted text-sm">−</button>
                           <span className="w-6 text-center font-medium text-sm">{item.qty}</span>
-                          <button onClick={() => setQty(item.product.id_producto, item.qty + 1)} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center border border-gray-200 rounded text-gray-500 hover:bg-gray-100 text-sm">+</button>
+                          <button onClick={() => setQty(item.product.id_producto, item.qty + 1)} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center border border-border rounded text-gray-500 hover:bg-muted text-sm">+</button>
                         </div>
                       </td>
                       <td className="py-2 px-2 font-semibold text-[#0a4b7a]">${(Number(item.product.precio) * item.qty).toFixed(2)}</td>
-                      <td className="py-2 px-2"><button onClick={() => removeFromCart(item.product.id_producto)} className="text-gray-400 hover:text-[#d32f2f]"><X size={15} /></button></td>
+                      <td className="py-2 px-2"><button onClick={() => removeFromCart(item.product.id_producto)} className="text-muted-foreground hover:text-[#d32f2f]"><X size={15} /></button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1919,21 +1919,21 @@ function Ventas({ user }: { user: User }) {
       </div>
 
       {/* Panel derecho: cliente y pago */}
-      <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-gray-100 flex flex-col bg-white">
-        <div className="p-3 md:p-4 border-b border-gray-100">
+      <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-border flex flex-col bg-card">
+        <div className="p-3 md:p-4 border-b border-border">
           <div className="flex items-center justify-between mb-2 md:mb-3">
-            <h2 className="font-semibold text-[#1e1e1e] text-sm">Cliente</h2>
+            <h2 className="font-semibold text-foreground text-sm">Cliente</h2>
             <button onClick={() => { setShowNewClient(true); setNewClientError(""); }} className="flex items-center gap-1 text-xs text-[#0a4b7a] hover:text-[#0d5c96] font-medium hover:bg-[#e3f2fd] px-2 py-1 rounded-lg transition-colors"><Plus size={12} /> Nuevo</button>
           </div>
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Buscar por DUI..." className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Buscar por DUI..." className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-xs focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
           {clientSearch && (
-            <div className="mt-1 border border-gray-100 rounded-lg overflow-hidden shadow-sm max-h-40 overflow-y-auto">
+            <div className="mt-1 border border-border rounded-lg overflow-hidden shadow-sm max-h-40 overflow-y-auto">
               {clients.filter(c => (c.dui ?? "").toLowerCase().startsWith(clientSearch.toLowerCase()) && !c.deleted && !c.papelera).map(c => (
                 <button key={c.id_cliente} onClick={() => { setSelectedClient(c); setClientSearch(""); }} className="w-full text-left px-3 py-2 text-xs hover:bg-[#e3f2fd] border-b border-gray-50 last:border-0">
-                  {c.nombre} {c.apellido} {c.dui && <span className="text-gray-400 ml-1">({c.dui})</span>}
+                  {c.nombre} {c.apellido} {c.dui && <span className="text-muted-foreground ml-1">({c.dui})</span>}
                 </button>
               ))}
             </div>
@@ -1946,9 +1946,9 @@ function Ventas({ user }: { user: User }) {
           )}
         </div>
         <div className="p-3 md:p-4 flex-1 space-y-3 md:space-y-4 overflow-y-auto">
-          <h2 className="font-semibold text-[#1e1e1e] text-sm">Resumen</h2>
+          <h2 className="font-semibold text-foreground text-sm">Resumen</h2>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-2">Método de pago</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-2">Método de pago</label>
             <div className="grid grid-cols-2 gap-1.5">
               {([
                 { id: "efectivo", label: "💵 Efectivo" },
@@ -1958,7 +1958,7 @@ function Ventas({ user }: { user: User }) {
                 { id: "paypal", label: "🅿️ PayPal" },
                 { id: "western", label: "🌐 Western Union" },
               ] as const).map(m => (
-                <button key={m.id} onClick={() => { setMetodoPago(m.id); setEfectivo(""); }} className={`text-[10px] md:text-xs px-2 py-1.5 rounded-lg border font-medium transition-colors text-left ${metodoPago === m.id ? 'bg-[#0a4b7a] text-white border-[#0a4b7a]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#0a4b7a] hover:text-[#0a4b7a]'}`}>{m.label}</button>
+                <button key={m.id} onClick={() => { setMetodoPago(m.id); setEfectivo(""); }} className={`text-[10px] md:text-xs px-2 py-1.5 rounded-lg border font-medium transition-colors text-left ${metodoPago === m.id ? 'bg-sidebar-accent text-sidebar-accent-foreground border-[#0a4b7a]' : 'bg-card text-muted-foreground border-border hover:border-[#0a4b7a] hover:text-[#0a4b7a]'}`}>{m.label}</button>
               ))}
             </div>
           </div>
@@ -1967,10 +1967,10 @@ function Ventas({ user }: { user: User }) {
           {metodoPago === "applepay" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">Apple Pay desde su dispositivo.</div>}
           {metodoPago === "paypal" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🅿️ PayPal. Confirme pago recibido.</div>}
           {metodoPago === "western" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🌐 Western Union. Verifique número de transferencia.</div>}
-          <div className="flex justify-between text-[#1e1e1e] font-bold text-base border-t border-gray-100 pt-2"><span>Total</span><span className="text-[#0a4b7a]">${total.toFixed(2)}</span></div>
+          <div className="flex justify-between text-foreground font-bold text-base border-t border-border pt-2"><span>Total</span><span className="text-[#0a4b7a]">${total.toFixed(2)}</span></div>
           {soloEfectivo && (
             <div className="space-y-2">
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Efectivo recibido *</label><input type="number" min={0} value={efectivo} onChange={e => setEfectivo(e.target.value)} placeholder="$0.00" className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" /></div>
+              <div><label className="block text-xs font-semibold text-muted-foreground mb-1">Efectivo recibido *</label><input type="number" min={0} value={efectivo} onChange={e => setEfectivo(e.target.value)} placeholder="$0.00" className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" /></div>
               {parseFloat(efectivo) >= total && (
                 <div className="flex justify-between text-green-700 font-bold text-base bg-green-50 rounded-lg px-3 py-2">
                   <span>Cambio</span>
@@ -1983,7 +1983,7 @@ function Ventas({ user }: { user: User }) {
             </div>
           )}
         </div>
-        <div className="p-3 md:p-4 border-t border-gray-100 space-y-2">
+        <div className="p-3 md:p-4 border-t border-border space-y-2">
           <Btn variant="primary" className="w-full justify-center text-sm" onClick={finalizarVenta} disabled={cart.length === 0}><Check size={15} /> Finalizar venta</Btn>
           <Btn variant="danger" className="w-full justify-center text-sm" onClick={() => { setCart([]); setSaleError(""); }} disabled={cart.length === 0}><X size={15} /> Cancelar</Btn>
         </div>
@@ -2136,7 +2136,7 @@ function Clientes({ user }: { user: User }) {
 
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
-    if (!text) return <span className="text-gray-400">—</span>;
+    if (!text) return <span className="text-muted-foreground">—</span>;
     const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
     const isLong = text.length > maxLength;
     return (
@@ -2155,10 +2155,10 @@ function Clientes({ user }: { user: User }) {
         </span>
         {show && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+            <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-bold text-lg">Información completa</h3>
-                <button onClick={() => setShow(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+                <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
               </div>
               <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
                 {text}
@@ -2176,7 +2176,7 @@ function Clientes({ user }: { user: User }) {
   return(
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Clientes</h1>
+        <h1 className="text-xl font-bold text-foreground">Gestión de Clientes</h1>
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo cliente</Btn>
       </div>
 
@@ -2184,38 +2184,38 @@ function Clientes({ user }: { user: User }) {
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-3 md:gap-4">
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
 
           <div className="flex-1 min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">DUI</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI</label>
             <input
               value={formatDUI(filterDui)}
               onChange={e => setFilterDui(e.target.value)}
               placeholder="00000000-0"
               maxLength={10}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
             />
           </div>
 
           <div className="flex-1 min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
             <input
               value={formatPhone(filterTel)}
               onChange={e => setFilterTel(e.target.value)}
               placeholder="0000-0000"
               maxLength={9}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
             />
           </div>
 
           <div className="flex-1 min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
               <option value="activo">Activo</option>
@@ -2224,15 +2224,15 @@ function Clientes({ user }: { user: User }) {
           </div>
 
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
             <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
 
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Dirección</label>
             <input value={filterDir} onChange={e=>setFilterDir(e.target.value)} placeholder="Calle, colonia..."
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
 
           <div className="flex items-end">
@@ -2257,8 +2257,8 @@ function Clientes({ user }: { user: User }) {
                 <col className="w-[8%]" />
                 <col className="w-[12%]" />
               </colgroup>
-              <thead className="bg-gray-50">
-                <tr className="border-b border-gray-100">
+              <thead className="bg-muted">
+                <tr className="border-b border-border">
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Nombre</th>
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
@@ -2270,20 +2270,20 @@ function Clientes({ user }: { user: User }) {
               </thead>
               <tbody>
                 {filtered.map(c => (
-                  <tr key={c.id_cliente} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${c.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                  <tr key={c.id_cliente} className={`border-b border-gray-50 hover:bg-muted transition-colors ${c.deleted ? 'opacity-60 bg-muted' : ''}`}>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-foreground break-words whitespace-normal">
                       <Expandable text={`${c.nombre} ${c.apellido}`} maxLength={25} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
-                      {c.dui ? <Expandable text={c.dui} maxLength={12} /> : <span className="text-gray-400">—</span>}
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
+                      {c.dui ? <Expandable text={c.dui} maxLength={12} /> : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
                       <Expandable text={c.telefono} maxLength={12} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
                       <Expandable text={c.correo} maxLength={25} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
                       <Expandable text={c.direccion ?? "—"} maxLength={30} />
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
@@ -2310,7 +2310,7 @@ function Clientes({ user }: { user: User }) {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-6 sm:py-10 text-center text-gray-400">Sin clientes.</td>
+                    <td colSpan={7} className="py-6 sm:py-10 text-center text-muted-foreground">Sin clientes.</td>
                   </tr>
                 )}
               </tbody>
@@ -2323,47 +2323,47 @@ function Clientes({ user }: { user: User }) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-[#1e1e1e]">{editClient?"Editar Cliente":"Nuevo Cliente"}</h2>
-              <button onClick={()=>setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+              <h2 className="text-lg font-bold text-foreground">{editClient?"Editar Cliente":"Nuevo Cliente"}</h2>
+              <button onClick={()=>setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground"><X size={20}/></button>
             </div>
             {formError&&<div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{formError}</div>}
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
                   <Input value={form.nombre} onChange={v=>setForm(p=>({...p,nombre:v}))} placeholder="Nombre" className="w-full" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
                   <Input value={form.apellido} onChange={v=>setForm(p=>({...p,apellido:v}))} placeholder="Apellido" className="w-full" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">DUI *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI *</label>
                 <input
                   value={formatDUI(form.dui)} 
                   onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} 
                   placeholder="00000000-0" 
                   maxLength={10}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono *</label>
                 <input
                   value={formatPhone(form.telefono)} 
                   onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} 
                   placeholder="0000-0000" 
                   maxLength={9}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
                 <Input type="email" value={form.correo} onChange={v=>setForm(p=>({...p,correo:v}))} placeholder="correo@ejemplo.com" className="w-full" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Dirección</label>
                 <Input value={form.direccion} onChange={v=>setForm(p=>({...p,direccion:v}))} placeholder="Dirección opcional" className="w-full" />
               </div>
             </div>
@@ -2538,7 +2538,7 @@ function Proveedores({ user }: { user: User }) {
 
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
-    if (!text) return <span className="text-gray-400">—</span>;
+    if (!text) return <span className="text-muted-foreground">—</span>;
     const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
     const isLong = text.length > maxLength;
     return (
@@ -2557,10 +2557,10 @@ function Proveedores({ user }: { user: User }) {
         </span>
         {show && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+            <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-bold text-lg">Información completa</h3>
-                <button onClick={() => setShow(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+                <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
               </div>
               <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
                 {text}
@@ -2578,7 +2578,7 @@ function Proveedores({ user }: { user: User }) {
   return(
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Proveedores</h1>
+        <h1 className="text-xl font-bold text-foreground">Gestión de Proveedores</h1>
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo proveedor</Btn>
       </div>
 
@@ -2586,31 +2586,31 @@ function Proveedores({ user }: { user: User }) {
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-3 md:gap-4">
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar proveedor</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar proveedor</label>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
               />
             </div>
           </div>
 
           <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
             <input
               value={formatPhone(filterTelefono)}
               onChange={e => setFilterTelefono(e.target.value)}
               placeholder="0000-0000"
               maxLength={9}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
             />
           </div>
 
           <div className="flex-1 min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
               <option value="activo">Activo</option>
@@ -2639,8 +2639,8 @@ function Proveedores({ user }: { user: User }) {
                 <col className="w-[8%]" />
                 <col className="w-[15%]" />
               </colgroup>
-              <thead className="bg-gray-50">
-                <tr className="border-b border-gray-100">
+              <thead className="bg-muted">
+                <tr className="border-b border-border">
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Nombre</th>
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
@@ -2651,17 +2651,17 @@ function Proveedores({ user }: { user: User }) {
               </thead>
               <tbody>
                 {filtered.map(s => (
-                  <tr key={s.id_proveedor} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${s.deleted ? 'opacity-60 bg-gray-50' : ''}`}>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-[#1e1e1e] break-words whitespace-normal">
+                  <tr key={s.id_proveedor} className={`border-b border-gray-50 hover:bg-muted transition-colors ${s.deleted ? 'opacity-60 bg-muted' : ''}`}>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-foreground break-words whitespace-normal">
                       <Expandable text={`${s.nombre} ${s.apellido}`} maxLength={25} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
                       <Expandable text={s.telefono ?? "—"} maxLength={12} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
                       <Expandable text={s.correo ?? "—"} maxLength={25} />
                     </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 break-words whitespace-normal">
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
                       <Expandable text={s.direccion ?? "—"} maxLength={30} />
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
@@ -2688,7 +2688,7 @@ function Proveedores({ user }: { user: User }) {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-6 sm:py-10 text-center text-gray-400">Sin proveedores.</td>
+                    <td colSpan={6} className="py-6 sm:py-10 text-center text-muted-foreground">Sin proveedores.</td>
                   </tr>
                 )}
               </tbody>
@@ -2701,8 +2701,8 @@ function Proveedores({ user }: { user: User }) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-[#1e1e1e]">{editSupplier ? "Editar Proveedor" : "Nuevo Proveedor"}</h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+              <h2 className="text-lg font-bold text-foreground">{editSupplier ? "Editar Proveedor" : "Nuevo Proveedor"}</h2>
+              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground"><X size={20}/></button>
             </div>
             {formError && (
               <div className="mb-4 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
@@ -2712,24 +2712,24 @@ function Proveedores({ user }: { user: User }) {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
                   <Input value={form.nombre} onChange={v => setForm(p => ({...p, nombre: v}))} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
                   <Input value={form.apellido} onChange={v => setForm(p => ({...p, apellido: v}))} />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
                 <Input value={form.telefono} onChange={v => setForm(p => ({...p, telefono: v}))} />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Correo</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
                 <Input type="email" value={form.correo} onChange={v => setForm(p => ({...p, correo: v}))} />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Dirección</label>
                 <Input value={form.direccion} onChange={v => setForm(p => ({...p, direccion: v}))} />
               </div>
             </div>
@@ -2948,7 +2948,7 @@ function Empleados({ user }: { user: User }) {
 
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
-    if (!text) return <span className="text-gray-400">—</span>;
+    if (!text) return <span className="text-muted-foreground">—</span>;
     const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
     const isLong = text.length > maxLength;
     return (
@@ -2967,10 +2967,10 @@ function Empleados({ user }: { user: User }) {
         </span>
         {show && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+            <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-bold text-lg">Información completa</h3>
-                <button onClick={() => setShow(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+                <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
               </div>
               <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
                 {text}
@@ -2989,7 +2989,7 @@ function Empleados({ user }: { user: User }) {
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#1e1e1e]">Gestión de Empleados</h1>
+          <h1 className="text-xl font-bold text-foreground">Gestión de Empleados</h1>
           <p className="text-sm text-gray-500">{filtered.length} empleados encontrados</p>
         </div>
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo empleado</Btn>
@@ -2999,22 +2999,22 @@ function Empleados({ user }: { user: User }) {
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-3 md:gap-4">
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Buscar por nombre</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
           <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Cargo</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Cargo</label>
             <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
               <option value="">Todos</option>
               {CARGOS.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
             </Select>
           </div>
           <div className="flex-1 min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
               <option value="activo">Activo</option>
@@ -3034,8 +3034,8 @@ function Empleados({ user }: { user: User }) {
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <div className="min-w-[1400px]">
             <table className="w-full text-xs sm:text-sm table-auto">
-              <thead className="bg-gray-50">
-                <tr className="border-b border-gray-100">
+              <thead className="bg-muted">
+                <tr className="border-b border-border">
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Empleado</th>
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Correo</th>
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Teléfono</th>
@@ -3051,7 +3051,7 @@ function Empleados({ user }: { user: User }) {
                 {filtered.map(emp=>{
                   const fullName = `${emp.nombre} ${emp.apellido}`;
                   return (
-                    <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
+                    <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-muted transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
@@ -3065,13 +3065,13 @@ function Empleados({ user }: { user: User }) {
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><Expandable text={emp.dui} maxLength={12} /></td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><Expandable text={emp.nit} maxLength={14} /></td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-muted text-muted-foreground'}`}>
                           {CARGO_ICON[emp.cargo]} {emp.cargo}
                         </span>
                        </td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">{emp.fecha_contratacion || "—"}</td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-muted text-gray-500'}`}>
                           {emp.activo ? "Activo" : "Inactivo"}
                         </span>
                        </td>
@@ -3093,7 +3093,7 @@ function Empleados({ user }: { user: User }) {
                 })}
                 {filtered.length===0 && (
                   <tr>
-                    <td colSpan={9} className="py-6 sm:py-10 text-center text-gray-400">Sin empleados registrados.</td>
+                    <td colSpan={9} className="py-6 sm:py-10 text-center text-muted-foreground">Sin empleados registrados.</td>
                   </tr>
                 )}
               </tbody>
@@ -3106,10 +3106,10 @@ function Empleados({ user }: { user: User }) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-[#1e1e1e]">
+              <h2 className="text-lg font-bold text-foreground">
                 {editEmp ? "Editar Empleado" : "Nuevo Empleado"}
               </h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -3124,45 +3124,45 @@ function Empleados({ user }: { user: User }) {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
                   <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} className="w-full" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Apellido *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
                   <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} className="w-full" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Correo *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo *</label>
                 <Input type="email" value={form.correo} onChange={v => setForm(p => ({ ...p, correo: v }))} className="w-full" placeholder="correo@ejemplo.com" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
-                  <input value={formatPhone(form.telefono)} onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} placeholder="0000-0000" maxLength={9} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
+                  <input value={formatPhone(form.telefono)} onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))} placeholder="0000-0000" maxLength={9} className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">DUI <span className="text-gray-400 font-normal">(00000000-0)</span></label>
-                  <input value={formatDUI(form.dui)} onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} placeholder="00000000-0" maxLength={10} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">NIT</label>
-                  <input value={formatNIT(form.nit)} onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))} placeholder="0000-000000-000-0" maxLength={17} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Cuenta Bancaria</label>
-                  <input value={formatCuentaBanco(form.cuenta_banco)} onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))} placeholder="Número de cuenta" maxLength={20} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI <span className="text-muted-foreground font-normal">(00000000-0)</span></label>
+                  <input value={formatDUI(form.dui)} onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))} placeholder="00000000-0" maxLength={10} className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">AFP</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">NIT</label>
+                  <input value={formatNIT(form.nit)} onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))} placeholder="0000-000000-000-0" maxLength={17} className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Cuenta Bancaria</label>
+                  <input value={formatCuentaBanco(form.cuenta_banco)} onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))} placeholder="Número de cuenta" maxLength={20} className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">AFP</label>
                   <Select value={form.afp} onChange={v => setForm(p => ({ ...p, afp: v }))} className="w-full">
                     <option value="">Sin AFP</option>
                     <option value="CRECER">CRECER</option>
@@ -3170,7 +3170,7 @@ function Empleados({ user }: { user: User }) {
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Cargo *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Cargo *</label>
                   <Select value={form.cargo} onChange={v => setForm(p => ({ ...p, cargo: v }))} className="w-full">
                     {CARGOS.map(c => (
                       <option key={c} value={c}>
@@ -3183,7 +3183,7 @@ function Empleados({ user }: { user: User }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha contratación</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha contratación</label>
                   <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} className="w-full" />
                 </div>
               </div>
@@ -3296,7 +3296,7 @@ function Alertas() {
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#1e1e1e]">Alertas</h1>
+          <h1 className="text-xl font-bold text-foreground">Alertas</h1>
           <p className="text-sm text-gray-500">
             {agotados.length} agotados · {criticos.length} críticos · {bajos.length} bajos · {vencer.length} próx. vencer · {vencidos.length} vencidos
           </p>
@@ -3321,16 +3321,16 @@ function Alertas() {
       </div>
 
       {/* Tabs responsivos */}
-      <div className="flex flex-wrap gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex flex-wrap gap-1 bg-muted rounded-lg p-1 w-fit">
         {tabs.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
             className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
-              tab===t.id ? "bg-white shadow-sm text-[#1e1e1e]" : "text-gray-500 hover:text-gray-700"
+              tab===t.id ? "bg-card shadow-sm text-foreground" : "text-gray-500 hover:text-gray-700"
             }`}>
             <span className="hidden sm:inline">{t.label}</span>
             <span className="sm:hidden">{t.label.replace(/\(.*\)/, '').trim()}</span>
             {t.count>0 && (
-              <span className={`text-[9px] sm:text-xs font-bold ${tab===t.id ? t.color : "text-gray-400"}`}>
+              <span className={`text-[9px] sm:text-xs font-bold ${tab===t.id ? t.color : "text-muted-foreground"}`}>
                 ({t.count})
               </span>
             )}
@@ -3344,7 +3344,7 @@ function Alertas() {
           <div className="min-w-[700px]">
             <table className="w-full text-xs sm:text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
+                <tr className="border-b border-border bg-muted">
                   {["Producto","Lote","Stock","Estado","Vencimiento","Días"].map(h=>(
                     <th key={h} className="text-left py-2 px-2 sm:py-3 sm:px-4 text-[10px] sm:text-xs text-gray-500 font-semibold">{h}</th>
                   ))}
@@ -3357,8 +3357,8 @@ function Alertas() {
                   const vencido = fechaDate ? isVencido(p.fecha_vencimiento) : false;
 
                   return(
-                    <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.stock===0 ? "bg-red-50/40" : vencido ? "bg-red-50/20" : "hover:bg-gray-50"}`}>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4 font-medium text-[#1e1e1e] break-words max-w-[120px] sm:max-w-none">
+                    <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.stock===0 ? "bg-red-50/40" : vencido ? "bg-red-50/20" : "hover:bg-muted"}`}>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 font-medium text-foreground break-words max-w-[120px] sm:max-w-none">
                         {p.nombre_producto}
                       </td>
                       <td className="py-2 px-2 sm:py-3 sm:px-4 font-mono text-[10px] sm:text-xs text-gray-500">{p.lote}</td>
@@ -3389,7 +3389,7 @@ function Alertas() {
                   );
                 })}
                 {displayed.length===0 && (
-                  <tr><td colSpan={6} className="py-6 sm:py-12 text-center text-gray-400">Sin alertas en esta categoría. ✓</td></tr>
+                  <tr><td colSpan={6} className="py-6 sm:py-12 text-center text-muted-foreground">Sin alertas en esta categoría. ✓</td></tr>
                 )}
               </tbody>
             </table>
@@ -3471,12 +3471,12 @@ function Historial() {
 
   const totalPages = Math.ceil(data.total / LIMIT);
 
-  const inputCls = "px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] w-full";
-  const labelCls = "block text-xs font-semibold text-gray-600 mb-1";
+  const inputCls = "px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] w-full";
+  const labelCls = "block text-xs font-semibold text-muted-foreground mb-1";
 
   const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
     const [show, setShow] = useState(false);
-    if (!text) return <span className="text-gray-400">—</span>;
+    if (!text) return <span className="text-muted-foreground">—</span>;
     const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
     const isLong = text.length > maxLength;
     return (
@@ -3495,10 +3495,10 @@ function Historial() {
         </span>
         {show && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+            <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-bold text-lg">Información completa</h3>
-                <button onClick={() => setShow(false)} className="text-gray-400 hover:text-gray-600">✖</button>
+                <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
               </div>
               <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
                 {text}
@@ -3518,7 +3518,7 @@ function Historial() {
       {/* encabezado */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#1e1e1e]">Historial de Ventas</h1>
+          <h1 className="text-xl font-bold text-foreground">Historial de Ventas</h1>
           <p className="text-sm text-gray-500">{data.total} ventas registradas</p>
         </div>
       </div>
@@ -3562,8 +3562,8 @@ function Historial() {
               <col className="w-[10%]" />   {/* Total */}
               <col className="w-[10%]" />   {/* Detalle */}
             </colgroup>
-            <thead className="bg-gray-50">
-              <tr className="border-b border-gray-100">
+            <thead className="bg-muted">
+              <tr className="border-b border-border">
                 <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words"># Venta</th>
                 <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Fecha</th>
                 <th className="text-left py-3 px-3 text-xs text-gray-500 font-semibold break-words">Cliente</th>
@@ -3574,11 +3574,11 @@ function Historial() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="py-12 text-center text-gray-400">Cargando...</td></tr>
+                <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Cargando...</td></tr>
               ) : data.ventas.map(v => (
                 <tr key={v.id_venta} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
                   <td className="py-3 px-3 font-mono text-xs text-[#0a4b7a] font-semibold break-words whitespace-normal">#{v.id_venta}</td>
-                  <td className="py-3 px-3 text-gray-600 text-xs break-words whitespace-normal">{v.fecha}</td>
+                  <td className="py-3 px-3 text-muted-foreground text-xs break-words whitespace-normal">{v.fecha}</td>
                   <td className="py-3 px-3 text-gray-700 break-words whitespace-normal">
                     <Expandable text={v.cliente ?? "Consumidor final"} maxLength={30} />
                   </td>
@@ -3598,7 +3598,7 @@ function Historial() {
                  </tr>
               ))}
               {!loading && data.ventas.length === 0 && (
-                <tr><td colSpan={6} className="py-12 text-center text-gray-400">Sin ventas en el período.</td></tr>
+                <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Sin ventas en el período.</td></tr>
               )}
             </tbody>
           </table>
@@ -3606,7 +3606,7 @@ function Historial() {
 
         {/* paginación */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <span className="text-xs text-gray-500">Página {page + 1} de {totalPages}</span>
             <div className="flex gap-2">
               <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>← Anterior</Btn>
@@ -3620,34 +3620,34 @@ function Historial() {
       {detalle && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-xl max-h-[85vh] overflow-y-auto p-0">
-            <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+            <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border">
               <div>
-                <h2 className="text-lg font-bold text-[#1e1e1e]">
+                <h2 className="text-lg font-bold text-foreground">
                   Detalle de Venta <span className="text-[#0a4b7a]">#{detalle.venta?.id_venta}</span>
                 </h2>
-                <p className="text-xs text-gray-400 mt-0.5">{detalle.venta?.fecha}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{detalle.venta?.fecha}</p>
               </div>
-              <button onClick={() => setDetalle(null)} className="text-gray-400 hover:text-gray-600 mt-1"><X size={20}/></button>
+              <button onClick={() => setDetalle(null)} className="text-muted-foreground hover:text-muted-foreground mt-1"><X size={20}/></button>
             </div>
-            <div className="grid grid-cols-2 gap-3 px-6 py-4 bg-[#f8fafc] border-b border-gray-100">
+            <div className="grid grid-cols-2 gap-3 px-6 py-4 bg-[#f8fafc] border-b border-border">
               <div>
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Cliente</p>
-                <p className="text-sm font-semibold text-[#1e1e1e]">
-                  {detalle.venta?.cliente ?? <span className="text-gray-400 font-normal italic">Consumidor final</span>}
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Cliente</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {detalle.venta?.cliente ?? <span className="text-muted-foreground font-normal italic">Consumidor final</span>}
                 </p>
                 {detalle.venta?.dui && <p className="text-xs text-gray-500 mt-0.5">DUI: {detalle.venta.dui}</p>}
                 {detalle.venta?.cliente_telefono && <p className="text-xs text-gray-500">Tel: {detalle.venta.cliente_telefono}</p>}
               </div>
               <div>
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Atendido por</p>
-                <p className="text-sm font-semibold text-[#1e1e1e]">{detalle.venta?.empleado}</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Atendido por</p>
+                <p className="text-sm font-semibold text-foreground">{detalle.venta?.empleado}</p>
               </div>
             </div>
             <div className="px-6 py-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Productos comprados</p>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-border bg-muted">
                     {["Producto", "Cant.", "P. Unit.", "Subtotal"].map(h => (
                       <th key={h} className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">{h}</th>
                     ))}
@@ -3655,15 +3655,15 @@ function Historial() {
                 </thead>
                 <tbody>
                   {detailLoading ? (
-                    <tr><td colSpan={4} className="py-8 text-center text-gray-400">Cargando productos...</td></tr>
+                    <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">Cargando productos...</td></tr>
                   ) : detalle.detalle?.map((d: any) => (
                     <tr key={d.id_detalle_venta} className="border-b border-gray-50 hover:bg-[#f0f7ff]">
                       <td className="py-2 px-3">
-                        <p className="font-medium text-[#1e1e1e]">{d.nombre_producto}</p>
-                        {d.lote && <p className="text-xs text-gray-400">Lote: {d.lote}</p>}
+                        <p className="font-medium text-foreground">{d.nombre_producto}</p>
+                        {d.lote && <p className="text-xs text-muted-foreground">Lote: {d.lote}</p>}
                       </td>
-                      <td className="py-2 px-3 text-gray-600 text-center">{d.cantidad}</td>
-                      <td className="py-2 px-3 font-mono text-gray-600">${Number(d.precio_unitario).toFixed(2)}</td>
+                      <td className="py-2 px-3 text-muted-foreground text-center">{d.cantidad}</td>
+                      <td className="py-2 px-3 font-mono text-muted-foreground">${Number(d.precio_unitario).toFixed(2)}</td>
                       <td className="py-2 px-3 font-mono font-semibold text-[#0a4b7a]">${Number(d.subtotal).toFixed(2)}</td>
                     </tr>
                   ))}
@@ -3671,9 +3671,9 @@ function Historial() {
               </table>
             </div>
             <div className="px-6 pb-4">
-              <div className="flex items-center justify-between bg-[#0a4b7a] rounded-xl px-5 py-3">
+              <div className="flex items-center justify-between bg-sidebar-accent rounded-xl px-5 py-3">
                 <div><p className="text-xs text-blue-200 font-semibold uppercase tracking-wide">Total pagado</p></div>
-                <span className="text-2xl font-bold text-white font-mono">${Number(detalle.venta?.total).toFixed(2)}</span>
+                <span className="text-2xl font-bold text-sidebar-accent-foreground font-mono">${Number(detalle.venta?.total).toFixed(2)}</span>
               </div>
             </div>
             <div className="flex justify-end px-6 pb-5">
@@ -3779,7 +3779,7 @@ function Eliminados() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#1e1e1e]">Registros Eliminados</h1>
+          <h1 className="text-xl font-bold text-foreground">Registros Eliminados</h1>
           <p className="text-sm text-gray-500">{records.length} registros en papelera</p>
         </div>
         <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
@@ -3792,14 +3792,14 @@ function Eliminados() {
         </div>
       )}
 
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit flex-wrap">
+      <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit flex-wrap">
         {tabs.map(t => {
           const count = t.id === "todos" ? records.length : records.filter(r => r.tipo === t.id).length;
           return(
             <button key={t.id} onClick={()=>setTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tab===t.id?"bg-white shadow-sm text-[#1e1e1e]":"text-gray-500 hover:text-gray-700"}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tab===t.id?"bg-card shadow-sm text-foreground":"text-gray-500 hover:text-gray-700"}`}>
               {t.label}
-              {count > 0 && <span className={`text-xs font-bold ${tab===t.id?"text-[#0a4b7a]":"text-gray-400"}`}>({count})</span>}
+              {count > 0 && <span className={`text-xs font-bold ${tab===t.id?"text-[#0a4b7a]":"text-muted-foreground"}`}>({count})</span>}
             </button>
           );
         })}
@@ -3807,9 +3807,9 @@ function Eliminados() {
 
       <Card className="p-4">
         <div className="relative max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar registro..."
-            className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
+            className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"/>
         </div>
       </Card>
 
@@ -3817,7 +3817,7 @@ function Eliminados() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
+              <tr className="border-b border-border bg-muted">
                 {["Tipo","Nombre","Detalle","Acciones"].map(h=>(
                   <th key={h} className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{h}</th>
                 ))}
@@ -3831,8 +3831,8 @@ function Eliminados() {
                       {tipoLabel[r.tipo]}
                     </span>
                   </td>
-                  <td className="py-3 px-4 font-medium text-[#1e1e1e] opacity-60 line-through">{r.nombre}</td>
-                  <td className="py-3 px-4 text-xs text-gray-400">{r.detalle ?? "—"}</td>
+                  <td className="py-3 px-4 font-medium text-foreground opacity-60 line-through">{r.nombre}</td>
+                  <td className="py-3 px-4 text-xs text-muted-foreground">{r.detalle ?? "—"}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       <button
@@ -3852,7 +3852,7 @@ function Eliminados() {
                 </tr>
               ))}
               {filtered.length===0&&(
-                <tr><td colSpan={4} className="py-12 text-center text-gray-400">
+                <tr><td colSpan={4} className="py-12 text-center text-muted-foreground">
                   {records.length===0?"La papelera está vacía.":"Sin resultados para la búsqueda."}
                 </td></tr>
               )}
@@ -3962,7 +3962,7 @@ function Auditoria({ user }: { user: User }) {
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#1e1e1e]">Auditoría del Sistema</h1>
+          <h1 className="text-xl font-bold text-foreground">Auditoría del Sistema</h1>
           <p className="text-sm text-gray-500">{data.total} registros de cambios</p>
         </div>
       </div>
@@ -3971,17 +3971,17 @@ function Auditoria({ user }: { user: User }) {
       <Card className="p-4">
         <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
           <div className="w-full md:w-auto">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Desde</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Desde</label>
             <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-              className="w-full md:w-auto px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+              className="w-full md:w-auto px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm" />
           </div>
           <div className="w-full md:w-auto">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Hasta</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Hasta</label>
             <input type="date" value={to} onChange={e => setTo(e.target.value)}
-              className="w-full md:w-auto px-3 py-2 border border-gray-200 rounded-lg bg-[#f8fafc] text-sm" />
+              className="w-full md:w-auto px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm" />
           </div>
           <div className="w-full md:w-auto md:min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Tabla</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Tabla</label>
             <Select value={tabla} onChange={setTabla} className="w-full">
               <option value="">Todas</option>
               <option value="productos">Productos</option>
@@ -3991,7 +3991,7 @@ function Auditoria({ user }: { user: User }) {
             </Select>
           </div>
           <div className="w-full md:w-auto md:min-w-[130px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Acción</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Acción</label>
             <Select value={accion} onChange={setAccion} className="w-full">
               <option value="">Todas</option>
               <option value="CREAR">Crear</option>
@@ -4026,7 +4026,7 @@ function Auditoria({ user }: { user: User }) {
               <col className="w-[10%]" />  {/* Empleado */}
             </colgroup>
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
+              <tr className="border-b border-border bg-muted">
                 {["Fecha", "Tabla", "Acción", "Descripción", "Campo", "Valor anterior", "Valor nuevo", "Empleado"].map(h => (
                   <th key={h} className="text-left py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 font-semibold truncate">{h}</th>
                 ))}
@@ -4034,17 +4034,17 @@ function Auditoria({ user }: { user: User }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="py-12 text-center text-gray-400">Cargando...</td></tr>
+                <tr><td colSpan={8} className="py-12 text-center text-muted-foreground">Cargando...</td></tr>
               ) : data.data.map((r, i) => (
                 <tr key={i} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
                   <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 whitespace-nowrap truncate">{formatFecha(r.fecha)}</td>
                   <td className="py-2 px-2 md:py-3 md:px-4 truncate">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaColor[r.tabla] ?? 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaColor[r.tabla] ?? 'bg-muted text-muted-foreground'}`}>
                       {r.tabla}
                     </span>
                   </td>
                   <td className="py-2 px-2 md:py-3 md:px-4 truncate">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accionColor[r.accion] ?? 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accionColor[r.accion] ?? 'bg-muted text-muted-foreground'}`}>
                       {r.accion}
                     </span>
                   </td>
@@ -4053,24 +4053,24 @@ function Auditoria({ user }: { user: User }) {
                   <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
                     {r.valor_anterior
                       ? <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded font-mono truncate block max-w-full">{r.valor_anterior}</span>
-                      : <span className="text-gray-400">—</span>}
+                      : <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
                     {r.valor_nuevo
                       ? <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded font-mono truncate block max-w-full">{r.valor_nuevo}</span>
-                      : <span className="text-gray-400">—</span>}
+                      : <span className="text-muted-foreground">—</span>}
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs truncate max-w-0">{r.nombre_empleado ?? '—'}</td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-muted-foreground text-xs truncate max-w-0">{r.nombre_empleado ?? '—'}</td>
                 </tr>
               ))}
               {!loading && data.data.length === 0 && (
-                <tr><td colSpan={8} className="py-12 text-center text-gray-400">Sin registros de auditoría.</td></tr>
+                <tr><td colSpan={8} className="py-12 text-center text-muted-foreground">Sin registros de auditoría.</td></tr>
               )}
             </tbody>
           </table>
         </div>
         {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-gray-100 gap-2">
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-border gap-2">
             <span className="text-xs text-gray-500">Página {page + 1} de {totalPages}</span>
             <div className="flex gap-2">
               <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>← Anterior</Btn>
@@ -4091,13 +4091,13 @@ function Configuracion() {
   function handleSave(){setSaved(true);setTimeout(()=>setSaved(false),2500);}
   return(
     <div className="p-6 max-w-2xl space-y-6">
-      <div><h1 className="text-xl font-bold text-[#1e1e1e]">Configuración del Sistema</h1><p className="text-sm text-gray-500">Parámetros generales y umbrales de alerta</p></div>
+      <div><h1 className="text-xl font-bold text-foreground">Configuración del Sistema</h1><p className="text-sm text-gray-500">Parámetros generales y umbrales de alerta</p></div>
       {saved&&<div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm"><Check size={16}/> Configuración guardada.</div>}
       <Card className="p-6 space-y-5">
-        <h2 className="text-sm font-bold text-[#1e1e1e] border-b border-gray-100 pb-3">Umbrales de Stock</h2>
+        <h2 className="text-sm font-bold text-foreground border-b border-border pb-3">Umbrales de Stock</h2>
         <div className="grid grid-cols-2 gap-4">
-          <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Stock Bajo</label><Input type="number" value={stockBajo} onChange={setStockBajo}/></div>
-          <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Stock Crítico</label><Input type="number" value={stockCritico} onChange={setStockCritico}/></div>
+          <div><label className="block text-xs font-semibold text-muted-foreground mb-1.5">Stock Bajo</label><Input type="number" value={stockBajo} onChange={setStockBajo}/></div>
+          <div><label className="block text-xs font-semibold text-muted-foreground mb-1.5">Stock Crítico</label><Input type="number" value={stockCritico} onChange={setStockCritico}/></div>
         </div>
       </Card>
       <div className="flex justify-end"><Btn variant="primary" onClick={handleSave}><Check size={14}/> Guardar cambios</Btn></div>
@@ -4135,20 +4135,20 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
   const handleLogoutCancel = () => setShowLogoutModal(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f5f7fa]" style={{ fontFamily: "Inter, sans-serif" }}>
+    <div className="flex h-screen overflow-hidden bg-background" style={{ fontFamily: "Inter, sans-serif" }}>
       <Sidebar user={user} current={screen} onNav={setScreen} onLogout={handleLogoutClick} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header con padding adaptado para móvil */}
-        <header className="h-14 bg-white border-b-2 border-[#0a4b7a]/10 flex items-center px-3 md:px-6 gap-4 flex-shrink-0 pl-14 md:pl-6">
-          <h2 className="font-semibold text-[#1e1e1e] text-sm truncate">{screenTitle[screen]}</h2>
+        <header className="h-14 bg-card border-b-2 border-[#0a4b7a]/10 flex items-center px-3 md:px-6 gap-4 flex-shrink-0 pl-14 md:pl-6">
+          <h2 className="font-semibold text-foreground text-sm truncate">{screenTitle[screen]}</h2>
           <div className="ml-auto flex items-center gap-2">
-            <div className="flex items-center gap-2 pl-3 border-l border-gray-100">
-              <div className="w-7 h-7 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            <div className="flex items-center gap-2 pl-3 border-l border-border">
+              <div className="w-7 h-7 bg-sidebar-accent rounded-full flex items-center justify-center text-sidebar-accent-foreground text-xs font-bold flex-shrink-0">
                 {user.name.charAt(0)}
               </div>
               <div className="hidden sm:block">
-                <div className="text-xs font-medium text-[#1e1e1e] leading-tight">{user.name}</div>
-                <div className="text-xs text-gray-400 capitalize">{user.role}</div>
+                <div className="text-xs font-medium text-foreground leading-tight">{user.name}</div>
+                <div className="text-xs text-muted-foreground capitalize">{user.role}</div>
               </div>
             </div>
             <button
