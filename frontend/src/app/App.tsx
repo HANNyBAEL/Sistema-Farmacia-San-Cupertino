@@ -2894,7 +2894,6 @@ function Empleados({ user }: { user: User }) {
     }catch(e){ console.error(e); }
   }
 
-  // ✅ Eliminar (mover a papelera) con modal
   function handleDelete(id: number) {
     setConfirmModal({ isOpen: true, empleadoId: id });
   }
@@ -2993,7 +2992,7 @@ function Empleados({ user }: { user: User }) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-foreground">Gestión de Empleados</h1>
-          <p className="text-sm text-gray-500">{filtered.length} empleados encontrados</p>
+          <p className="text-sm text-muted-foreground">{filtered.length} empleados encontrados</p>
         </div>
         <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo empleado</Btn>
       </div>
@@ -3032,52 +3031,73 @@ function Empleados({ user }: { user: User }) {
         </div>
       </Card>
 
-      {/* Tabla */}
+      {/* Tabla ESTILO PROVEEDORES */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          <div className="min-w-[1400px]">
-            <table className="w-full text-xs sm:text-sm table-auto">
+          <div className="min-w-[1200px]">
+            <table className="w-full text-xs sm:text-sm table-fixed">
+              <colgroup>
+                <col className="w-[16%]" />  {/* Empleado */}
+                <col className="w-[14%]" />  {/* Correo */}
+                <col className="w-[10%]" />  {/* Teléfono */}
+                <col className="w-[12%]" />  {/* DUI */}
+                <col className="w-[14%]" />  {/* NIT */}
+                <col className="w-[10%]" />  {/* Cargo */}
+                <col className="w-[10%]" />  {/* Contratación */}
+                <col className="w-[7%]" />   {/* Estado */}
+                <col className="w-[14%]" />  {/* Acciones */}
+              </colgroup>
               <thead className="bg-muted">
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Empleado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">NIT</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Cargo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Contratación</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
-                 </tr>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Empleado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Correo</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Teléfono</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">DUI</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">NIT</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Cargo</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Contratación</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Estado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Acciones</th>
+                </tr>
               </thead>
               <tbody>
                 {filtered.map(emp=>{
                   const fullName = `${emp.nombre} ${emp.apellido}`;
                   return (
                     <tr key={emp.id_empleado} className={`border-b border-gray-50 hover:bg-muted transition-colors ${!emp.activo ? 'opacity-50' : ''}`}>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-foreground break-words whitespace-normal">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-[#e3f2fd] flex items-center justify-center text-[#0a4b7a] text-xs font-bold flex-shrink-0">
                             {emp.nombre.charAt(0)}{emp.apellido.charAt(0)}
                           </div>
-                          <Expandable text={fullName} maxLength={20} />
+                          <Expandable text={fullName} maxLength={25} />
                         </div>
-                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words"><Expandable text={emp.correo} maxLength={20} /></td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words"><Expandable text={emp.telefono} maxLength={12} /></td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words"><Expandable text={emp.dui} maxLength={12} /></td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words"><Expandable text={emp.nit} maxLength={14} /></td>
+                      </td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
+                        <Expandable text={emp.correo} maxLength={25} />
+                      </td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
+                        <Expandable text={emp.telefono} maxLength={12} />
+                      </td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
+                        <Expandable text={emp.dui} maxLength={12} />
+                      </td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
+                        <Expandable text={emp.nit} maxLength={20} />
+                      </td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-muted text-muted-foreground'}`}>
                           {CARGO_ICON[emp.cargo]} {emp.cargo}
                         </span>
-                       </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">{emp.fecha_contratacion || "—"}</td>
+                      </td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground whitespace-nowrap">
+                        {emp.fecha_contratacion || "—"}
+                      </td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-muted text-gray-500'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.activo ? 'bg-green-50 text-green-700' : 'bg-muted text-muted-foreground'}`}>
                           {emp.activo ? "Activo" : "Inactivo"}
                         </span>
-                       </td>
+                      </td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                         <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                           <button onClick={()=>openEdit(emp)} className="text-[#0a4b7a] hover:text-[#0d5c96] p-1 rounded hover:bg-[#e3f2fd]" title="Editar"><Edit2 size={14}/></button>
@@ -3090,8 +3110,8 @@ function Empleados({ user }: { user: User }) {
                             </button>
                           )}
                         </div>
-                       </td>
-                     </tr>
+                      </td>
+                    </tr>
                   );
                 })}
                 {filtered.length===0 && (
@@ -3100,11 +3120,12 @@ function Empleados({ user }: { user: User }) {
                   </tr>
                 )}
               </tbody>
-             </table>
+            </table>
           </div>
         </div>
       </Card>
 
+      {/* Formulario y modales - SIN CAMBIOS */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
@@ -3125,6 +3146,7 @@ function Empleados({ user }: { user: User }) {
             )}
 
             <div className="space-y-4">
+              {/* ... el resto del formulario es idéntico al que ya tienes ... */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
@@ -3200,7 +3222,7 @@ function Empleados({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Modal de confirmación para desactivar */}
+      {/* Modal y Toast (igual que antes) */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title="Desactivar empleado"
@@ -3211,7 +3233,6 @@ function Empleados({ user }: { user: User }) {
         variant="danger"
       />
 
-      {/* Toast */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
           <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
