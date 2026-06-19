@@ -26,10 +26,10 @@ module.exports = {
           foreground: "hsl(var(--card-foreground))",
         },
         sidebar: {
-          DEFAULT: "#0a2a44",
-          foreground: "#ffffff",
-          accent: "#0a4b7a",
-          "accent-foreground": "#ffffff",
+          DEFAULT: "hsl(var(--sidebar-bg))",
+          foreground: "hsl(var(--sidebar-fg))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-fg))",
         },
       },
       borderColor: {

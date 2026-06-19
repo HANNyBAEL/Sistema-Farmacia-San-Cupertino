@@ -30,6 +30,7 @@ import logoImg from "../imports/logo.png";
 import { useNavigate, useLocation } from 'react-router-dom'; 
 import { useTheme } from '../context/ThemeContext';
 import { Sun } from 'lucide-react';
+import { theme } from "../../tailwind.config";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -796,6 +797,8 @@ function Dashboard() {
   const [expiredCount, setExpiredCount] = useState(0);
   const [avgDailySales, setAvgDailySales] = useState(0);
   const [loading, setLoading]   = useState(true);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     // Obtener KPIs, ventas de los últimos 7 días y productos vencidos
@@ -878,10 +881,33 @@ function Dashboard() {
         <h2 className="text-sm font-semibold text-foreground mb-4">Ventas últimos 7 días</h2>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={salesData} barSize={28}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="day" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-            <Tooltip formatter={(v: number) => [`$${v}`, "Ventas"]} contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }} />
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              stroke={isDark ? "hsl(222, 12%, 22%)" : "#f0f0f0"} 
+            />
+            <XAxis 
+              tick={{ fontSize: 12, fill: isDark ? "hsl(215, 12%, 52%)" : "#6b7280" }} 
+              // ... resto de props
+            />
+            <YAxis 
+              tick={{ fontSize: 12, fill: isDark ? "hsl(215, 12%, 52%)" : "#6b7280" }} 
+              // ... resto de props
+            />
+            <Tooltip 
+              formatter={(v: number) => [`$${v}`, "Ventas"]} 
+              contentStyle={{ 
+                borderRadius: 8, 
+                border: isDark ? "1px solid hsl(222, 12%, 22%)" : "1px solid #e5e7eb", 
+                fontSize: 12,
+                backgroundColor: isDark ? "hsl(222, 16%, 11%)" : "#fff",
+                color: isDark ? "hsl(215, 20%, 90%)" : "#222"
+              }} 
+            />
+            <Bar 
+              dataKey="ventas" 
+              fill={isDark ? "hsl(210, 65%, 50%)" : "#0a4b7a"} 
+              radius={[4, 4, 0, 0]} 
+            />
             <Bar dataKey="ventas" fill="#0a4b7a" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>

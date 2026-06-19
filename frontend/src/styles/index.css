@@ -2,17 +2,17 @@
 @import "tailwindcss";
 @import './theme.css';
 
-
 @layer base {
   :root {
+    /* ── Capas base (light) ── */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 210 70% 28%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
@@ -21,27 +21,186 @@
     --accent-foreground: 222.2 47.4% 11.2%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 210 70% 28%;
     --radius: 0.5rem;
+
+    /* ── Sidebar (light) ── */
+    --sidebar-bg: 210 70% 16%;
+    --sidebar-fg: 0 0% 100%;
+    --sidebar-accent: 210 70% 27%;
+    --sidebar-accent-fg: 0 0% 100%;
+    --sidebar-muted: 210 40% 45%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    /* ═══════════════════════════════════════════════
+       MODO OSCURO — 4 capas de profundidad
+       fondo(7%) < muted(14%) < card(11%) < border(19%)
+       ═══════════════════════════════════════════════ */
+    --background: 222 20% 7%;
+    --foreground: 215 20% 90%;
+    --card: 222 16% 11%;
+    --card-foreground: 215 20% 90%;
+    --popover: 222 16% 11%;
+    --popover-foreground: 215 20% 90%;
+    --primary: 210 65% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 14% 16%;
+    --secondary-foreground: 215 20% 85%;
+    --muted: 222 14% 16%;
+    --muted-foreground: 215 12% 52%;
+    --accent: 222 12% 19%;
+    --accent-foreground: 215 20% 85%;
+    --border: 222 12% 19%;
+    --input: 222 14% 16%;
+    --ring: 210 65% 50%;
+
+    /* ── Sidebar (dark) — navy oscuro con contraste ── */
+    --sidebar-bg: 215 50% 9%;
+    --sidebar-fg: 215 20% 82%;
+    --sidebar-accent: 210 55% 25%;
+    --sidebar-accent-fg: 0 0% 100%;
+    --sidebar-muted: 215 20% 40%;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   OVERRIDES DEL MODO OSCURO
+   Corrigen los colores hardcodeados de App.tsx
+   sin tocar el componente — mayor especificidad por .dark
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Badges y fondos semánticos ── */
+.dark .bg-red-50,
+.dark .bg-red-100 {
+  background-color: hsl(0 50% 14%);
+}
+
+.dark .bg-amber-50,
+.dark .bg-amber-100 {
+  background-color: hsl(38 50% 13%);
+}
+
+.dark .bg-green-50,
+.dark .bg-green-100 {
+  background-color: hsl(142 40% 12%);
+}
+
+.dark .bg-blue-50,
+.dark .bg-blue-100 {
+  background-color: hsl(210 40% 14%);
+}
+
+/* ── Texto semántico ── */
+.dark .text-red-600,
+.dark .text-red-700 {
+  color: hsl(0 72% 55%);
+}
+
+.dark .text-amber-600,
+.dark .text-amber-700 {
+  color: hsl(38 90% 55%);
+}
+
+.dark .text-green-600,
+.dark .text-green-700 {
+  color: hsl(142 70% 50%);
+}
+
+.dark .text-blue-600,
+.dark .text-blue-700 {
+  color: hsl(210 65% 60%);
+}
+
+/* ── Grises de Tailwind ── */
+.dark .bg-gray-50 {
+  background-color: hsl(var(--muted));
+}
+
+.dark .text-gray-500 {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .text-gray-700 {
+  color: hsl(var(--foreground));
+}
+
+.dark .placeholder-gray-400::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+/* ── Hex hardcodeados en App.tsx ── */
+.dark .bg-\[\#f8fafc\] {
+  background-color: hsl(var(--input));
+}
+
+.dark .bg-\[\#e3f2fd\] {
+  background-color: hsl(210 40% 14%);
+}
+
+.dark .bg-\[\#f0f7ff\] {
+  background-color: hsl(210 40% 14%);
+}
+
+.dark .text-\[\#0a2a44\] {
+  color: hsl(var(--foreground));
+}
+
+.dark .text-\[\#0a4b7a\] {
+  color: hsl(210 65% 60%);
+}
+
+/* ── Botones: danger ── */
+.dark .bg-\[\#d32f2f\] {
+  background-color: hsl(0 72% 45%);
+}
+
+.dark .hover\:bg-\[\#c62828\]:hover {
+  background-color: hsl(0 70% 38%);
+}
+
+.dark .hover\:text-\[\#d32f2f\]:hover {
+  color: hsl(0 72% 55%);
+}
+
+/* ── Botones: primary hover ── */
+.dark .hover\:bg-\[\#0d5c96\]:hover {
+  background-color: hsl(210 65% 38%);
+}
+
+/* ── Botones: secondary hover ── */
+.dark .hover\:bg-\[\#e3f2fd\]:hover {
+  background-color: hsl(210 40% 14%);
+}
+
+/* ── Borders y Focus ── */
+.dark .border-\[\#0a4b7a\] {
+  border-color: hsl(210 55% 30%);
+}
+
+.dark .focus\:border-\[\#0a4b7a\]:focus {
+  border-color: hsl(210 65% 50%);
+}
+
+.dark .focus\:ring-\[\#0a4b7a\]\/30:focus {
+  --tw-ring-color: hsl(210 65% 50% / 0.3);
+}
+
+/* ── Scrollbar en modo oscuro ── */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: hsl(222 16% 11%);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(222 12% 22%);
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(222 12% 30%);
 }
