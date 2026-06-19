@@ -23,7 +23,7 @@ import eliminadosApi from "../services/eliminados";
 import api from "../services/api";
 import EscanerCodigoBarras from '../app/EscanerCodigoBarras';
 import { getSiguienteCorrelativo, guardarFactura } from "../services/facturas";
-import { generarFacturaPDF } from "./GenerarFactura";
+import { generarFacturaPDF, generarFacturaPDFBase64 } from './GenerarFactura';
 import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
 import { useTheme } from '../context/ThemeContext';
@@ -1640,102 +1640,9 @@ function Ventas({ user }: { user: User }) {
             });
 
             // =====================================================================
-            // INICIO: CONSTRUCCIÓN DEL JSON Y ENVÍO POR CORREO
+            // GENERAR PDF EN BASE64 Y ENVIAR POR CORREO
             // =====================================================================
-            const subtotal = ventaResp.total / 1.13;
-            const iva = ventaResp.total - subtotal;
-
-            // Mapeo de método de pago a código del Ministerio de Hacienda (SV)
-            const metodosPagoCod: Record<string, string> = {
-              efectivo: "01",
-              tarjeta: "02",
-              transferencia: "03",
-              applepay: "04",
-              paypal: "04",
-              western: "04"
-            };
-
-            // 1. Construir el JSON de la Factura Electrónica (DTE)
-            const dteJson = {
-              identificacion: {
-                version: 1, ambiente: "01", tipoDte: "01",
-                numeroControl: numero_control,
-                codigoGeneracion: codigo_generacion,
-                tipoModelo: 1, tipoOperacion: 1,
-                fecEmi: `${year}-${month}-${day}`,
-                horEmi: `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`,
-                tipoMoneda: "USD"
-              },
-              documentoRelacionado: null,
-              emisor: {
-                codEstableMH: "S227", codEstable: "0249", codPuntoVentaMH: "P005", codPuntoVenta: "2790",
-                nit: "06141101690011", nrc: "1937", nombre: "CALLEJA, S.A. DE C.V.",
-                codActividad: "47111", descActividad: "Venta en supermercados",
-                nombreComercial: "Super Selectos", tipoEstablecimiento: "01",
-                direccion: { departamento: "03", municipio: "20", complemento: "C.C Acajutla Local Ancla Aveni, Acajutla" },
-                telefono: "22673708", correo: "dte@superselectos.com.sv"
-              },
-              receptor: {
-                tipoDocumento: "13",
-                numDocumento: selectedClient?.dui || "00000000-0",
-                nrc: null,
-                nombre: `${selectedClient?.nombre} ${selectedClient?.apellido}`,
-                codActividad: null, descActividad: null,
-                telefono: selectedClient?.telefono || "",
-                direccion: { departamento: "03", municipio: "20", complemento: selectedClient?.direccion || "" },
-                correo: selectedClient?.correo || ""
-              },
-              otrosDocumentos: null,
-              ventaTercero: null,
-              cuerpoDocumento: cart.map((item, index) => {
-                const itemSubtotal = Number(item.product.precio) * item.qty;
-                const itemIva = itemSubtotal * 0.13;
-                return {
-                  ivaItem: parseFloat(itemIva.toFixed(6)),
-                  psv: 0, noGravado: 0, numItem: index + 1, tipoItem: 1, numeroDocumento: null,
-                  cantidad: item.qty, codigo: String(item.product.id_producto), codTributo: null,
-                  uniMedida: 59, descripcion: item.product.nombre_producto,
-                  precioUni: parseFloat(Number(item.product.precio).toFixed(6)),
-                  montoDescu: 0.00, ventaNoSuj: 0, ventaExenta: 0,
-                  ventaGravada: parseFloat(itemSubtotal.toFixed(6)),
-                  tributos: null
-                };
-              }),
-              resumen: {
-                totalIva: parseFloat(iva.toFixed(2)),
-                porcentajeDescuento: 0, ivaRete1: 0, reteRenta: 0, totalNoGravado: 0,
-                totalPagar: parseFloat(ventaResp.total.toFixed(2)),
-                saldoFavor: 0, condicionOperacion: 1,
-                pagos: [{
-                  codigo: metodosPagoCod[metodoPago] || "01",
-                  montoPago: parseFloat(ventaResp.total.toFixed(2)),
-                  referencia: "", plazo: null, periodo: null
-                }],
-                numPagoElectronico: null, totalNoSuj: 0, totalExenta: 0,
-                totalGravada: parseFloat(subtotal.toFixed(2)),
-                subTotalVentas: parseFloat(subtotal.toFixed(2)),
-                descuNoSuj: 0.0, descuExenta: 0.0, descuGravada: 0.00, totalDescu: 0.00,
-                tributos: null, subTotal: parseFloat(subtotal.toFixed(2)),
-                montoTotalOperacion: parseFloat(ventaResp.total.toFixed(2)),
-                totalLetras: "VEINTE Y CINCO 00/100 USD" // Puedes integrar una librería para convertir números a letras
-              },
-              extension: { placaVehiculo: null, docuEntrega: null, nombEntrega: null, docuRecibe: null, nombRecibe: null, observaciones: null },
-              apendice: null,
-              selloRecibido: null,
-              firmaElectronica: null
-            };
-
-            // 2. Enviar el JSON al backend para que lo adjunte y envíe por correo
-            // Asegúrate de que la URL coincida con la ruta de tu backend
-            await api.post('/facturas/enviar', dteJson);
-            
-            setToast({ message: "Factura generada y enviada al correo del cliente.", type: 'success' });
-            // =====================================================================
-            // FIN: ENVÍO POR CORREO
-            // =====================================================================
-
-            // Generar el PDF visual (esto ya lo tenías)
-            generarFacturaPDF({
+            const datosFactura = {
               numero_control,
               codigo_generacion,
               fecha_emision: fechaHoraLocal,
@@ -1755,7 +1662,26 @@ function Ventas({ user }: { user: User }) {
               })),
               total: ventaResp.total,
               empleado: user.name,
+            };
+
+            // Generar el PDF como base64 para enviar por correo
+            const pdfBase64 = generarFacturaPDFBase64(datosFactura);
+
+            // Enviar PDF al backend para que lo mande por correo
+            await api.post('/facturas/enviar', {
+              email: selectedClient?.correo,
+              pdfBase64: pdfBase64,
+              numero_control: numero_control,
+              codigo_generacion: codigo_generacion,
+              total: ventaResp.total,
+              cliente: `${selectedClient!.nombre} ${selectedClient!.apellido}`,
             });
+
+            setToast({ message: "Factura enviada al correo del cliente.", type: 'success' });
+            // =====================================================================
+
+            // Generar el PDF visual para descarga local
+            generarFacturaPDF(datosFactura);
 
           } catch (fe) {
             console.error("Error generando factura:", fe);
@@ -1819,7 +1745,7 @@ function Ventas({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Modales (controlado, sin cliente, factura, escáner, nuevo cliente) */}
+      {/* Modal medicamento controlado */}
       {controlledModal.show && controlledModal.product && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full p-6">
@@ -1847,6 +1773,7 @@ function Ventas({ user }: { user: User }) {
         </div>
       )}
 
+      {/* Modal sin cliente */}
       {noClientModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full p-6">
@@ -1864,6 +1791,7 @@ function Ventas({ user }: { user: User }) {
         </div>
       )}
 
+      {/* Modal generar factura */}
       {facturaModal.show && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full p-6">
@@ -1882,6 +1810,7 @@ function Ventas({ user }: { user: User }) {
         </div>
       )}
 
+      {/* Escáner */}
       {showScanner && (
         <EscanerCodigoBarras
           onDetected={handleCodigoDetectado}
@@ -1889,6 +1818,7 @@ function Ventas({ user }: { user: User }) {
         />
       )}
 
+      {/* Modal nuevo cliente */}
       {showNewClient && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">

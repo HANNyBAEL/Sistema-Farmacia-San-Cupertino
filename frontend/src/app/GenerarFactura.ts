@@ -290,3 +290,200 @@ export function generarFacturaPDF(data: FacturaData): void {
   const fecha = data.fecha_emision.split(" ")[0].replace(/-/g, "");
   doc.save(`Factura_${data.numero_control.split("-").pop()}_${fecha}.pdf`);
 }
+
+// Al final del archivo, agrega esta función:
+export function generarFacturaPDFBase64(data: FacturaData): string {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
+  const W = 215.9;
+  const azul = [10, 75, 122] as const;
+  const gris = [245, 247, 250] as const;
+  const negro = [30, 30, 30] as const;
+  const blanco: [number, number, number] = [255, 255, 255];
+
+  // ── Copia TODO el código de generarFacturaPDF desde aquí ──
+  // (encabezado, códigos, emisor, receptor, tabla, totales, pie, apéndices)
+  // Exactamente igual, ES EL MISMO CÓDIGO
+
+  doc.setFillColor(...azul);
+  doc.rect(0, 0, W, 18, "F");
+  dibujarLogoSVG(doc, 8, 3, 12, 12);
+  doc.setTextColor(...blanco);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("DOCUMENTO TRIBUTARIO ELECTRÓNICO", W / 2, 8, { align: "center" });
+  doc.setFontSize(9);
+  doc.text("FACTURA", W / 2, 13.5, { align: "center" });
+  doc.setFontSize(8);
+  doc.text("Ver.3", W - 8, 10, { align: "right" });
+
+  let y = 24;
+  doc.setTextColor(...negro);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("Código de Generación:", 8, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.codigo_generacion, 8, y + 4);
+  doc.setFont("helvetica", "bold");
+  doc.text("Número de Control:", 8, y + 9);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.numero_control, 8, y + 13);
+  doc.setFont("helvetica", "bold");
+  doc.text("Modelo de Facturación:", W / 2 + 10, y);
+  doc.setFont("helvetica", "normal");
+  doc.text("Modelo Facturación previo", W / 2 + 10, y + 4);
+  doc.setFont("helvetica", "bold");
+  doc.text("Tipo de Transmisión:", W / 2 + 10, y + 9);
+  doc.setFont("helvetica", "normal");
+  doc.text("Transmisión normal", W / 2 + 10, y + 13);
+  doc.setFont("helvetica", "bold");
+  doc.text("Fecha y Hora de Generación:", W / 2 + 10, y + 18);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.fecha_emision, W / 2 + 10, y + 22);
+
+  y = 54;
+  doc.setDrawColor(220, 220, 220);
+  doc.line(8, y, W - 8, y);
+
+  y = 59;
+  const colW = (W - 24) / 2;
+  doc.setDrawColor(200, 200, 200);
+  doc.setFillColor(...gris);
+  doc.roundedRect(8, y, colW, 46, 2, 2, "FD");
+  doc.roundedRect(8 + colW + 8, y, colW, 46, 2, 2, "FD");
+
+  doc.setFontSize(7);
+  doc.setTextColor(120, 120, 120);
+  doc.setFont("helvetica", "normal");
+  doc.text("Emisor", 8 + colW / 2, y + 5, { align: "center" });
+  doc.text("Receptor", 8 + colW + 8 + colW / 2, y + 5, { align: "center" });
+
+  doc.setTextColor(...negro);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  const emisorLines = doc.splitTextToSize(EMISOR.nombre, colW - 6);
+  doc.text(emisorLines, 11, y + 10);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  let ey = y + 10 + emisorLines.length * 4;
+  doc.text(`NIT: ${EMISOR.nit}`, 11, ey);
+  doc.text(`NRC: ${EMISOR.nrc}`, 11, ey + 4);
+  const actLines = doc.splitTextToSize(`Actividad económica: ${EMISOR.actividad}`, colW - 6);
+  doc.text(actLines, 11, ey + 8);
+  const dirLines = doc.splitTextToSize(`Dirección: ${EMISOR.direccion}`, colW - 6);
+  doc.text(dirLines, 11, ey + 8 + actLines.length * 3.5);
+  doc.text(`Número de teléfono: ${EMISOR.telefono}`, 11, ey + 8 + actLines.length * 3.5 + dirLines.length * 3.5);
+  doc.text(`Correo electrónico: ${EMISOR.correo}`, 11, ey + 8 + actLines.length * 3.5 + dirLines.length * 3.5 + 4);
+
+  const rx = 8 + colW + 8 + 3;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text(data.receptor.nombre.toUpperCase(), rx, y + 10);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text("Tipo de Documento de Identificación: DUI", rx, y + 15);
+  doc.text(`Número de Documento de Identificación: ${data.receptor.dui ?? "—"}`, rx, y + 19);
+  const recDirLines = doc.splitTextToSize(`Dirección: ${data.receptor.direccion ?? "—"}`, colW - 6);
+  doc.text(recDirLines, rx, y + 23);
+  doc.text(`Correo electrónico: ${data.receptor.correo ?? "—"}`, rx, y + 23 + recDirLines.length * 3.5);
+  doc.text(`Teléfono: ${data.receptor.telefono ?? "—"}`, rx, y + 23 + recDirLines.length * 3.5 + 4);
+
+  const startY = 112;
+  const total = data.total;
+  const totalGravado = total;
+  const sumaVentasGravadas = totalGravado;
+
+  const productRows: CellInput[][] = data.items.map((item, idx) => [
+    { content: String(idx + 1), styles: { halign: "center" } },
+    { content: String(item.cantidad), styles: { halign: "center" } },
+    { content: "UNIDAD", styles: { halign: "center" } },
+    { content: item.descripcion },
+    { content: `$${item.precio_unitario.toFixed(4)}`, styles: { halign: "right" } },
+    { content: "$0.0000", styles: { halign: "right" } },
+    { content: "$0.00", styles: { halign: "right" } },
+    { content: "$0.00", styles: { halign: "right" } },
+    { content: "$0.00", styles: { halign: "right" } },
+    { content: `$${item.subtotal.toFixed(2)}`, styles: { halign: "right" } },
+  ]);
+
+  const sumaRow: CellInput[] = [
+    { content: "SUMA DE VENTAS:", colSpan: 5, styles: { halign: "right", fontStyle: "bold", fillColor: [...gris] } },
+    { content: "$0.00", styles: { halign: "right", fillColor: [...gris] } },
+    { content: "$0.00", styles: { halign: "right", fillColor: [...gris] } },
+    { content: "$0.00", styles: { halign: "right", fillColor: [...gris] } },
+    { content: "$0.00", styles: { halign: "right", fillColor: [...gris] } },
+    { content: `$${sumaVentasGravadas.toFixed(2)}`, styles: { halign: "right", fillColor: [...gris], fontStyle: "bold" } },
+  ];
+
+  autoTable(doc, {
+    startY,
+    margin: { left: 8, right: 8 },
+    head: [["N°", "Cantidad", "Unidad", "Descripción", "Precio Unitario", "Descuento por Item", "Otros montos no afectos", "Ventas No Sujetas", "Ventas Exentas", "Ventas Gravadas"]],
+    body: [...productRows, sumaRow],
+    styles: { fontSize: 7, cellPadding: 2 },
+    headStyles: { fillColor: [...azul], textColor: 255, fontSize: 7, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [252, 252, 252] },
+  });
+
+  let finalY = (doc as any).lastAutoTable.finalY + 6;
+  const labelX = W - 80;
+  const valX = W - 8;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const requiredSpace = 80;
+
+  if (finalY + requiredSpace > pageHeight - 15) {
+    doc.addPage();
+    finalY = 20;
+  }
+
+  const rows = [
+    ["Suma Total de Operaciones:", `$${total.toFixed(2)}`],
+    ["Monto global Desc., Rebajas y otros a ventas no sujetas:", "$0.00"],
+    ["Monto global Desc., Rebajas y otros a ventas Exentas:", "$0.00"],
+    ["Monto global Desc., Rebajas y otros a ventas Gravadas:", "$0.00"],
+    ["Sub-Total:", `$${totalGravado.toFixed(2)}`],
+    ["IVA Retenido:", "$0.00"],
+    ["Retención de Renta:", "$0.00"],
+    ["Monto Total de la Operación:", `$${total.toFixed(2)}`],
+    ["Total a pagar:", `$${total.toFixed(2)}`],
+  ];
+
+  doc.setFontSize(7.5);
+  rows.forEach(([label, val], i) => {
+    const ry = finalY + i * 5;
+    const isBold = label === "Total a pagar:" || label === "Sub-Total:";
+    doc.setFont("helvetica", isBold ? "bold" : "normal");
+    doc.text(label, labelX, ry, { align: "right" });
+    doc.text(val, valX, ry, { align: "right" });
+  });
+
+  const pieY = finalY + rows.length * 5 + 6;
+  doc.setFillColor(...negro);
+  doc.rect(8, pieY, W - 16, 8, "F");
+  doc.setTextColor(...blanco);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Valor en letras: ${numeroALetras(total)}`, 11, pieY + 5);
+  doc.text("Condición de la operación: Contado", W / 2 + 20, pieY + 5);
+
+  const apY = pieY + 14;
+  doc.setFillColor(...gris);
+  doc.rect(8, apY, W - 16, 5, "F");
+  doc.setTextColor(...negro);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("APÉNDICES", 11, apY + 3.5);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text("Datos del vendedor", 11, apY + 9);
+  doc.text("Datos del documento", W / 2 + 10, apY + 9);
+  if (data.empleado) {
+    doc.setFont("helvetica", "bold");
+    doc.text(`Nombre: ${data.empleado.toUpperCase()}`, 11, apY + 14);
+  }
+  doc.setFont("helvetica", "normal");
+  doc.text(`Sello: ${data.codigo_generacion}`, 11, apY + 19);
+
+  // ── CAMBIO CLAVE: Retornar base64 en vez de guardar ──
+  const dataUri = doc.output('datauristring');
+  return dataUri.split(',')[1]; // solo la parte base64
+}
