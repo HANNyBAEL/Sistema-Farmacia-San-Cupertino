@@ -681,7 +681,12 @@ const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: 
   { screen: "auditoria", label: "Auditoría", icon: <Shield size={18} />, roles: ["administrador"] },
 ];
 
-function Sidebar({ user, current, onNav, onLogout }: { user: User; current: Screen; onNav: (s: Screen) => void; onLogout: () => void }) {
+function Sidebar({ user, current, onNav, onLogout }: { 
+  user: User; 
+  current: Screen; 
+  onNav: (s: Screen) => void; 
+  onLogout: () => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role));
 
@@ -704,12 +709,12 @@ function Sidebar({ user, current, onNav, onLogout }: { user: User; current: Scre
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - SIEMPRE VISIBLE EN ESCRITORIO */}
       <aside
         className={`
           fixed inset-y-0 left-0 z-40 flex flex-col bg-[#0a2a44] w-64 transform transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:relative md:translate-x-0 md:w-60
+          md:relative md:translate-x-0 md:w-60 md:flex md:flex-col md:shrink-0
         `}
       >
         {/* Logo y botón de cierre en móvil */}
@@ -731,6 +736,7 @@ function Sidebar({ user, current, onNav, onLogout }: { user: User; current: Scre
           </button>
         </div>
 
+        {/* Navegación */}
         <nav className="flex-1 py-3 overflow-y-auto">
           {visible.map(item => {
             const active = current === item.screen;
@@ -750,6 +756,7 @@ function Sidebar({ user, current, onNav, onLogout }: { user: User; current: Scre
           })}
         </nav>
 
+        {/* Usuario y logout */}
         <div className="border-t border-white/10 p-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[#0a4b7a] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
@@ -768,6 +775,7 @@ function Sidebar({ user, current, onNav, onLogout }: { user: User; current: Scre
     </>
   );
 }
+
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function Dashboard() {
