@@ -27,6 +27,8 @@ import { generarFacturaPDF } from "./GenerarFactura";
 import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
 import { useNavigate, useLocation } from 'react-router-dom'; 
+import { useTheme } from '../context/ThemeContext';
+import { Moon, Sun } from 'lucide-react'; // o los iconos que uses
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -689,6 +691,7 @@ function Sidebar({ user, current, onNav, onLogout }: {
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role));
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <>
@@ -755,7 +758,21 @@ function Sidebar({ user, current, onNav, onLogout }: {
             );
           })}
         </nav>
-
+      <div className="border-t border-white/10 p-4">
+        <div className="flex items-center gap-3">
+          {/* ... avatar, nombre, etc. ... */}
+          <button 
+            onClick={toggleTheme} 
+            className="text-white/40 hover:text-white transition-colors p-1"
+            title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+          >
+            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+          <button onClick={onLogout} className="text-white/40 hover:text-[#d32f2f] transition-colors">
+            <LogOut size={15} />
+          </button>
+        </div>
+      </div>
         {/* Usuario y logout */}
         <div className="border-t border-white/10 p-4">
           <div className="flex items-center gap-3">
