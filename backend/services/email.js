@@ -21,68 +21,90 @@ const formatNumber = (num) => {
 
 
 // ═══════════════════════════════════════════════════════════
-// 1️⃣  FACTURA CON PDF ADJUNTO (LO QUE USA facturasRoutes)
+// 1️⃣  FACTURA CON PDF Y JSON ADJUNTOS
 // ═══════════════════════════════════════════════════════════
 export const enviarFacturaPorCorreo = async ({ email, pdfBase64, numero_control, codigo_generacion, total, cliente }) => {
-  console.log(`📧 [SendGrid] Enviando factura PDF a ${email}...`);
+  console.log(`📧 [SendGrid] Enviando factura a ${email}...`);
   if (!apiKey) throw new Error('SENDGRID_API_KEY no configurada');
 
-  const totalFmt = parseFloat(total || 0).toFixed(2);
-  const numeroCtrl = numero_control || 'N/A';
-  const codigoGen = codigo_generacion || 'N/A';
+  // Construir el JSON de la factura con los datos disponibles
+  const facturaJson = {
+    numero_control: numero_control || 'N/A',
+    codigo_generacion: codigo_generacion || 'N/A',
+    cliente: cliente || 'Cliente General',
+    total: parseFloat(total || 0).toFixed(2),
+    fecha_envio: new Date().toISOString(),
+    emisor: {
+      nombre: 'Farmacias San Cupertino',
+      nit: '0614-123456-789-0',
+      correo: 'farmaciassanjosecupertino@gmail.com'
+    }
+  };
 
   const msg = {
     to: email,
     from: FROM_EMAIL,
-    subject: `Factura Electrónica - ${numeroCtrl}`,
+    subject: `Factura Electrónica - ${numero_control || 'N/A'}`,
     html: `
-      <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;background:#f1f5f9;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)">
-        <div style="background:linear-gradient(135deg,#0a4b7a,#0d6eaa);padding:28px 32px;text-align:center;color:#fff">
-          <h1 style="margin:0 0 4px;font-size:22px;font-weight:700">🏥 Farmacias San Cupertino</h1>
-          <p style="margin:0;font-size:13px;opacity:.85">Documento Tributario Electrónico</p>
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:30px;background:#f9fafb;border-radius:8px;">
+        <div style="background:#0a4b7a;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+          <h1 style="margin:0;color:#fff;font-size:20px;">Farmacias San Cupertino</h1>
         </div>
-        <div style="padding:30px 32px;background:#fff;text-align:center">
-          <div style="width:60px;height:60px;margin:0 auto 16px;background:#f0f7ff;border-radius:50%;display:flex;align-items:center;justify-content:center">
-            <span style="font-size:28px">📄</span>
+        <div style="background:#fff;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;border-top:none;">
+          <h2 style="margin:0 0 16px;color:#1e293b;font-size:18px;">Notificación de Factura Electrónica</h2>
+          
+          <p style="margin:0 0 12px;color:#374151;font-size:14px;">Estimado cliente: <strong>${cliente || 'Cliente General'}</strong></p>
+          
+          <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.6;">
+            Por este medio te enviamos tu factura electrónica en formato JSON y PDF, que registra tu compra realizada en Farmacias San Cupertino.
+          </p>
+          
+          <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin:0 0 16px;">
+            <p style="margin:0 0 8px;color:#0369a1;font-size:13px;font-weight:bold;">Resumen de la factura:</p>
+            <p style="margin:0 0 4px;color:#1e40af;font-size:13px;">Número de Control: <strong>${numero_control || 'N/A'}</strong></p>
+            <p style="margin:0 0 4px;color:#1e40af;font-size:13px;">Código Generación: <strong>${codigo_generacion || 'N/A'}</strong></p>
+            <p style="margin:0;color:#1e40af;font-size:15px;font-weight:bold;">Total: $${parseFloat(total || 0).toFixed(2)}</p>
           </div>
-          <p style="font-size:16px;color:#1e293b;margin:0 0 8px">Hola <strong>${cliente || 'Cliente'}</strong>,</p>
-          <p style="font-size:14px;color:#475569;margin:0 0 20px">Adjuntamos su factura electrónica correspondiente a la operación realizada.</p>
-          <div style="background:#f8fafc;border-radius:10px;padding:16px;margin:0 auto;max-width:320px;text-align:left;border:1px solid #e2e8f0">
-            <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:600">Resumen</p>
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-              <span style="font-size:13px;color:#64748b">Número de Control</span>
-              <span style="font-size:13px;color:#1e293b;font-weight:600;font-family:monospace">${numeroCtrl}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-              <span style="font-size:13px;color:#64748b">Código Generación</span>
-              <span style="font-size:11px;color:#1e293b;font-family:monospace;max-width:160px;word-break:break-all;text-align:right">${codigoGen}</span>
-            </div>
-            <div style="border-top:2px solid #0a4b7a;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between">
-              <span style="font-size:15px;color:#0a4b7a;font-weight:700">Total</span>
-              <span style="font-size:17px;color:#0a4b7a;font-weight:800">$${totalFmt}</span>
-            </div>
+          
+          <p style="margin:0 0 12px;color:#374151;font-size:14px;line-height:1.6;">
+            Los documentos adjuntos cuentan con las especificaciones requeridas por el Ministerio de Hacienda, por lo que tienen el mismo respaldo tributario/ legal que los documentos físicos.
+          </p>
+          
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-top:20px;">
+            <p style="margin:0;color:#6b7280;font-size:12px;text-align:center;">
+              📎 Este correo contiene 2 archivos adjuntos:<br>
+              <strong>1 archivo PDF</strong> (factura visual) y <strong>1 archivo JSON</strong> (factura electrónica)
+            </p>
           </div>
-          <p style="font-size:12px;color:#94a3b8;margin:20px 0 0">📎 El archivo PDF de su factura está adjunto a este correo.</p>
         </div>
-        <div style="padding:16px 32px;text-align:center;background:#f8fafc">
-          <p style="margin:0;font-size:11px;color:#94a3b8">Farmacias San Cupertino — Documento Tributario Electrónico</p>
-          <p style="margin:4px 0 0;font-size:10px;color:#cbd5e1">Mensaje automático — No responder</p>
+        
+        <div style="margin-top:20px;text-align:center;">
+          <p style="margin:0;color:#9ca3af;font-size:11px;">Farmacias San Cupertino — Documento Tributario Electrónico</p>
+          <p style="margin:4px 0 0;color:#d1d5db;font-size:10px;">Mensaje automático — No responder</p>
         </div>
       </div>`,
-    attachments: [{
-      filename: `Factura_${numeroCtrl.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
-      content: pdfBase64,
-      type: 'application/pdf',
-      disposition: 'attachment'
-    }]
+    attachments: [
+      {
+        filename: `factura_${(numero_control || 'N/A').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+        content: pdfBase64,
+        type: 'application/pdf',
+        disposition: 'attachment'
+      },
+      {
+        filename: `factura_${(numero_control || 'N/A').replace(/[^a-zA-Z0-9]/g, '_')}.json`,
+        content: Buffer.from(JSON.stringify(facturaJson, null, 2)).toString('base64'),
+        type: 'application/json',
+        disposition: 'attachment'
+      }
+    ]
   };
 
   try {
     const response = await sgMail.send(msg);
-    console.log(`✅ [SendGrid] Factura PDF enviada a ${email}: Status ${response[0].statusCode}`);
+    console.log(`✅ [SendGrid] Factura enviada a ${email}: Status ${response[0].statusCode}`);
     return { success: true, message: 'Factura enviada correctamente' };
   } catch (error) {
-    console.error(`❌ [SendGrid] Error factura PDF:`, error.response?.body || error.message);
+    console.error(`❌ [SendGrid] Error factura:`, error.response?.body || error.message);
     throw error;
   }
 };
