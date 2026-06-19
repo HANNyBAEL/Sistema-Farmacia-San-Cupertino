@@ -3364,30 +3364,27 @@ function Alertas() {
 
 // ── Historial de Ventas ───────────────────────────────────────────────────────
 function Historial() {
-  const [data, setData]       = useState<{ ventas: any[]; total: number }>({ ventas: [], total: 0 });
+  const [data, setData] = useState<{ ventas: any[]; total: number }>({ ventas: [], total: 0 });
   const [loading, setLoading] = useState(true);
-  const [page, setPage]       = useState(0);
+  const [page, setPage] = useState(0);
   const [detalle, setDetalle] = useState<any>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-
-  // filtros (sin total min/max)
-  const [from,      setFrom]      = useState("");
-  const [to,        setTo]        = useState("");
-  const [cliente,   setCliente]   = useState("");
-  const [empleado,  setEmpleado]  = useState("");
-
+  const [DetailLoading, setDetailLoading] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [cliente, setCliente] = useState("");
+  const [empleado, setEmpleado] = useState("");
   const LIMIT = 20;
 
   async function load(p = 0) {
     setLoading(true);
     try {
       const res = await getHistorial({
-        from:      from      || undefined,
-        to:        to        || undefined,
-        cliente:   cliente   || undefined,
-        empleado:  empleado  || undefined,
-        limit:     LIMIT,
-        offset:    p * LIMIT,
+        from: from || undefined,
+        to: to || undefined,
+        cliente: cliente || undefined,
+        empleado: empleado || undefined,
+        limit: LIMIT,
+        offset: p * LIMIT,
       });
       setData(res);
       setPage(p);
@@ -3398,18 +3395,12 @@ function Historial() {
     }
   }
 
-  // Búsqueda automática con debounce
   useEffect(() => {
-    const handler = setTimeout(() => {
-      load(0);
-    }, 300);
+    const handler = setTimeout(() => load(0), 300);
     return () => clearTimeout(handler);
   }, [from, to, cliente, empleado]);
 
-  // Carga inicial
-  useEffect(() => {
-    load(0);
-  }, []);
+  useEffect(() => { load(0); }, []);
 
   function limpiar() {
     setFrom("");
@@ -3433,140 +3424,91 @@ function Historial() {
 
   const totalPages = Math.ceil(data.total / LIMIT);
 
-  const inputCls = "px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary w-full";
-  const labelCls = "block text-xs font-semibold text-muted-foreground mb-1";
-
-  const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
-    const [show, setShow] = useState(false);
-    if (!text) return <span className="text-muted-foreground">—</span>;
-    const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
-    const isLong = text.length > maxLength;
-    return (
-      <>
-        <span className="inline-flex items-center gap-1">
-          {truncated}
-          {isLong && (
-            <button
-              onClick={() => setShow(true)}
-              className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
-              title="Ver completo"
-            >
-              +
-            </button>
-          )}
-        </span>
-        {show && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
-            <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-lg">Información completa</h3>
-                <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
-              </div>
-              <div className="text-sm text-foreground break-words max-h-96 overflow-y-auto">
-                {text}
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Btn variant="secondary" size="sm" onClick={() => setShow(false)}>Cerrar</Btn>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
+  if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="p-6 space-y-4">
-      {/* encabezado */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Historial de Ventas</h1>
-          <p className="text-sm text-muted-foreground">{data.total} ventas registradas</p>
-        </div>
-      </div>
-
-      {/* panel de filtros (sin total min/max ni botón Filtrar) */}
+    <PageLayout
+      title="Historial de Ventas"
+      subtitle={`${data.total} ventas registradas`}
+    >
+      {/* ── Filtros (sin SectionCard — botón limpiar SIEMPRE visible) ── */}
       <Card className="p-4">
         <div className="flex flex-wrap gap-3 items-end">
           <div className="w-36">
-            <label className={labelCls}>Desde</label>
-            <input type="date" value={from} onChange={e=>setFrom(e.target.value)} className={inputCls} />
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Desde</label>
+            <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+              className="w-full px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors" />
           </div>
           <div className="w-36">
-            <label className={labelCls}>Hasta</label>
-            <input type="date" value={to} onChange={e=>setTo(e.target.value)} className={inputCls} />
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Hasta</label>
+            <input type="date" value={to} onChange={e => setTo(e.target.value)}
+              className="w-full px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors" />
           </div>
           <div className="flex-1 min-w-[180px]">
-            <label className={labelCls}>Cliente</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Cliente</label>
             <input type="text" placeholder="Nombre cliente..." value={cliente}
-              onChange={e=>setCliente(e.target.value)} className={inputCls} />
+              onChange={e => setCliente(e.target.value)}
+              className="w-full px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors" />
           </div>
           <div className="flex-1 min-w-[180px]">
-            <label className={labelCls}>Empleado</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Empleado</label>
             <input type="text" placeholder="Nombre empleado..." value={empleado}
-              onChange={e=>setEmpleado(e.target.value)} className={inputCls} />
+              onChange={e => setEmpleado(e.target.value)}
+              className="w-full px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors" />
           </div>
           <div className="flex items-end pb-0.5">
-            <Btn variant="ghost" size="sm" onClick={limpiar}><X size={14}/> Limpiar filtros</Btn>
+            <Btn variant="ghost" size="sm" onClick={limpiar}><X size={14} /> Limpiar filtros</Btn>
           </div>
         </div>
       </Card>
 
-      {/* tabla estática */}
-      <Card className="overflow-hidden">
+      {/* ── Tabla ── */}
+      <SectionCard title="Ventas registradas" className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm table-fixed min-w-[700px]">
-            <colgroup>
-              <col className="w-[10%]" />   {/* # Venta */}
-              <col className="w-[15%]" />   {/* Fecha */}
-              <col className="w-[30%]" />   {/* Cliente */}
-              <col className="w-[25%]" />   {/* Empleado */}
-              <col className="w-[10%]" />   {/* Total */}
-              <col className="w-[10%]" />   {/* Detalle */}
-            </colgroup>
-            <thead className="bg-muted">
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words"># Venta</th>
-                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words">Fecha</th>
-                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words">Cliente</th>
-                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words">Empleado</th>
-                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words">Total</th>
-                <th className="text-left py-3 px-3 text-xs text-muted-foreground font-semibold break-words">Detalle</th>
-               </tr>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted">
+                {["# Venta", "Fecha", "Cliente", "Empleado", "Total", "Detalle"].map(h => (
+                  <th key={h} className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
             </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Cargando...</td></tr>
-              ) : data.ventas.map(v => (
-                <tr key={v.id_venta} className="border-b border-gray-50 hover:bg-primary/10 transition-colors">
-                  <td className="py-3 px-3 font-mono text-xs text-primary font-semibold break-words whitespace-normal">#{v.id_venta}</td>
-                  <td className="py-3 px-3 text-muted-foreground text-xs break-words whitespace-normal">{v.fecha}</td>
-                  <td className="py-3 px-3 text-foreground break-words whitespace-normal">
-                    <Expandable text={v.cliente ?? "Consumidor final"} maxLength={30} />
+            <tbody className="divide-y divide-border">
+              {data.ventas.map(v => (
+                <tr key={v.id_venta} className="transition-colors hover:bg-muted/50">
+                  <td className="py-2.5 px-4 font-mono text-xs text-primary font-semibold whitespace-nowrap">#{v.id_venta}</td>
+                  <td className="py-2.5 px-4 text-muted-foreground text-xs whitespace-nowrap">{v.fecha}</td>
+                  <td className="py-2.5 px-4 text-foreground whitespace-nowrap truncate max-w-[200px]" title={v.cliente ?? "Consumidor final"}>
+                    {v.cliente ?? "Consumidor final"}
                   </td>
-                  <td className="py-3 px-3 text-foreground break-words whitespace-normal">
-                    <Expandable text={v.empleado ?? "—"} maxLength={30} />
+                  <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap truncate max-w-[180px]" title={v.empleado ?? "—"}>
+                    {v.empleado ?? "—"}
                   </td>
-                  <td className="py-3 px-3 font-mono font-semibold text-primary break-words whitespace-normal">${Number(v.total).toFixed(2)}</td>
-                  <td className="py-3 px-3 break-words whitespace-normal">
+                  <td className="py-2.5 px-4 font-mono font-semibold text-primary whitespace-nowrap">${Number(v.total).toFixed(2)}</td>
+                  <td className="py-2.5 px-4 whitespace-nowrap">
                     <button
                       onClick={() => verDetalle(v)}
-                      className="text-primary hover:text-[#0d5c96] p-1 rounded hover:bg-primary/10"
+                      className="text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors"
                       title="Ver detalle"
                     >
                       <Eye size={14} />
                     </button>
-                   </td>
-                 </tr>
+                  </td>
+                </tr>
               ))}
-              {!loading && data.ventas.length === 0 && (
-                <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">Sin ventas en el período.</td></tr>
-              )}
             </tbody>
           </table>
+
+          {data.ventas.length === 0 && (
+            <EmptyState
+              icon={<History size={40} />}
+              title="Sin ventas"
+              description="No se encontraron ventas en el período seleccionado."
+            />
+          )}
         </div>
 
-        {/* paginación */}
+        {/* Paginación */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <span className="text-xs text-muted-foreground">Página {page + 1} de {totalPages}</span>
@@ -3576,12 +3518,12 @@ function Historial() {
             </div>
           </div>
         )}
-      </Card>
+      </SectionCard>
 
-      {/* modal detalle (sin cambios, ya está bien estructurado) */}
+      {/* ── Modal detalle ── */}
       {detalle && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-xl max-h-[85vh] overflow-y-auto p-0">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDetalle(null)}>
+          <Card className="w-full max-w-xl max-h-[85vh] overflow-y-auto p-0" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border">
               <div>
                 <h2 className="text-lg font-bold text-foreground">
@@ -3589,11 +3531,14 @@ function Historial() {
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">{detalle.venta?.fecha}</p>
               </div>
-              <button onClick={() => setDetalle(null)} className="text-muted-foreground hover:text-muted-foreground mt-1"><X size={20}/></button>
+              <button onClick={() => setDetalle(null)} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5">
+                <X size={20} />
+              </button>
             </div>
+
             <div className="grid grid-cols-2 gap-3 px-6 py-4 bg-input-background border-b border-border">
               <div>
-                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Cliente</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Cliente</p>
                 <p className="text-sm font-semibold text-foreground">
                   {detalle.venta?.cliente ?? <span className="text-muted-foreground font-normal italic">Consumidor final</span>}
                 </p>
@@ -3601,12 +3546,13 @@ function Historial() {
                 {detalle.venta?.cliente_telefono && <p className="text-xs text-muted-foreground">Tel: {detalle.venta.cliente_telefono}</p>}
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Atendido por</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Atendido por</p>
                 <p className="text-sm font-semibold text-foreground">{detalle.venta?.empleado}</p>
               </div>
             </div>
+
             <div className="px-6 py-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Productos comprados</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Productos comprados</p>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted">
@@ -3615,11 +3561,11 @@ function Historial() {
                     ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {detailLoading ? (
+                <tbody className="divide-y divide-border">
+                  {DetailLoading ? (
                     <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">Cargando productos...</td></tr>
                   ) : detalle.detalle?.map((d: any) => (
-                    <tr key={d.id_detalle_venta} className="border-b border-gray-50 hover:bg-primary/10">
+                    <tr key={d.id_detalle_venta} className="hover:bg-muted/50 transition-colors">
                       <td className="py-2 px-3">
                         <p className="font-medium text-foreground">{d.nombre_producto}</p>
                         {d.lote && <p className="text-xs text-muted-foreground">Lote: {d.lote}</p>}
@@ -3632,19 +3578,21 @@ function Historial() {
                 </tbody>
               </table>
             </div>
-            <div className="px-6 pb-4">
-              <div className="flex items-center justify-between bg-sidebar-accent rounded-xl px-5 py-3">
-                <div><p className="text-xs text-blue-200 font-semibold uppercase tracking-wide">Total pagado</p></div>
-                <span className="text-2xl font-bold text-sidebar-accent-foreground font-mono">${Number(detalle.venta?.total).toFixed(2)}</span>
+
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between bg-primary/10 rounded-xl px-5 py-3">
+                <p className="text-xs font-semibold text-primary/80 uppercase tracking-wider">Total pagado</p>
+                <span className="text-2xl font-bold text-primary font-mono">{Number(detalle.venta?.total).toFixed(2)}</span>
               </div>
             </div>
+
             <div className="flex justify-end px-6 pb-5">
               <Btn variant="secondary" onClick={() => setDetalle(null)}>Cerrar</Btn>
             </div>
           </Card>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }
 
