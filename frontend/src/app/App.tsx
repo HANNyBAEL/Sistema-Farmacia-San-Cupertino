@@ -2783,7 +2783,7 @@ function Empleados({ user }: { user: User }) {
     nombre:"", apellido:"", correo:"", telefono:"", 
     cargo:"cajero", fecha_contratacion:"", 
     dui:"", nit:"", cuenta_banco:"", afp:"" 
-  }); // ✅ Sin password
+  });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; empleadoId: number | null }>({ isOpen: false, empleadoId: null });
 
@@ -2870,7 +2870,6 @@ function Empleados({ user }: { user: User }) {
         await empleadosApi.update(editEmp.id_empleado, payload);
         setToast({ message: 'Empleado actualizado correctamente.', type: 'success' });
       } else {
-        // Nuevo empleado: usar el endpoint de registro con invitación
         await registrarEmpleado(payload);
         setToast({ message: 'Empleado registrado. Se ha enviado un correo de invitación.', type: 'success' });
       }
@@ -2893,21 +2892,6 @@ function Empleados({ user }: { user: User }) {
       });
       load();
     }catch(e){ console.error(e); }
-  }
-
-  // ✅ Forzar restablecimiento de contraseña
-  async function handleForzarRestablecimiento(id: number) {
-    if (!confirm('¿Forzar restablecimiento de contraseña para este empleado? El empleado deberá cambiarla en su próximo inicio de sesión.')) return;
-    try {
-      await api.patch(`/empleados/${id}/forzar-restablecimiento`, {
-        id_empleado_sesion: user.id,
-        nombre_empleado_sesion: user.name
-      });
-      setToast({ message: 'Restablecimiento forzado. El empleado deberá cambiar su contraseña.', type: 'success' });
-      load();
-    } catch (e: any) {
-      setToast({ message: e?.response?.data?.error || 'Error al forzar restablecimiento', type: 'error' });
-    }
   }
 
   // ✅ Eliminar (mover a papelera) con modal
@@ -3100,15 +3084,6 @@ function Empleados({ user }: { user: User }) {
                           <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-[#d32f2f] bg-red-50 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
                             {emp.activo ? "Desactivar" : "Activar"}
                           </button>
-                          {/* ✅ Botón Forzar restablecimiento */}
-                          <button 
-                            onClick={() => handleForzarRestablecimiento(emp.id_empleado)} 
-                            className="text-purple-700 bg-purple-50 hover:bg-purple-100 p-1 rounded text-xs font-semibold px-2 py-0.5"
-                            title="Forzar restablecimiento de contraseña"
-                          >
-                            <RefreshCw size={12} />
-                          </button>
-                          {/* ✅ Botón desactivar/eliminar (si no tiene ventas) */}
                           {!emp.has_ventas && (
                             <button onClick={() => handleDelete(emp.id_empleado)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Desactivar empleado">
                               <Trash2 size={14} />
@@ -3214,7 +3189,6 @@ function Empleados({ user }: { user: User }) {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha contratación</label>
                   <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} className="w-full" />
                 </div>
-                {/* ✅ Ya no hay campo de contraseña */}
               </div>
             </div>
 
