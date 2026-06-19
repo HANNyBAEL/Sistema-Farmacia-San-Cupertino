@@ -8,7 +8,8 @@ import {
   Camera,
   DollarSign,
   Menu,
-  ArrowLeft
+  ArrowLeft,
+  Moon
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { login as apiLogin, login, registrarEmpleado } from "../services/auth";
@@ -28,7 +29,7 @@ import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
 import { useNavigate, useLocation } from 'react-router-dom'; 
 import { useTheme } from '../context/ThemeContext';
-import { Moon, Sun } from 'lucide-react'; // o los iconos que uses
+import { Sun } from 'lucide-react';
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -691,6 +692,7 @@ function Sidebar({ user, current, onNav, onLogout }: {
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role));
+
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -1272,15 +1274,15 @@ function Productos({ user }: { user: User }) {
               <thead className="bg-muted">
                 <tr className="border-b border-border">
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Nombre</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Categoría</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Precio</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Stock</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Lote</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Código barras</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Venc.</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Proveedor</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap truncate">Acciones</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Categoría</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Precio</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Stock</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Lote</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Código barras</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Venc.</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Proveedor</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Estado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-700 text-[10px] sm:text-xs whitespace-nowrap truncate">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -2781,7 +2783,7 @@ function Empleados({ user }: { user: User }) {
     nombre:"", apellido:"", correo:"", telefono:"", 
     cargo:"cajero", fecha_contratacion:"", 
     dui:"", nit:"", cuenta_banco:"", afp:"" 
-  });
+  }); // ✅ Sin password
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; empleadoId: number | null }>({ isOpen: false, empleadoId: null });
 
@@ -2868,6 +2870,7 @@ function Empleados({ user }: { user: User }) {
         await empleadosApi.update(editEmp.id_empleado, payload);
         setToast({ message: 'Empleado actualizado correctamente.', type: 'success' });
       } else {
+        // Nuevo empleado: usar el endpoint de registro con invitación
         await registrarEmpleado(payload);
         setToast({ message: 'Empleado registrado. Se ha enviado un correo de invitación.', type: 'success' });
       }
@@ -2892,6 +2895,22 @@ function Empleados({ user }: { user: User }) {
     }catch(e){ console.error(e); }
   }
 
+  // ✅ Forzar restablecimiento de contraseña
+  async function handleForzarRestablecimiento(id: number) {
+    if (!confirm('¿Forzar restablecimiento de contraseña para este empleado? El empleado deberá cambiarla en su próximo inicio de sesión.')) return;
+    try {
+      await api.patch(`/empleados/${id}/forzar-restablecimiento`, {
+        id_empleado_sesion: user.id,
+        nombre_empleado_sesion: user.name
+      });
+      setToast({ message: 'Restablecimiento forzado. El empleado deberá cambiar su contraseña.', type: 'success' });
+      load();
+    } catch (e: any) {
+      setToast({ message: e?.response?.data?.error || 'Error al forzar restablecimiento', type: 'error' });
+    }
+  }
+
+  // ✅ Eliminar (mover a papelera) con modal
   function handleDelete(id: number) {
     setConfirmModal({ isOpen: true, empleadoId: id });
   }
@@ -3037,14 +3056,14 @@ function Empleados({ user }: { user: User }) {
               <thead className="bg-muted">
                 <tr className="border-b border-border">
                   <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Empleado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Correo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Teléfono</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">DUI</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">NIT</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Cargo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Contratación</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs whitespace-nowrap">Acciones</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Correo</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Teléfono</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">DUI</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">NIT</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Cargo</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Contratación</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Estado</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-gray-500 text-xs break-words">Acciones</th>
                  </tr>
               </thead>
               <tbody>
@@ -3060,10 +3079,10 @@ function Empleados({ user }: { user: User }) {
                           <Expandable text={fullName} maxLength={20} />
                         </div>
                        </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><Expandable text={emp.correo} maxLength={20} /></td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><Expandable text={emp.telefono} maxLength={12} /></td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><Expandable text={emp.dui} maxLength={12} /></td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><Expandable text={emp.nit} maxLength={14} /></td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words"><Expandable text={emp.correo} maxLength={20} /></td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words"><Expandable text={emp.telefono} maxLength={12} /></td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words"><Expandable text={emp.dui} maxLength={12} /></td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-3 break-words"><Expandable text={emp.nit} maxLength={14} /></td>
                       <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${CARGO_COLOR[emp.cargo] || 'bg-muted text-muted-foreground'}`}>
                           {CARGO_ICON[emp.cargo]} {emp.cargo}
@@ -3081,6 +3100,15 @@ function Empleados({ user }: { user: User }) {
                           <button onClick={()=>handleToggle(emp)} className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${emp.activo ? 'text-[#d32f2f] bg-red-50 hover:bg-red-100' : 'text-green-700 bg-green-50 hover:bg-green-100'}`} title={emp.activo ? "Desactivar" : "Activar"}>
                             {emp.activo ? "Desactivar" : "Activar"}
                           </button>
+                          {/* ✅ Botón Forzar restablecimiento */}
+                          <button 
+                            onClick={() => handleForzarRestablecimiento(emp.id_empleado)} 
+                            className="text-purple-700 bg-purple-50 hover:bg-purple-100 p-1 rounded text-xs font-semibold px-2 py-0.5"
+                            title="Forzar restablecimiento de contraseña"
+                          >
+                            <RefreshCw size={12} />
+                          </button>
+                          {/* ✅ Botón desactivar/eliminar (si no tiene ventas) */}
                           {!emp.has_ventas && (
                             <button onClick={() => handleDelete(emp.id_empleado)} className="text-[#d32f2f] p-1 rounded hover:bg-red-50" title="Desactivar empleado">
                               <Trash2 size={14} />
@@ -3186,6 +3214,7 @@ function Empleados({ user }: { user: User }) {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha contratación</label>
                   <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} className="w-full" />
                 </div>
+                {/* ✅ Ya no hay campo de contraseña */}
               </div>
             </div>
 
@@ -3928,8 +3957,11 @@ function Auditoria({ user }: { user: User }) {
       const sortedData = [...res.data].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
       setData({ data: sortedData, total: res.total });
       setPage(p);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -3937,52 +3969,66 @@ function Auditoria({ user }: { user: User }) {
     return () => clearTimeout(handler);
   }, [from, to, tabla, accion]);
 
-  useEffect(() => { load(0); }, []);
+  useEffect(() => {
+    load(0);
+  }, []);
 
   const totalPages = Math.ceil(data.total / LIMIT);
 
   const accionColor: Record<string, string> = {
-    CREAR: "bg-green-50 text-green-700",
-    EDITAR: "bg-blue-50 text-blue-700",
-    ELIMINAR: "bg-red-50 text-red-700",
-    DESACTIVAR: "bg-amber-50 text-amber-700",
-    ACTIVAR: "bg-green-50 text-green-700",
-    PAPELERA: "bg-orange-50 text-orange-700",
-    RESTAURAR: "bg-purple-50 text-purple-700",
+    CREAR: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    EDITAR: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    ELIMINAR: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    DESACTIVAR: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    ACTIVAR: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    PAPELERA: "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    RESTAURAR: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
   };
 
   const tablaColor: Record<string, string> = {
-    productos: "bg-blue-50 text-blue-700",
-    clientes: "bg-green-50 text-green-700",
-    proveedores: "bg-purple-50 text-purple-700",
-    empleados: "bg-amber-50 text-amber-700",
+    productos: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    clientes: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    proveedores: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+    empleados: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   };
 
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Auditoría del Sistema</h1>
-          <p className="text-sm text-gray-500">{data.total} registros de cambios</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Auditoría del Sistema</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{data.total} registros de cambios</p>
         </div>
       </div>
 
       {/* Filtros responsivos */}
-      <Card className="p-4">
+      <Card className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
           <div className="w-full md:w-auto">
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Desde</label>
-            <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-              className="w-full md:w-auto px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm" />
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Desde</label>
+            <input
+              type="date"
+              value={from}
+              onChange={e => setFrom(e.target.value)}
+              className="w-full md:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+            />
           </div>
           <div className="w-full md:w-auto">
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Hasta</label>
-            <input type="date" value={to} onChange={e => setTo(e.target.value)}
-              className="w-full md:w-auto px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm" />
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Hasta</label>
+            <input
+              type="date"
+              value={to}
+              onChange={e => setTo(e.target.value)}
+              className="w-full md:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+            />
           </div>
           <div className="w-full md:w-auto md:min-w-[130px]">
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Tabla</label>
-            <Select value={tabla} onChange={setTabla} className="w-full">
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Tabla</label>
+            <Select
+              value={tabla}
+              onChange={setTabla}
+              className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+            >
               <option value="">Todas</option>
               <option value="productos">Productos</option>
               <option value="clientes">Clientes</option>
@@ -3991,8 +4037,12 @@ function Auditoria({ user }: { user: User }) {
             </Select>
           </div>
           <div className="w-full md:w-auto md:min-w-[130px]">
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Acción</label>
-            <Select value={accion} onChange={setAccion} className="w-full">
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Acción</label>
+            <Select
+              value={accion}
+              onChange={setAccion}
+              className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+            >
               <option value="">Todas</option>
               <option value="CREAR">Crear</option>
               <option value="EDITAR">Editar</option>
@@ -4004,7 +4054,11 @@ function Auditoria({ user }: { user: User }) {
             </Select>
           </div>
           <div className="flex gap-2 mt-2 md:mt-0">
-            <Btn variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); setTabla(""); setAccion(""); }}>
+            <Btn
+              variant="ghost"
+              size="sm"
+              onClick={() => { setFrom(""); setTo(""); setTabla(""); setAccion(""); }}
+            >
               <X size={14} /> Limpiar
             </Btn>
           </div>
@@ -4012,7 +4066,7 @@ function Auditoria({ user }: { user: User }) {
       </Card>
 
       {/* Tabla responsiva */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <div className="overflow-x-auto">
           <table className="w-full text-sm table-fixed">
             <colgroup>
@@ -4026,55 +4080,81 @@ function Auditoria({ user }: { user: User }) {
               <col className="w-[10%]" />  {/* Empleado */}
             </colgroup>
             <thead>
-              <tr className="border-b border-border bg-muted">
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                 {["Fecha", "Tabla", "Acción", "Descripción", "Campo", "Valor anterior", "Valor nuevo", "Empleado"].map(h => (
-                  <th key={h} className="text-left py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 font-semibold truncate">{h}</th>
+                  <th key={h} className="text-left py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 dark:text-gray-400 font-semibold truncate">
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="py-12 text-center text-muted-foreground">Cargando...</td></tr>
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-gray-500 dark:text-gray-400">Cargando...</td>
+                </tr>
               ) : data.data.map((r, i) => (
-                <tr key={i} className="border-b border-gray-50 hover:bg-[#f0f7ff] transition-colors">
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 whitespace-nowrap truncate">{formatFecha(r.fecha)}</td>
+                <tr key={i} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap truncate">
+                    {formatFecha(r.fecha)}
+                  </td>
                   <td className="py-2 px-2 md:py-3 md:px-4 truncate">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaColor[r.tabla] ?? 'bg-muted text-muted-foreground'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${tablaColor[r.tabla] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}`}>
                       {r.tabla}
                     </span>
                   </td>
                   <td className="py-2 px-2 md:py-3 md:px-4 truncate">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accionColor[r.accion] ?? 'bg-muted text-muted-foreground'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accionColor[r.accion] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}`}>
                       {r.accion}
                     </span>
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-700 truncate max-w-0">{r.descripcion}</td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 font-mono truncate max-w-0">{r.campo_modificado ?? '—'}</td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
-                    {r.valor_anterior
-                      ? <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded font-mono truncate block max-w-full">{r.valor_anterior}</span>
-                      : <span className="text-muted-foreground">—</span>}
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-700 dark:text-gray-300 truncate max-w-0">
+                    {r.descripcion}
+                  </td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs text-gray-500 dark:text-gray-400 font-mono truncate max-w-0">
+                    {r.campo_modificado ?? '—'}
                   </td>
                   <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
-                    {r.valor_nuevo
-                      ? <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded font-mono truncate block max-w-full">{r.valor_nuevo}</span>
-                      : <span className="text-muted-foreground">—</span>}
+                    {r.valor_anterior ? (
+                      <span className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded font-mono truncate block max-w-full">
+                        {r.valor_anterior}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 dark:text-gray-500">—</span>
+                    )}
                   </td>
-                  <td className="py-2 px-2 md:py-3 md:px-4 text-muted-foreground text-xs truncate max-w-0">{r.nombre_empleado ?? '—'}</td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-xs truncate max-w-0">
+                    {r.valor_nuevo ? (
+                      <span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded font-mono truncate block max-w-full">
+                        {r.valor_nuevo}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 dark:text-gray-500">—</span>
+                    )}
+                  </td>
+                  <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 dark:text-gray-400 text-xs truncate max-w-0">
+                    {r.nombre_empleado ?? '—'}
+                  </td>
                 </tr>
               ))}
               {!loading && data.data.length === 0 && (
-                <tr><td colSpan={8} className="py-12 text-center text-muted-foreground">Sin registros de auditoría.</td></tr>
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-gray-500 dark:text-gray-400">Sin registros de auditoría.</td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
         {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-border gap-2">
-            <span className="text-xs text-gray-500">Página {page + 1} de {totalPages}</span>
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Página {page + 1} de {totalPages}</span>
             <div className="flex gap-2">
-              <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>← Anterior</Btn>
-              <Btn variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => load(page + 1)}>Siguiente →</Btn>
+              <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>
+                ← Anterior
+              </Btn>
+              <Btn variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => load(page + 1)}>
+                Siguiente →
+              </Btn>
             </div>
           </div>
         )}
@@ -4083,27 +4163,6 @@ function Auditoria({ user }: { user: User }) {
   );
 }
 
-// ── Configuración ─────────────────────────────────────────────────────────────
-function Configuracion() {
-  const [stockBajo, setStockBajo]       = useState("20");
-  const [stockCritico, setStockCritico] = useState("10");
-  const [saved, setSaved]               = useState(false);
-  function handleSave(){setSaved(true);setTimeout(()=>setSaved(false),2500);}
-  return(
-    <div className="p-6 max-w-2xl space-y-6">
-      <div><h1 className="text-xl font-bold text-foreground">Configuración del Sistema</h1><p className="text-sm text-gray-500">Parámetros generales y umbrales de alerta</p></div>
-      {saved&&<div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm"><Check size={16}/> Configuración guardada.</div>}
-      <Card className="p-6 space-y-5">
-        <h2 className="text-sm font-bold text-foreground border-b border-border pb-3">Umbrales de Stock</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div><label className="block text-xs font-semibold text-muted-foreground mb-1.5">Stock Bajo</label><Input type="number" value={stockBajo} onChange={setStockBajo}/></div>
-          <div><label className="block text-xs font-semibold text-muted-foreground mb-1.5">Stock Crítico</label><Input type="number" value={stockCritico} onChange={setStockCritico}/></div>
-        </div>
-      </Card>
-      <div className="flex justify-end"><Btn variant="primary" onClick={handleSave}><Check size={14}/> Guardar cambios</Btn></div>
-    </div>
-  );
-}
 
 // ── App Shell ─────────────────────────────────────────────────────────────────
 function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
