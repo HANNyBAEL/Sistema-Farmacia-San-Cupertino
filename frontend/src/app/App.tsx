@@ -40,6 +40,13 @@ type Screen = "dashboard" | "ventas" | "productos" | "clientes" | "empleados" | 
   id: number;
 }
 
+interface EliminadoRecord {
+  tipo: 'producto' | 'cliente' | 'proveedor' | 'empleado';
+  id: number;
+  nombre: string;
+  detalle: string | null;
+}
+
 interface Product {
   codigo_barras: string;
   papelera: any;
@@ -1622,6 +1629,7 @@ function Ventas({ user }: { user: User }) {
             const { numero_control } = await getSiguienteCorrelativo();
             const codigo_generacion = Date.now().toString(36) + Math.random().toString(36).substring(2);
             const fechaHoraLocal = `${year}-${month}-${day} ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
+            
             await guardarFactura({
               numero_control,
               codigo_generacion,
@@ -1630,6 +1638,103 @@ function Ventas({ user }: { user: User }) {
               fecha_emision: fechaHoraLocal,
               total: ventaResp.total,
             });
+
+            // =====================================================================
+            // INICIO: CONSTRUCCIÓN DEL JSON Y ENVÍO POR CORREO
+            // =====================================================================
+            const subtotal = ventaResp.total / 1.13;
+            const iva = ventaResp.total - subtotal;
+
+            // Mapeo de método de pago a código del Ministerio de Hacienda (SV)
+            const metodosPagoCod: Record<string, string> = {
+              efectivo: "01",
+              tarjeta: "02",
+              transferencia: "03",
+              applepay: "04",
+              paypal: "04",
+              western: "04"
+            };
+
+            // 1. Construir el JSON de la Factura Electrónica (DTE)
+            const dteJson = {
+              identificacion: {
+                version: 1, ambiente: "01", tipoDte: "01",
+                numeroControl: numero_control,
+                codigoGeneracion: codigo_generacion,
+                tipoModelo: 1, tipoOperacion: 1,
+                fecEmi: `${year}-${month}-${day}`,
+                horEmi: `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`,
+                tipoMoneda: "USD"
+              },
+              documentoRelacionado: null,
+              emisor: {
+                codEstableMH: "S227", codEstable: "0249", codPuntoVentaMH: "P005", codPuntoVenta: "2790",
+                nit: "06141101690011", nrc: "1937", nombre: "CALLEJA, S.A. DE C.V.",
+                codActividad: "47111", descActividad: "Venta en supermercados",
+                nombreComercial: "Super Selectos", tipoEstablecimiento: "01",
+                direccion: { departamento: "03", municipio: "20", complemento: "C.C Acajutla Local Ancla Aveni, Acajutla" },
+                telefono: "22673708", correo: "dte@superselectos.com.sv"
+              },
+              receptor: {
+                tipoDocumento: "13",
+                numDocumento: selectedClient?.dui || "00000000-0",
+                nrc: null,
+                nombre: `${selectedClient?.nombre} ${selectedClient?.apellido}`,
+                codActividad: null, descActividad: null,
+                telefono: selectedClient?.telefono || "",
+                direccion: { departamento: "03", municipio: "20", complemento: selectedClient?.direccion || "" },
+                correo: selectedClient?.correo || ""
+              },
+              otrosDocumentos: null,
+              ventaTercero: null,
+              cuerpoDocumento: cart.map((item, index) => {
+                const itemSubtotal = Number(item.product.precio) * item.qty;
+                const itemIva = itemSubtotal * 0.13;
+                return {
+                  ivaItem: parseFloat(itemIva.toFixed(6)),
+                  psv: 0, noGravado: 0, numItem: index + 1, tipoItem: 1, numeroDocumento: null,
+                  cantidad: item.qty, codigo: String(item.product.id_producto), codTributo: null,
+                  uniMedida: 59, descripcion: item.product.nombre_producto,
+                  precioUni: parseFloat(Number(item.product.precio).toFixed(6)),
+                  montoDescu: 0.00, ventaNoSuj: 0, ventaExenta: 0,
+                  ventaGravada: parseFloat(itemSubtotal.toFixed(6)),
+                  tributos: null
+                };
+              }),
+              resumen: {
+                totalIva: parseFloat(iva.toFixed(2)),
+                porcentajeDescuento: 0, ivaRete1: 0, reteRenta: 0, totalNoGravado: 0,
+                totalPagar: parseFloat(ventaResp.total.toFixed(2)),
+                saldoFavor: 0, condicionOperacion: 1,
+                pagos: [{
+                  codigo: metodosPagoCod[metodoPago] || "01",
+                  montoPago: parseFloat(ventaResp.total.toFixed(2)),
+                  referencia: "", plazo: null, periodo: null
+                }],
+                numPagoElectronico: null, totalNoSuj: 0, totalExenta: 0,
+                totalGravada: parseFloat(subtotal.toFixed(2)),
+                subTotalVentas: parseFloat(subtotal.toFixed(2)),
+                descuNoSuj: 0.0, descuExenta: 0.0, descuGravada: 0.00, totalDescu: 0.00,
+                tributos: null, subTotal: parseFloat(subtotal.toFixed(2)),
+                montoTotalOperacion: parseFloat(ventaResp.total.toFixed(2)),
+                totalLetras: "VEINTE Y CINCO 00/100 USD" // Puedes integrar una librería para convertir números a letras
+              },
+              extension: { placaVehiculo: null, docuEntrega: null, nombEntrega: null, docuRecibe: null, nombRecibe: null, observaciones: null },
+              apendice: null,
+              selloRecibido: null,
+              firmaElectronica: null
+            };
+
+            // 2. Enviar el JSON al backend para que lo adjunte y envíe por correo
+            // Asegúrate de que la URL coincida con la ruta de tu backend
+            await api.post('/facturas/enviar', dteJson);
+            
+            setToast({ message: "Factura generada y enviada al correo del cliente.", type: 'success' });
+            // =====================================================================
+            // FIN: ENVÍO POR CORREO
+            // =====================================================================
+
+            // Generar el PDF visual (esto ya lo tenías)
             generarFacturaPDF({
               numero_control,
               codigo_generacion,
@@ -1651,9 +1756,10 @@ function Ventas({ user }: { user: User }) {
               total: ventaResp.total,
               empleado: user.name,
             });
+
           } catch (fe) {
             console.error("Error generando factura:", fe);
-            setToast({ message: "Venta registrada pero no se pudo generar la factura.", type: 'error' });
+            setToast({ message: "Venta registrada, pero hubo un error al enviar la factura por correo.", type: 'error' });
           }
           await finalizarVentaExitosa();
         },
@@ -3597,28 +3703,32 @@ function Historial() {
 }
 
 // ── Eliminados ────────────────────────────────────────────────────────────────
+
+
+// ── Eliminados ────────────────────────────────────────────────────────────────
 function Eliminados() {
-  const [records, setRecords] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState("");
-  const [tab, setTab]         = useState("todos");
+  const [records, setRecords]       = useState<EliminadoRecord[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState("");
+  const [tab, setTab]               = useState<"todos" | EliminadoRecord["tipo"]>("todos");
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
-    tipo: string | null;
+    tipo: EliminadoRecord["tipo"] | null;
     id: number | null;
     accion: 'restaurar' | 'eliminar' | null;
   }>({ isOpen: false, tipo: null, id: null, accion: null });
 
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
-  async function load(){
+  async function load() {
     setLoading(true);
-    try{ setRecords(await eliminadosApi.getAll()); }
-    catch(e){ console.error(e); }
-    finally{ setLoading(false); }
+    try { setRecords(await eliminadosApi.getAll()); }
+    catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }
-  useEffect(()=>{ load(); },[]);
+
+  useEffect(() => { load(); }, []);
 
   useEffect(() => {
     if (toast) {
@@ -3627,43 +3737,43 @@ function Eliminados() {
     }
   }, [toast]);
 
-  const tipoLabel: Record<string, string> = {
-    producto: "Producto",
-    cliente:  "Cliente",
-    proveedor:"Proveedor",
-    empleado: "Empleado",
+  const tipoLabel: Record<EliminadoRecord["tipo"], string> = {
+    producto:  "Producto",
+    cliente:   "Cliente",
+    proveedor: "Proveedor",
+    empleado:  "Empleado",
   };
 
-  const tipoCls: Record<string, string> = {
-    producto:  "bg-blue-50 text-blue-700",
-    cliente:   "bg-green-50 text-green-700",
-    proveedor: "bg-purple-50 text-purple-700",
-    empleado:  "bg-amber-50 text-amber-700",
+  const tipoCls: Record<EliminadoRecord["tipo"], string> = {
+    producto:  "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
+    cliente:   "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+    proveedor: "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400",
+    empleado:  "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
   };
 
-  const tabs = [
-    { id:"todos",     label:"Todos" },
-    { id:"producto",  label:"Productos" },
-    { id:"cliente",   label:"Clientes" },
-    { id:"proveedor", label:"Proveedores" },
-    { id:"empleado",  label:"Empleados" },
+  const tabs: { id: "todos" | EliminadoRecord["tipo"]; label: string }[] = [
+    { id: "todos",     label: "Todos" },
+    { id: "producto",  label: "Productos" },
+    { id: "cliente",   label: "Clientes" },
+    { id: "proveedor", label: "Proveedores" },
+    { id: "empleado",  label: "Empleados" },
   ];
 
-  const byTab = tab === "todos" ? records : records.filter(r => r.tipo === tab);
-  const filtered = byTab.filter(r => r.nombre.toLowerCase().startsWith(search.toLowerCase()));
+  const byTab     = tab === "todos" ? records : records.filter(r => r.tipo === tab);
+  const filtered  = byTab.filter(r => r.nombre.toLowerCase().startsWith(search.toLowerCase()));
+  const hasFilters = search !== "";
 
-  function handleRestore(tipo: string, id: number) {
+  function handleRestore(tipo: EliminadoRecord["tipo"], id: number) {
     setConfirmModal({ isOpen: true, tipo, id, accion: 'restaurar' });
   }
 
-  function handlePermanent(tipo: string, id: number) {
+  function handlePermanent(tipo: EliminadoRecord["tipo"], id: number) {
     setConfirmModal({ isOpen: true, tipo, id, accion: 'eliminar' });
   }
 
   async function confirmAction() {
     if (!confirmModal.tipo || confirmModal.id === null || !confirmModal.accion) return;
     const { tipo, id, accion } = confirmModal;
-    const label = tipoLabel[tipo]?.toLowerCase() || 'registro';
 
     try {
       if (accion === 'restaurar') {
@@ -3678,107 +3788,152 @@ function Eliminados() {
     } catch (e: any) {
       setConfirmModal({ isOpen: false, tipo: null, id: null, accion: null });
       setToast({
-        message: e?.response?.data?.error ?? `Error al ${accion === 'restaurar' ? 'restaurar' : 'eliminar'} el ${label}.`,
+        message: e?.response?.data?.error ?? `Error al ${accion === 'restaurar' ? 'restaurar' : 'eliminar'} el registro.`,
         type: 'error'
       });
     }
   }
 
-  if(loading) return <LoadingSpinner/>;
-  return(
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Registros Eliminados</h1>
-          <p className="text-sm text-muted-foreground">{records.length} registros en papelera</p>
-        </div>
-        <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
-      </div>
+  if (loading) return <LoadingSpinner />;
 
+  return (
+    <PageLayout
+      title="Registros Eliminados"
+      subtitle={`${records.length} registros en papelera`}
+      actions={
+        <Btn variant="secondary" size="sm" onClick={load}>
+          <RefreshCw size={14} /> Actualizar
+        </Btn>
+      }
+    >
+      {/* Alerta informativa */}
       {records.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
-          <AlertTriangle size={15}/>
+        <div className="flex items-center gap-2 text-sm bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800/30 dark:text-amber-400 text-amber-800 rounded-lg px-4 py-3">
+          <AlertTriangle size={15} className="flex-shrink-0" />
           Los registros aquí pueden ser restaurados o eliminados permanentemente.
         </div>
       )}
 
+      {/* Tabs de filtrado por tipo */}
       <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit flex-wrap">
         {tabs.map(t => {
-          const count = t.id === "todos" ? records.length : records.filter(r => r.tipo === t.id).length;
-          return(
-            <button key={t.id} onClick={()=>setTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tab===t.id?"bg-card shadow-sm text-foreground":"text-muted-foreground hover:text-foreground"}`}>
+          const count = t.id === "todos"
+            ? records.length
+            : records.filter(r => r.tipo === t.id).length;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                tab === t.id
+                  ? "bg-card shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
               {t.label}
-              {count > 0 && <span className={`text-xs font-bold ${tab===t.id?"text-primary":"text-muted-foreground"}`}>({count})</span>}
+              {count > 0 && (
+                <span className={`text-xs font-bold ${tab === t.id ? "text-primary" : "text-muted-foreground"}`}>
+                  ({count})
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      <Card className="p-4">
+      {/* Barra de búsqueda */}
+      <FilterBar onClear={() => setSearch("")} hasFilters={hasFilters}>
         <div className="relative max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar registro..."
-            className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"/>
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar registro..."
+            className="pl-8 max-w-sm"
+          />
         </div>
-      </Card>
+      </FilterBar>
 
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted">
-                {["Tipo","Nombre","Detalle","Acciones"].map(h=>(
-                  <th key={h} className="text-left py-3 px-4 text-xs text-muted-foreground font-semibold">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r, i)=>(
-                <tr key={`${r.tipo}-${r.id}-${i}`} className="border-b border-gray-50 hover:bg-destructive/10/30 transition-colors">
-                  <td className="py-3 px-4">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tipoCls[r.tipo]}`}>
-                      {tipoLabel[r.tipo]}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 font-medium text-foreground opacity-60 line-through">{r.nombre}</td>
-                  <td className="py-3 px-4 text-xs text-muted-foreground">{r.detalle ?? "—"}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={()=>handleRestore(r.tipo, r.id)}
-                        className="flex items-center gap-1 text-xs text-green-700 bg-green-50 hover:bg-green-100 px-2 py-1 rounded-lg font-medium transition-colors"
-                      >
-                        <RotateCcw size={12}/> Restaurar
-                      </button>
-                      <button
-                        onClick={()=>handlePermanent(r.tipo, r.id)}
-                        className="flex items-center gap-1 text-xs text-destructive bg-destructive/10 hover:bg-red-100 px-2 py-1 rounded-lg font-medium transition-colors"
-                      >
-                        <Trash2 size={12}/> Eliminar
-                      </button>
-                    </div>
-                  </td>
+      {/* Tabla de registros */}
+      <SectionCard
+        title="Lista de registros"
+        className="overflow-hidden"
+      >
+        {filtered.length > 0 ? (
+          <div className="overflow-x-auto -mx-5">
+            <table className="w-full text-sm min-w-[600px]">
+              <thead>
+                <tr className="border-b border-border bg-muted">
+                  {["Tipo", "Nombre", "Detalle", "Acciones"].map(h => (
+                    <th key={h} className="text-left py-3 px-4 text-xs text-muted-foreground font-semibold">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-              {filtered.length===0&&(
-                <tr><td colSpan={4} className="py-12 text-center text-muted-foreground">
-                  {records.length===0?"La papelera está vacía.":"Sin resultados para la búsqueda."}
-                </td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody>
+                {filtered.map(r => (
+                  <tr
+                    key={`${r.tipo}-${r.id}`}
+                    className="border-b border-border hover:bg-destructive/5 transition-colors"
+                  >
+                    <td className="py-3 px-4">
+                      <Badge className={tipoCls[r.tipo]}>
+                        {tipoLabel[r.tipo]}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 font-medium text-foreground opacity-60 line-through">
+                      {r.nombre}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">
+                      {r.detalle ?? "—"}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <Btn
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRestore(r.tipo, r.id)}
+                          className="text-green-700 hover:text-green-800 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
+                        >
+                          <RotateCcw size={12} /> Restaurar
+                        </Btn>
+                        <Btn
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePermanent(r.tipo, r.id)}
+                          className="text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 size={12} /> Eliminar
+                        </Btn>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState
+            icon={<Trash2 size={40} />}
+            title={records.length === 0 ? "La papelera está vacía" : "Sin resultados"}
+            description={
+              records.length === 0
+                ? "No hay registros eliminados en este momento."
+                : "No se encontraron registros para esta búsqueda."
+            }
+          />
+        )}
+      </SectionCard>
 
-      {/* Modal de confirmación (exactamente igual que en la imagen) */}
+      {/* Modal de confirmación */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title={confirmModal.accion === 'restaurar' ? 'Restaurar registro' : 'Eliminar permanentemente'}
         message={
           confirmModal.accion === 'restaurar'
-            ? `¿Restaurar este ${tipoLabel[confirmModal.tipo || '']?.toLowerCase() || 'registro'}?`
-            : `⚠️ Esta acción es irreversible. ¿Eliminar permanentemente este ${tipoLabel[confirmModal.tipo || '']?.toLowerCase() || 'registro'}?`
+            ? `¿Restaurar este ${tipoLabel[confirmModal.tipo || 'producto']?.toLowerCase()}?`
+            : `⚠️ Esta acción es irreversible. ¿Eliminar permanentemente este ${tipoLabel[confirmModal.tipo || 'producto']?.toLowerCase()}?`
         }
         onConfirm={confirmAction}
         onCancel={() => setConfirmModal({ isOpen: false, tipo: null, id: null, accion: null })}
@@ -3786,18 +3941,15 @@ function Eliminados() {
         variant={confirmModal.accion === 'restaurar' ? 'primary' : 'danger'}
       />
 
-      {/* Toast flotante */}
+      {/* Toast (usa el componente estándar del design system) */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'
-          }`}>
-            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
-            {toast.message}
-          </div>
-        </div>
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
-    </div>
+    </PageLayout>
   );
 }
 

@@ -1,14 +1,14 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-// Configurar el transportador de Nodemailer (Usa tus variables de entorno)
+// Configurar el transportador de Nodemailer
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.tucorreo.com', // Ej: smtp.gmail.com
+    host: process.env.SMTP_HOST || 'smtp.gmail.com', // Corregido: Este es el host de Gmail
     port: process.env.SMTP_PORT || 587,
     secure: false, // true para 465, false para otros puertos
     auth: {
-        user: process.env.SMTP_USER, // Tu correo
-        pass: process.env.SMTP_PASS  // Tu contraseña o App Password
+        user: process.env.SMTP_USER, // Tu correo (ej: farmaciassancupertino@gmail.com)
+        pass: process.env.SMTP_PASS  // La contraseña se lee desde el archivo .env
     }
 });
 
@@ -24,7 +24,7 @@ const enviarFacturaPorCorreo = async (clienteEmail, dteJson) => {
         const codigoGeneracion = dteJson.identificacion.codigoGeneracion;
 
         const mailOptions = {
-            from: `"Super Selectos" <${process.env.SMTP_USER}>`,
+            from: `"Farmacias San Cupertino" <${process.env.SMTP_USER}>`,
             to: clienteEmail,
             subject: `Factura Electrónica - ${codigoGeneracion}`,
             text: `Estimado cliente, adjuntamos su factura electrónica con número de control: ${dteJson.identificacion.numeroControl}.`,
