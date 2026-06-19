@@ -1,14 +1,16 @@
-const nodemailer = require('nodemailer');
-require('dotenv').config();
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Configurar el transportador usando las variables de entorno (.env)
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST, // smtp.sendgrid.net
-    port: parseInt(process.env.SMTP_PORT, 10) || 587, // 587
-    secure: false, // true para 465, false para otros puertos (587 usa false)
+    host: process.env.SMTP_HOST, 
+    port: parseInt(process.env.SMTP_PORT, 10) || 587, 
+    secure: false, 
     auth: {
-        user: process.env.SMTP_USER, // apikey
-        pass: process.env.SMTP_PASS  // SG.tu_nueva_api_key...
+        user: process.env.SMTP_USER, 
+        pass: process.env.SMTP_PASS  
     }
 });
 
@@ -21,7 +23,7 @@ const enviarFacturaPorCorreo = async (clienteEmail, dteJson) => {
         const codigoGeneracion = dteJson.identificacion.codigoGeneracion;
 
         const mailOptions = {
-            from: `"Farmacias San Cupertino" <farmaciassancupertino@gmail.com>`, // Cambia esto al correo verificado en SendGrid
+            from: `"Farmacias San Cupertino" <${process.env.SMTP_USER}>`, 
             to: clienteEmail,
             subject: `Factura Electrónica - ${codigoGeneracion}`,
             text: `Estimado cliente, adjuntamos su factura electrónica con número de control: ${dteJson.identificacion.numeroControl}.`,
@@ -43,4 +45,4 @@ const enviarFacturaPorCorreo = async (clienteEmail, dteJson) => {
     }
 };
 
-module.exports = { enviarFacturaPorCorreo };
+export { enviarFacturaPorCorreo };

@@ -21,10 +21,8 @@ import historialRoutes from './routes/historial.js';
 import eliminadosRoutes from './routes/eliminados.js';
 import facturasRouter from './routes/facturas.js';
 import auditoriaRoutes from './routes/auditoria.js';
+import facturasRoutes from './routes/facturasRoutes.js';
 
-
-
-const facturasRoutes = require('./routes/facturasRoutes');
 
 
 const app = express();

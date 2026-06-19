@@ -1,20 +1,19 @@
-const express = require('express');
+import express from 'express';
+import { enviarFacturaPorCorreo } from '../services/emailService.js';
+
 const router = express.Router();
-const { enviarFacturaPorCorreo } = require('../services/emailService');
 
 // Ruta: POST /api/facturas/enviar
 router.post('/enviar', async (req, res) => {
     try {
-        const dteJson = req.body; // Aquí recibes el JSON que enviaste desde el frontend
+        const dteJson = req.body;
         
-        // Extraer el correo del receptor del propio JSON
         const clienteEmail = dteJson?.receptor?.correo;
 
         if (!clienteEmail) {
             return res.status(400).json({ error: 'El cliente no tiene correo electrónico registrado en el JSON' });
         }
 
-        // Llamar al servicio de correo
         const resultado = await enviarFacturaPorCorreo(clienteEmail, dteJson);
 
         res.status(200).json(resultado);
@@ -23,4 +22,4 @@ router.post('/enviar', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;
