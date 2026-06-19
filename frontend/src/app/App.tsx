@@ -2385,28 +2385,26 @@ function Clientes({ user }: { user: User }) {
 // ── Proveedores ───────────────────────────────────────────────────────────────
 function Proveedores({ user }: { user: User }) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState("");
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [filterTelefono, setFilterTelefono] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
-  const [showForm, setShowForm]   = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editSupplier, setEditSupplier] = useState<Supplier | null>(null);
-  const [form, setForm]           = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
-  const [originalForm, setOriginalForm] = useState({ nombre:"", apellido:"", telefono:"", correo:"", direccion:"" });
+  const [form, setForm] = useState({ nombre: "", apellido: "", telefono: "", correo: "", direccion: "" });
+  const [originalForm, setOriginalForm] = useState({ nombre: "", apellido: "", telefono: "", correo: "", direccion: "" });
   const [formError, setFormError] = useState("");
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    proveedorId: number | null;
-  }>({ isOpen: false, proveedorId: null });
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; proveedorId: number | null }>({ isOpen: false, proveedorId: null });
+  const [toggleModal, setToggleModal] = useState<{ isOpen: boolean; proveedorId: number | null; deleted: number }>({ isOpen: false, proveedorId: null, deleted: 0 });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
-  async function load(){
+  async function load() {
     setLoading(true);
-    try{ setSuppliers(await proveedoresApi.getAll()); }
-    catch(e){ console.error(e); }
-    finally{ setLoading(false); }
+    try { setSuppliers(await proveedoresApi.getAll()); }
+    catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }
-  useEffect(()=>{ load(); },[]);
+  useEffect(() => { load(); }, []);
 
   useEffect(() => {
     if (toast) {
@@ -2415,10 +2413,10 @@ function Proveedores({ user }: { user: User }) {
     }
   }, [toast]);
 
-  function formatPhone(value: string): string {
-    const digits = value.replace(/\D/g, '').slice(0, 8);
-    if (digits.length <= 4) return digits;
-    return `${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
+  function formatPhone(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 8);
+    if (d.length <= 4) return d;
+    return `${d.slice(0, 4)}-${d.slice(4)}`;
   }
 
   const filtered = suppliers.filter(s => {
@@ -2430,37 +2428,31 @@ function Proveedores({ user }: { user: User }) {
     return true;
   });
 
-  // Función para verificar si hay cambios en el formulario
-  const hasChanges = () => {
-    return (
-      form.nombre !== originalForm.nombre ||
-      form.apellido !== originalForm.apellido ||
-      form.telefono !== originalForm.telefono ||
-      form.correo !== originalForm.correo ||
-      form.direccion !== originalForm.direccion
-    );
-  };
+  const hasChanges = () =>
+    form.nombre !== originalForm.nombre ||
+    form.apellido !== originalForm.apellido ||
+    form.telefono !== originalForm.telefono ||
+    form.correo !== originalForm.correo ||
+    form.direccion !== originalForm.direccion;
 
-  function openNew(){
+  function openNew() {
     setEditSupplier(null);
-    const initialForm = { nombre:"", apellido:"", telefono:"", correo:"", direccion:"" };
-    setForm(initialForm);
-    setOriginalForm(initialForm);
+    const initial = { nombre: "", apellido: "", telefono: "", correo: "", direccion: "" };
+    setForm(initial);
+    setOriginalForm(initial);
     setFormError("");
     setShowForm(true);
   }
 
-  function openEdit(s: Supplier){
+  function openEdit(s: Supplier) {
     setEditSupplier(s);
-    const initialForm = {
-      nombre: s.nombre,
-      apellido: s.apellido,
-      telefono: s.telefono ?? "",
-      correo: s.correo ?? "",
+    const initial = {
+      nombre: s.nombre, apellido: s.apellido,
+      telefono: s.telefono ?? "", correo: s.correo ?? "",
       direccion: s.direccion ?? ""
     };
-    setForm(initialForm);
-    setOriginalForm(initialForm);
+    setForm(initial);
+    setOriginalForm(initial);
     setFormError("");
     setShowForm(true);
   }
@@ -2468,9 +2460,11 @@ function Proveedores({ user }: { user: User }) {
   async function saveForm() {
     if (!form.nombre || !form.apellido) { setFormError("Nombre y apellido son obligatorios."); return; }
     try {
-      if (editSupplier) await proveedoresApi.update(editSupplier.id_proveedor, { ...form, id_empleado: user.id, nombre_empleado: user.name });
-      else              await proveedoresApi.create({ ...form, id_empleado: user.id, nombre_empleado: user.name });
-      setShowForm(false); load();
+      const payload = { ...form, id_empleado: user.id, nombre_empleado: user.name };
+      if (editSupplier) await proveedoresApi.update(editSupplier.id_proveedor, payload);
+      else await proveedoresApi.create(payload);
+      setShowForm(false);
+      load();
     } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
   }
 
@@ -2482,33 +2476,37 @@ function Proveedores({ user }: { user: User }) {
     if (confirmModal.proveedorId === null) return;
     try {
       await api.patch(`/proveedores/${confirmModal.proveedorId}/papelera`, {
-        id_empleado: user.id,
-        nombre_empleado: user.name
+        id_empleado: user.id, nombre_empleado: user.name
       });
       setConfirmModal({ isOpen: false, proveedorId: null });
       setToast({ message: "Proveedor movido a papelera correctamente.", type: 'success' });
       load();
     } catch (e: any) {
       setConfirmModal({ isOpen: false, proveedorId: null });
-      setToast({
-        message: e?.response?.data?.error ?? "No se puede eliminar este proveedor porque tiene productos asociados.",
-        type: 'error'
-      });
+      setToast({ message: e?.response?.data?.error ?? "No se puede mover a la papelera porque tiene productos asociados.", type: 'error' });
     }
   }
 
-  async function handleToggle(id: number, deleted: number) {
-    const accion = deleted ? "activar" : "desactivar";
-    if (!confirm(`¿Deseas ${accion} este proveedor?`)) return;
+  function handleToggle(id: number, deleted: number) {
+    setToggleModal({ isOpen: true, proveedorId: id, deleted });
+  }
+
+  async function confirmToggle() {
+    if (toggleModal.proveedorId === null) return;
     try {
-      await api.patch(`/proveedores/${id}/toggle`, { id_empleado: user.id, nombre_empleado: user.name });
+      await api.patch(`/proveedores/${toggleModal.proveedorId}/toggle`, {
+        id_empleado: user.id, nombre_empleado: user.name
+      });
+      setToggleModal({ isOpen: false, proveedorId: null, deleted: 0 });
+      setToast({ message: "Estado actualizado correctamente.", type: 'success' });
       load();
     } catch (e: any) {
-      alert(e?.response?.data?.error ?? `Error al ${accion} el proveedor.`);
+      setToggleModal({ isOpen: false, proveedorId: null, deleted: 0 });
+      setToast({ message: e?.response?.data?.error ?? "Error al cambiar estado.", type: 'error' });
     }
   }
 
-  if(loading) return <LoadingSpinner/>;
+  if (loading) return <LoadingSpinner />;
 
   const hayFiltros = !!(search || filterTelefono || filterEstado);
   function limpiarFiltros() {
@@ -2517,79 +2515,39 @@ function Proveedores({ user }: { user: User }) {
     setFilterEstado("");
   }
 
-  const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
-    const [show, setShow] = useState(false);
-    if (!text) return <span className="text-muted-foreground">—</span>;
-    const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
-    const isLong = text.length > maxLength;
-    return (
-      <>
-        <span className="inline-flex items-center gap-1">
-          {truncated}
-          {isLong && (
-            <button
-              onClick={() => setShow(true)}
-              className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
-              title="Ver completo"
-            >
-              +
-            </button>
-          )}
-        </span>
-        {show && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
-            <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-lg">Información completa</h3>
-                <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
-              </div>
-              <div className="text-sm text-foreground break-words max-h-96 overflow-y-auto">
-                {text}
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Btn variant="secondary" size="sm" onClick={() => setShow(false)}>Cerrar</Btn>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
+  const fmtClass = "w-full px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors";
 
-  return(
-    <div className="p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-xl font-bold text-foreground">Gestión de Proveedores</h1>
-        <Btn variant="primary" size="sm" onClick={openNew}><Plus size={14}/> Nuevo proveedor</Btn>
-      </div>
-
-      {/* Filtros en línea horizontal */}
-      <Card className="p-4">
-        <div className="flex flex-wrap items-end gap-3 md:gap-4">
+  return (
+    <PageLayout
+      title="Gestión de Proveedores"
+      subtitle={`${filtered.length} de ${suppliers.length} proveedores`}
+      actions={
+        <Btn onClick={openNew}><Plus size={14} /> Nuevo proveedor</Btn>
+      }
+    >
+      {/* ── Filtros ── */}
+      <SectionCard
+        title="Filtros"
+        actions={
+          hayFiltros && (
+            <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
+              <X size={14} /> Limpiar
+            </Btn>
+          )
+        }
+      >
+        <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
           <div className="flex-1 min-w-[180px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar proveedor</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
-              />
+              <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
             </div>
           </div>
-
           <div className="flex-1 min-w-[150px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
-            <input
-              value={formatPhone(filterTelefono)}
-              onChange={e => setFilterTelefono(e.target.value)}
-              placeholder="0000-0000"
-              maxLength={9}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
-            />
+            <input value={formatPhone(filterTelefono)} onChange={e => setFilterTelefono(e.target.value)} placeholder="0000-0000" maxLength={9} className={fmtClass} />
           </div>
-
           <div className="flex-1 min-w-[130px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
@@ -2598,132 +2556,145 @@ function Proveedores({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
+        </FilterBar>
+      </SectionCard>
 
-          <div className="flex items-end">
-            <Btn variant="ghost" size="sm" disabled={!hayFiltros} onClick={limpiarFiltros}>
-              <X size={14} /> Limpiar filtros
-            </Btn>
-          </div>
-        </div>
-      </Card>
-
-      {/* Tabla con scroll horizontal y ancho fijo */}
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          <div className="min-w-[900px]">
-            <table className="w-full text-xs sm:text-sm table-fixed">
-              <colgroup>
-                <col className="w-[22%]" />
-                <col className="w-[15%]" />
-                <col className="w-[20%]" />
-                <col className="w-[20%]" />
-                <col className="w-[8%]" />
-                <col className="w-[15%]" />
-              </colgroup>
-              <thead className="bg-muted">
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Nombre</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Teléfono</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Correo</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Dirección</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Estado</th>
-                  <th className="text-left py-2 px-2 sm:py-3 sm:px-3 font-semibold text-muted-foreground text-xs break-words">Acciones</th>
-                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map(s => (
-                  <tr key={s.id_proveedor} className={`border-b border-gray-50 hover:bg-muted transition-colors ${s.deleted ? 'opacity-60 bg-muted' : ''}`}>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-foreground break-words whitespace-normal">
-                      <Expandable text={`${s.nombre} ${s.apellido}`} maxLength={25} />
-                    </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                      <Expandable text={s.telefono ?? "—"} maxLength={12} />
-                    </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                      <Expandable text={s.correo ?? "—"} maxLength={25} />
-                    </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground break-words whitespace-normal">
-                      <Expandable text={s.direccion ?? "—"} maxLength={30} />
-                    </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.deleted ? 'bg-destructive/10 text-destructive' : 'bg-green-50 text-green-700'}`}>
-                        {s.deleted ? "Inactivo" : "Activo"}
-                      </span>
-                    </td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 break-words whitespace-normal">
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <button onClick={()=>openEdit(s)} className="text-primary hover:text-[#0d5c96] p-1 rounded hover:bg-primary/10" title="Editar"><Edit2 size={14}/></button>
+      {/* ── Tabla ── */}
+      <SectionCard title="Listado de proveedores" className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted">
+              <tr className="border-b border-border">
+                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Nombre</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Teléfono</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Correo</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Dirección</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Estado</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map(s => (
+                <tr
+                  key={s.id_proveedor}
+                  className={`transition-colors ${s.deleted ? 'opacity-50 bg-muted/50' : 'hover:bg-muted/50'}`}
+                >
+                  <td className="py-2.5 px-3 font-medium text-foreground whitespace-nowrap truncate max-w-[200px]" title={`${s.nombre} ${s.apellido}`}>
+                    {s.nombre} {s.apellido}
+                  </td>
+                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                    {s.telefono || "—"}
+                  </td>
+                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap truncate max-w-[200px]" title={s.correo}>
+                    {s.correo || "—"}
+                  </td>
+                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap truncate max-w-[220px]" title={s.direccion}>
+                    {s.direccion || "—"}
+                  </td>
+                  <td className="py-2.5 px-3 whitespace-nowrap">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      s.deleted
+                        ? 'bg-destructive/10 text-destructive'
+                        : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                    }`}>
+                      {s.deleted ? "Inactivo" : "Activo"}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-3 whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openEdit(s)}
+                        className="text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors"
+                        title="Editar"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleToggle(s.id_proveedor, s.deleted ?? 0)}
+                        className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${
+                          s.deleted
+                            ? 'text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30'
+                            : 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/30'
+                        }`}
+                        title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
+                      >
+                        {s.deleted ? "Activar" : "Desactivar"}
+                      </button>
+                      {!s.has_productos && (
                         <button
-                          onClick={()=>handleToggle(s.id_proveedor, s.deleted ?? 0)}
-                          className={`p-1 rounded text-xs font-semibold px-2 py-0.5 ${s.deleted ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
-                          title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
+                          onClick={() => handleDelete(s.id_proveedor)}
+                          className="text-destructive p-1 rounded hover:bg-destructive/10 transition-colors"
+                          title="Mover a papelera"
                         >
-                          {s.deleted ? "Activar" : "Desactivar"}
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        {!s.has_productos && (
-                          <button onClick={()=>handleDelete(s.id_proveedor)} className="text-destructive p-1 rounded hover:bg-destructive/10" title="Mover a papelera"><Trash2 size={14}/></button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-6 sm:py-10 text-center text-muted-foreground">Sin proveedores.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Card>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
+          {filtered.length === 0 && (
+            <EmptyState
+              icon={<Truck size={40} />}
+              title="Sin proveedores"
+              description="No se encontraron proveedores con los filtros aplicados."
+            />
+          )}
+        </div>
+      </SectionCard>
+
+      {/* ── Modal de formulario ── */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-foreground">{editSupplier ? "Editar Proveedor" : "Nuevo Proveedor"}</h2>
-              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-muted-foreground"><X size={20}/></button>
+              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground transition-colors p-1">
+                <X size={20} />
+              </button>
             </div>
-            {formError && (
-              <div className="mb-4 flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2">
-                <AlertTriangle size={14}/>{formError}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+
+            <ErrorAlert message={formError} />
+
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input value={form.nombre} onChange={v => setForm(p => ({...p, nombre: v}))} />
+                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input value={form.apellido} onChange={v => setForm(p => ({...p, apellido: v}))} />
+                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
-                <Input value={form.telefono} onChange={v => setForm(p => ({...p, telefono: v}))} />
+                <Input value={form.telefono} onChange={v => setForm(p => ({ ...p, telefono: v }))} placeholder="0000-0000" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
-                <Input type="email" value={form.correo} onChange={v => setForm(p => ({...p, correo: v}))} />
+                <Input type="email" value={form.correo} onChange={v => setForm(p => ({ ...p, correo: v }))} placeholder="correo@ejemplo.com" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Dirección</label>
-                <Input value={form.direccion} onChange={v => setForm(p => ({...p, direccion: v}))} />
+                <Input value={form.direccion} onChange={v => setForm(p => ({ ...p, direccion: v }))} placeholder="Dirección opcional" />
               </div>
             </div>
+
             <div className="flex justify-end gap-3 mt-6">
               <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
               <Btn variant="primary" onClick={saveForm} disabled={!hasChanges()}>
-                <Check size={14}/> Guardar
+                <Check size={14} /> Guardar
               </Btn>
             </div>
           </Card>
         </div>
       )}
 
+      {/* ── Modales de confirmación ── */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title="Mover a papelera"
@@ -2734,17 +2705,19 @@ function Proveedores({ user }: { user: User }) {
         variant="danger"
       />
 
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'
-          }`}>
-            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
-            {toast.message}
-          </div>
-        </div>
-      )}
-    </div>
+      <ConfirmModal
+        isOpen={toggleModal.isOpen}
+        title={toggleModal.deleted ? "Activar proveedor" : "Desactivar proveedor"}
+        message={`¿Estás seguro de que deseas ${toggleModal.deleted ? 'activar' : 'desactivar'} este proveedor?`}
+        onConfirm={confirmToggle}
+        onCancel={() => setToggleModal({ isOpen: false, proveedorId: null, deleted: 0 })}
+        confirmText={toggleModal.deleted ? "Activar" : "Desactivar"}
+        variant={toggleModal.deleted ? "primary" : "danger"}
+      />
+
+      {/* ── Toast ── */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </PageLayout>
   );
 }
 
@@ -3211,177 +3184,181 @@ function Empleados({ user }: { user: User }) {
 // ── Alertas de Stock ──────────────────────────────────────────────────────────
 function Alertas() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [tab, setTab]           = useState("todos");
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("todos");
 
-  async function load(){
+  async function load() {
     setLoading(true);
-    try{ setProducts(await getProductos()); }catch(e){ console.error(e); }finally{ setLoading(false); }
+    try { setProducts(await getProductos()); } catch (e) { console.error(e); } finally { setLoading(false); }
   }
-  useEffect(()=>{ load(); },[]);
+  useEffect(() => { load(); }, []);
 
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const in30 = new Date();
-  in30.setDate(today.getDate()+30);
-  in30.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const in30 = new Date(); in30.setDate(today.getDate() + 30); in30.setHours(0, 0, 0, 0);
 
-  const agotados  = products.filter(p => p.stock === 0);
-  const criticos  = products.filter(p => p.stock > 0 && p.stock <= 10);
-  const bajos     = products.filter(p => p.stock > 10 && p.stock <= 20);
-  const vencer    = products.filter(p => {
-    if(!p.fecha_vencimiento) return false;
+  const agotados = products.filter(p => p.stock === 0);
+  const criticos = products.filter(p => p.stock > 0 && p.stock <= 10);
+  const bajos = products.filter(p => p.stock > 10 && p.stock <= 20);
+  const vencer = products.filter(p => {
+    if (!p.fecha_vencimiento) return false;
     const d = new Date(p.fecha_vencimiento + 'T00:00:00');
     return d >= today && d <= in30;
   });
-  const vencidos  = products.filter(p => {
-    if(!p.fecha_vencimiento) return false;
-    const d = new Date(p.fecha_vencimiento + 'T00:00:00');
-    return d < today;
+  const vencidos = products.filter(p => {
+    if (!p.fecha_vencimiento) return false;
+    return new Date(p.fecha_vencimiento + 'T00:00:00') < today;
   });
 
   const totalStock = agotados.length + criticos.length + bajos.length;
   const totalTodos = totalStock + vencer.length + vencidos.length;
 
   const tabs = [
-    { id:"todos",   label:"Todos",          count: totalTodos,      color:"text-primary" },
-    { id:"agotado", label:"Agotados",        count: agotados.length, color:"text-destructive" },
-    { id:"critico", label:"Críticos (1–10)", count: criticos.length, color:"text-orange-600" },
-    { id:"bajo",    label:"Bajo (11–20)",    count: bajos.length,    color:"text-amber-600" },
-    { id:"vencer",  label:"Próx. vencer",    count: vencer.length,   color:"text-purple-600" },
-    { id:"vencido", label:"Vencidos",        count: vencidos.length, color:"text-destructive" },
+    { id: "todos", label: "Todos", count: totalTodos, active: "bg-card text-foreground shadow-sm" },
+    { id: "agotado", label: "Agotados", count: agotados.length, active: "bg-destructive/10 text-destructive" },
+    { id: "critico", label: "Críticos", count: criticos.length, active: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400" },
+    { id: "bajo", label: "Bajo (11-20)", count: bajos.length, active: "bg-amber-50/50 text-amber-700 dark:bg-amber-900/10 dark:text-amber-400" },
+    { id: "vencer", label: "Próx. vencer", count: vencer.length, active: "bg-primary/10 text-primary" },
+    { id: "vencido", label: "Vencidos", count: vencidos.length, active: "bg-destructive/10 text-destructive" },
   ];
 
   const displayed =
-    tab === "todos"   ? [...agotados, ...criticos, ...bajos, ...vencer, ...vencidos] :
+    tab === "todos" ? [...agotados, ...criticos, ...bajos, ...vencer, ...vencidos] :
     tab === "agotado" ? agotados :
     tab === "critico" ? criticos :
-    tab === "bajo"    ? bajos :
-    tab === "vencer"  ? vencer :
+    tab === "bajo" ? bajos :
+    tab === "vencer" ? vencer :
     vencidos;
 
-  function stockCls(stock: number){
-    if(stock === 0) return "bg-red-100 text-red-800";
-    if(stock <= 10) return "bg-orange-100 text-orange-800";
-    return "bg-amber-100 text-amber-800";
+  function stockBadgeCls(stock: number) {
+    if (stock === 0) return "bg-destructive/15 text-destructive font-semibold";
+    if (stock <= 10) return "bg-destructive/10 text-destructive font-semibold";
+    return "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 font-semibold";
   }
 
-  function stockLabel(stock: number){
-    if(stock === 0) return "Agotado";
-    if(stock <= 10) return "Crítico";
+  function stockLabel(stock: number) {
+    if (stock === 0) return "Agotado";
+    if (stock <= 10) return "Crítico";
     return "Bajo";
   }
 
-  function isVencido(fecha: string){
-    return new Date(fecha + 'T00:00:00') < today;
+  function diasBadge(dias: number | null) {
+    if (dias === null) return null;
+    if (dias < 0) return "bg-destructive/15 text-destructive font-semibold";
+    if (dias <= 7) return "bg-destructive/10 text-destructive font-semibold";
+    if (dias <= 15) return "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 font-semibold";
+    return "bg-primary/10 text-primary font-semibold";
   }
 
-  if(loading) return <LoadingSpinner/>;
-  return(
-    <div className="p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Alertas</h1>
-          <p className="text-sm text-muted-foreground">
-            {agotados.length} agotados · {criticos.length} críticos · {bajos.length} bajos · {vencer.length} próx. vencer · {vencidos.length} vencidos
-          </p>
-        </div>
-        <Btn variant="secondary" size="sm" onClick={load}><RefreshCw size={14}/> Actualizar</Btn>
-      </div>
+  if (loading) return <LoadingSpinner />;
 
-      {/* Tarjetas resumen */}
+  const summaryCards = [
+    { label: "Agotados", value: agotados.length, cls: "bg-destructive/10 text-destructive border-destructive/20" },
+    { label: "Críticos", value: criticos.length, cls: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 border-amber-100 dark:border-amber-900/30" },
+    { label: "Stock Bajo", value: bajos.length, cls: "bg-primary/10 text-primary border-primary/20" },
+    { label: "Próx. Vencer", value: vencer.length, cls: "bg-primary/5 text-primary/80 border-primary/10" },
+    { label: "Vencidos", value: vencidos.length, cls: "bg-destructive/10 text-destructive border-destructive/20" },
+  ];
+
+  return (
+    <PageLayout
+      title="Alertas de Stock"
+      subtitle={`${agotados.length} agotados · ${criticos.length} críticos · ${bajos.length} bajos · ${vencer.length} próx. vencer · ${vencidos.length} vencidos`}
+      actions={
+        <Btn variant="secondary" onClick={load}><RefreshCw size={14} /> Actualizar</Btn>
+      }
+    >
+      {/* ── Tarjetas resumen ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {[
-          { label:"Agotados",      value: agotados.length, cls:"bg-destructive/10 text-destructive border-red-100" },
-          { label:"Críticos",      value: criticos.length, cls:"bg-orange-50 text-orange-700 border-orange-100" },
-          { label:"Stock Bajo",    value: bajos.length,    cls:"bg-amber-50 text-amber-700 border-amber-100" },
-          { label:"Próx. Vencer",  value: vencer.length,   cls:"bg-purple-50 text-purple-700 border-purple-100" },
-          { label:"Vencidos",      value: vencidos.length, cls:"bg-destructive/10 text-red-800 border-red-200" },
-        ].map(k=>(
-          <div key={k.label} className={`rounded-lg border p-3 sm:p-4 ${k.cls}`}>
-            <div className="text-xl sm:text-2xl font-bold">{k.value}</div>
-            <div className="text-[10px] sm:text-xs font-medium mt-0.5 opacity-80">{k.label}</div>
+        {summaryCards.map(k => (
+          <div key={k.label} className={`rounded-lg border p-4 ${k.cls}`}>
+            <div className="text-2xl font-bold">{k.value}</div>
+            <div className="text-xs font-medium mt-0.5 opacity-70">{k.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Tabs responsivos */}
+      {/* ── Tabs ── */}
       <div className="flex flex-wrap gap-1 bg-muted rounded-lg p-1 w-fit">
-        {tabs.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)}
-            className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
-              tab===t.id ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}>
-            <span className="hidden sm:inline">{t.label}</span>
-            <span className="sm:hidden">{t.label.replace(/\(.*\)/, '').trim()}</span>
-            {t.count>0 && (
-              <span className={`text-[9px] sm:text-xs font-bold ${tab===t.id ? t.color : "text-muted-foreground"}`}>
-                ({t.count})
-              </span>
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${t.active}`}
+          >
+            <span>{t.label}</span>
+            {t.count > 0 && (
+              <span className="text-[10px] font-bold bg-muted px-1.5 py-0.5 rounded-full">{t.count}</span>
             )}
           </button>
         ))}
       </div>
 
-      {/* Tabla con scroll horizontal */}
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          <div className="min-w-[700px]">
-            <table className="w-full text-xs sm:text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted">
-                  {["Producto","Lote","Stock","Estado","Vencimiento","Días"].map(h=>(
-                    <th key={h} className="text-left py-2 px-2 sm:py-3 sm:px-4 text-[10px] sm:text-xs text-muted-foreground font-semibold">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {displayed.map(p=>{
-                  const fechaDate = p.fecha_vencimiento ? new Date(p.fecha_vencimiento + 'T00:00:00') : null;
-                  const dias = fechaDate ? Math.round((fechaDate.getTime() - today.getTime()) / 86400000) : null;
-                  const vencido = fechaDate ? isVencido(p.fecha_vencimiento) : false;
+      {/* ── Tabla ── */}
+      <SectionCard className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted">
+                {["Producto", "Lote", "Stock", "Estado", "Vencimiento", "Días"].map(h => (
+                  <th key={h} className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {displayed.map(p => {
+                const fechaDate = p.fecha_vencimiento ? new Date(p.fecha_vencimiento + 'T00:00:00') : null;
+                const dias = fechaDate ? Math.round((fechaDate.getTime() - today.getTime()) / 86400000) : null;
+                const vencido = fechaDate ? fechaDate < today : false;
 
-                  return(
-                    <tr key={p.id_producto} className={`border-b border-gray-50 transition-colors ${p.stock===0 ? "bg-destructive/10/40" : vencido ? "bg-destructive/10/20" : "hover:bg-muted"}`}>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4 font-medium text-foreground break-words max-w-[120px] sm:max-w-none">
-                        {p.nombre_producto}
-                      </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4 font-mono text-[10px] sm:text-xs text-muted-foreground">{p.lote}</td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4 font-mono font-semibold">{p.stock} uds.</td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4">
-                        {vencido ? (
-                          <span className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium bg-red-200 text-red-900">Vencido</span>
-                        ) : p.stock === 0 || p.stock <= 20 ? (
-                          <span className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium ${stockCls(p.stock)}`}>{stockLabel(p.stock)}</span>
-                        ) : (
-                          <span className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium bg-purple-100 text-purple-800">Próx. vencer</span>
-                        )}
-                      </td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4 text-[10px] sm:text-xs text-muted-foreground">{p.fecha_vencimiento ?? "—"}</td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4">
-                        {dias !== null ? (
-                          <span className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                            dias < 0        ? "bg-red-200 text-red-900" :
-                            dias <= 7       ? "bg-red-100 text-red-800" :
-                            dias <= 15      ? "bg-orange-100 text-orange-800" :
-                                              "bg-amber-100 text-amber-800"
-                          }`}>
-                            {dias < 0 ? `Vencido hace ${Math.abs(dias)} días` : `${dias} días`}
-                          </span>
-                        ) : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {displayed.length===0 && (
-                  <tr><td colSpan={6} className="py-6 sm:py-12 text-center text-muted-foreground">Sin alertas en esta categoría. ✓</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                return (
+                  <tr
+                    key={p.id_producto}
+                    className={`transition-colors ${
+                      p.stock === 0 ? "bg-destructive/5" :
+                      vencido ? "bg-destructive/5" :
+                      "hover:bg-muted/50"
+                    }`}
+                  >
+                    <td className="py-2.5 px-4 font-medium text-foreground whitespace-nowrap truncate max-w-[200px]" title={p.nombre_producto}>
+                      {p.nombre_producto}
+                    </td>
+                    <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">{p.lote}</td>
+                    <td className="py-2.5 px-4 font-mono font-semibold whitespace-nowrap">{p.stock} uds.</td>
+                    <td className="py-2.5 px-4 whitespace-nowrap">
+                      {vencido ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-destructive/15 text-destructive">Vencido</span>
+                      ) : p.stock === 0 || p.stock <= 20 ? (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${stockBadgeCls(p.stock)}`}>{stockLabel(p.stock)}</span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-primary/10 text-primary">Próx. vencer</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-4 text-xs text-muted-foreground whitespace-nowrap">{p.fecha_vencimiento ?? "—"}</td>
+                    <td className="py-2.5 px-4 whitespace-nowrap">
+                      {dias !== null ? (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${diasBadge(dias)}`}>
+                          {dias < 0 ? `Vencido hace ${Math.abs(dias)} días` : `${dias} días`}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {displayed.length === 0 && (
+            <EmptyState
+              icon={<Bell size={40} />}
+              title="Sin alertas"
+              description="No hay productos en esta categoría."
+            />
+          )}
         </div>
-      </Card>
-    </div>
+      </SectionCard>
+    </PageLayout>
   );
 }
 
