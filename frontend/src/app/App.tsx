@@ -565,25 +565,30 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // ── Login ─────────────────────────────────────────────────────────────────────
-function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
-  const [email, setEmail]     = useState("");
+function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw]   = useState(false);
-  const [error, setError]     = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
 
   async function handleLogin() {
-    if (!email || !password) { setError("Complete todos los campos."); return; }
-    setLoading(true); setError("");
+    if (!email || !password) {
+      setError("Complete todos los campos.");
+      return;
+    }
+    setLoading(true);
+    setError("");
     try {
-      const data = await login(email, password); // <- ahora usa 'correo' y 'contraseña' internamente
-      // Si el login devuelve 'debe_cambiar', puedes ignorarlo o redirigir, pero no lo enviamos.
+      const data = await login(email, password);
       onLogin({ name: data.nombre, role: data.rol, id: data.id });
     } catch (err: any) {
       const msg = err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.";
       setError(msg);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (showRecovery) {
@@ -591,11 +596,21 @@ function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily:"Inter, sans-serif" }}>
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]" style={{ fontFamily: "Inter, sans-serif" }}>
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-        {/* ... resto del contenido igual, logo, etc. ... */}
+        
+        {/* ✅ LOGO (ahora visible) */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-4">
+            <img src={logoImg} alt="Farmacia San Cupertino" className="w-full h-full object-contain" />
+          </div>
+          <h1 className="text-lg font-bold text-[#0a2a44] text-center">Farmacias San Cupertino</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Sistema de gestión</p>
+        </div>
+
         <h2 className="text-xl font-bold text-[#1e1e1e] mb-1">Iniciar sesión</h2>
         <p className="text-gray-500 text-sm mb-6">Ingrese sus credenciales para continuar</p>
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Correo</label>
@@ -604,19 +619,45 @@ function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
           <div>
             <label className="block text-sm font-medium text-[#1e1e1e] mb-1.5">Contraseña</label>
             <div className="relative">
-              <Input placeholder="Contraseña" type={showPw ? "text" : "password"} value={password} onChange={setPassword} />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <Input
+                placeholder="Contraseña"
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={setPassword}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw(!showPw)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
         </div>
-        {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
-        <Btn variant="primary" size="lg" className="w-full mt-6 justify-center" onClick={handleLogin} disabled={loading}>
+
+        {error && (
+          <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
+            <AlertTriangle size={14} />
+            {error}
+          </div>
+        )}
+
+        <Btn
+          variant="primary"
+          size="lg"
+          className="w-full mt-6 justify-center"
+          onClick={handleLogin}
+          disabled={loading}
+        >
           {loading ? "Ingresando..." : "Iniciar sesión"}
         </Btn>
+
         <div className="mt-4 text-center">
-          <button onClick={() => setShowRecovery(true)} className="text-sm text-[#0a4b7a] hover:underline">
+          <button
+            onClick={() => setShowRecovery(true)}
+            className="text-sm text-[#0a4b7a] hover:underline"
+          >
             ¿Olvidaste tu contraseña?
           </button>
         </div>
@@ -624,6 +665,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
     </div>
   );
 }
+
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: Role[] }[] = [
