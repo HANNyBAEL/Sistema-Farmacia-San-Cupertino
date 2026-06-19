@@ -1,15 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   LayoutDashboard, ShoppingCart, Package, Users, UserCog, Truck,
-  Bell, BarChart2, History, Trash2, Settings, LogOut, Search,
-  Plus, Edit2, X, Check, AlertTriangle, FileSpreadsheet,
+  Bell, History, Trash2, LogOut, Search,
+  Plus, Edit2, X, Check, AlertTriangle,
   Eye, EyeOff, Filter, Download, RefreshCw, Shield,
-  TrendingUp, TrendingDown, Clock, ChevronRight, RotateCcw,
+  TrendingUp, TrendingDown, Clock, ChevronRight,
+  DollarSign, Menu, ArrowLeft, Moon, Sun,
+  FileSpreadsheet,
   Camera,
-  DollarSign,
-  Menu,
-  ArrowLeft,
-  Moon
+  RotateCcw
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { login, registrarEmpleado } from "../services/auth";
@@ -27,10 +26,7 @@ import { getSiguienteCorrelativo, guardarFactura } from "../services/facturas";
 import { generarFacturaPDF } from "./GenerarFactura";
 import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
-import { useNavigate, useLocation } from 'react-router-dom'; 
 import { useTheme } from '../context/ThemeContext';
-import { Sun } from 'lucide-react';
-import { theme } from "../../tailwind.config";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -109,15 +105,16 @@ function expiryStyle(fecha: string) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const vence = new Date(fecha + 'T00:00:00');
   const dias = Math.ceil((vence.getTime() - hoy.getTime()) / (1000*60*60*24));
-  if (dias < 0)  return { row: 'bg-red-50',    badge: 'bg-red-100 text-red-700 font-semibold' };
-  if (dias <= 30) return { row: 'bg-yellow-50', badge: 'bg-yellow-100 text-yellow-700 font-semibold' };
+  if (dias < 0)  return { row: 'bg-destructive/10',    badge: 'bg-destructive/15 text-destructive font-semibold' };
+  if (dias <= 30) return { row: 'bg-amber-50 dark:bg-amber-900/20', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-semibold' };
   return { row: '', badge: 'text-muted-foreground' };
 }
+
 function stockColor(stock: number): string {
-  if (stock === 0) return "text-red-600 bg-red-50";
-  if (stock <= 10) return "text-red-500 bg-red-50";
-  if (stock <= 20) return "text-amber-600 bg-amber-50";
-  return "text-green-700 bg-green-50";
+  if (stock === 0) return "text-destructive bg-destructive/10";
+  if (stock <= 10) return "text-destructive bg-destructive/10";
+  if (stock <= 20) return "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20";
+  return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20";
 }
 function stockLabel(stock: number): string {
   if (stock === 0) return "Agotado";
@@ -127,79 +124,185 @@ function stockLabel(stock: number): string {
 }
 
 // ── UI Components ─────────────────────────────────────────────────────────────
+// ── Design System Tokens ──
+// Todos los colores usan variables CSS de theme.css
+// Esto garantiza consistencia en light Y dark mode
+
 function Badge({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>{children}</span>;
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${className}`}>{children}</span>;
 }
 
-function Btn({ children, variant = "primary", size = "md", className = "", onClick, disabled = false }: {
+function Btn({ children, variant = "primary", size = "md", className = "", onClick, disabled = false, type = "button" as const }: {
   children: React.ReactNode; variant?: "primary"|"secondary"|"danger"|"ghost";
-  size?: "sm"|"md"|"lg"; className?: string; onClick?: () => void; disabled?: boolean;
+  size?: "sm"|"md"|"lg"; className?: string; onClick?: () => void; disabled?: boolean; type?: "button"|"submit"|"reset";
 }) {
-  const base = "inline-flex items-center gap-1.5 font-medium rounded-lg transition-all cursor-pointer select-none disabled:opacity-50";
+  const base = "inline-flex items-center justify-center gap-1.5 font-medium rounded-lg transition-all cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97]";
   const sizes = { sm: "px-3 py-1.5 text-xs", md: "px-4 py-2 text-sm", lg: "px-5 py-2.5 text-base" };
   const variants = {
-    primary:   "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-[#0d5c96]",
-    secondary: "border border-[#0a4b7a] text-[#0a4b7a] bg-card hover:bg-[#e3f2fd]",
-    danger:    "bg-[#d32f2f] text-sidebar-accent-foreground hover:bg-[#c62828]",
-    ghost:     "text-[#6b7280] hover:bg-muted bg-transparent",
+    primary:   "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
+    secondary: "bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80",
+    danger:    "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm",
+    ghost:     "text-muted-foreground hover:bg-muted hover:text-foreground",
   };
-  return <button disabled={disabled} onClick={onClick} className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}>{children}</button>;
+  return <button type={type} disabled={disabled} onClick={onClick} className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}>{children}</button>;
 }
 
 function Card({ children, className = "", accent }: { children: React.ReactNode; className?: string; accent?: "blue"|"red"|"green"|"amber" }) {
-  const borders = { blue: "border-l-4 border-l-[#0a4b7a]", red: "border-l-4 border-l-[#d32f2f]", green: "border-l-4 border-l-green-500", amber: "border-l-4 border-l-amber-500" };
+  const borders = {
+    blue:  "border-l-4 border-l-primary",
+    red:   "border-l-4 border-l-destructive",
+    green: "border-l-4 border-l-green-600 dark:border-l-green-400",
+    amber: "border-l-4 border-l-amber-500",
+  };
   return <div className={`bg-card rounded-lg shadow-sm border border-border ${accent ? borders[accent] : ""} ${className}`}>{children}</div>;
 }
 
-function Input({ placeholder, value, onChange, type = "text", className = "", maxLength }: {
-  placeholder?: string; value: string; onChange: (v: string) => void; type?: string; className?: string; maxLength?: number;
+function Input({ placeholder, value, onChange, type = "text", className = "", maxLength, disabled = false }: {
+  placeholder?: string; value: string; onChange: (v: string) => void; type?: string; className?: string; maxLength?: number; disabled?: boolean;
 }) {
-  return <input type={type} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength}
-    className={`w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-foreground placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] transition-all text-sm ${className}`} />;
+  return <input type={type} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength} disabled={disabled}
+    className={`w-full px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed ${className}`} />;
 }
 
-function Select({ children, value, onChange, className = "" }: {
-  children: React.ReactNode; value: string; onChange: (v: string) => void; className?: string;
+function Select({ children, value, onChange, className = "", disabled = false }: {
+  children: React.ReactNode; value: string; onChange: (v: string) => void; className?: string; disabled?: boolean;
 }) {
-  return <select value={value} onChange={e => onChange(e.target.value)}
-    className={`px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a] cursor-pointer ${className}`}>
+  return <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
+    className={`px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring cursor-pointer appearance-none disabled:opacity-50 disabled:cursor-not-allowed ${className}`}>
     {children}
   </select>;
 }
+
+// ── Componentes nuevos del Design System ──
+
+function ErrorAlert({ message }: { message: string }) {
+  if (!message) return null;
+  return (
+    <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2.5">
+      <AlertTriangle size={14} className="flex-shrink-0" />
+      <span className="break-words">{message}</span>
+    </div>
+  );
+}
+
+function PageLayout({ title, subtitle, children, actions }: {
+  title: string; subtitle?: string; children: React.ReactNode; actions?: React.ReactNode;
+}) {
+  return (
+    <div className="p-6 space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">{title}</h1>
+          {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
+        </div>
+        {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function FilterBar({ children, onClear, hasFilters }: {
+  children: React.ReactNode; onClear?: () => void; hasFilters?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {children}
+      {hasFilters && onClear && (
+        <Btn variant="ghost" size="sm" onClick={onClear}>
+          <X size={14} /> Limpiar
+        </Btn>
+      )}
+    </div>
+  );
+}
+
+function SectionCard({ title, children, actions, className = "" }: {
+  title: string; children: React.ReactNode; actions?: React.ReactNode; className?: string;
+}) {
+  return (
+    <Card className={className}>
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        {actions && <div className="flex items-center gap-2">{actions}</div>}
+      </div>
+      <div className="p-5">{children}</div>
+    </Card>
+  );
+}
+
+function LogoContainer({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+  const sizes = { sm: "w-10 h-10 p-1.5", md: "w-14 h-14 p-2", lg: "w-20 h-20 p-3" };
+  return (
+    <div className={`${sizes[size]} rounded-2xl flex items-center justify-center bg-primary/10 border border-primary/10`}>
+      <img src={logoImg} alt="Farmacia San Cupertino" className="w-full h-full object-contain" />
+    </div>
+  );
+}
+
+function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) {
+  return (
+    <div className="fixed bottom-6 right-6 z-[60] animate-in slide-in-from-bottom-4 fade-in duration-300">
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${
+        type === 'success'
+          ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800/30 dark:text-green-400'
+          : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800/30 dark:text-red-400'
+      }`}>
+        {type === 'success' ? <Check size={18} className="flex-shrink-0" /> : <AlertTriangle size={18} className="flex-shrink-0" />}
+        <span className="text-sm font-medium">{message}</span>
+        <button onClick={onClose} className="ml-2 opacity-60 hover:opacity-100 transition-opacity"><X size={14} /></button>
+      </div>
+    </div>
+  );
+}
+
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <div className="w-8 h-8 border-[3px] border-primary/20 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
+}
+
+function EmptyState({ icon, title, description, action }: {
+  icon: React.ReactNode; title: string; description?: string; action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="text-muted-foreground/30 mb-4">{icon}</div>
+      <h3 className="text-sm font-semibold text-foreground mb-1">{title}</h3>
+      {description && <p className="text-sm text-muted-foreground max-w-sm">{description}</p>}
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
 // ── Componente de confirmación para cerrar sesión ──
 function ConfirmModal({
-  isOpen,
-  title,
-  message,
-  onConfirm,
-  onCancel,
-  confirmText = "Confirmar",
-  cancelText = "Cancelar",
-  variant = "danger", // "danger" | "primary"
+  isOpen, title, message, onConfirm, onCancel,
+  confirmText = "Confirmar", cancelText = "Cancelar", variant = "danger", loading = false,
 }: {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-  confirmText?: string;
-  cancelText?: string;
-  variant?: "danger" | "primary";
+  isOpen: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void;
+  confirmText?: string; cancelText?: string; variant?: "danger" | "primary"; loading?: boolean;
 }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <Card className="max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onCancel}>
+      <Card className="max-w-md w-full p-6 animate-in zoom-in-95 fade-in duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+            variant === 'danger' ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'
+          }`}>
             <AlertTriangle size={20} />
           </div>
           <h2 className="text-lg font-bold text-foreground">{title}</h2>
         </div>
-        <p className="text-gray-700 mb-6">{message}</p>
+        <p className="text-sm text-muted-foreground mb-6 leading-relaxed">{message}</p>
         <div className="flex justify-end gap-3">
-          <Btn variant="secondary" onClick={onCancel}>{cancelText}</Btn>
-          <Btn variant={variant} onClick={onConfirm}>{confirmText}</Btn>
+          <Btn variant="secondary" onClick={onCancel} disabled={loading}>{cancelText}</Btn>
+          <Btn variant={variant} onClick={onConfirm} disabled={loading}>
+            {loading ? 'Procesando...' : confirmText}
+          </Btn>
         </div>
       </Card>
     </div>
@@ -208,6 +311,17 @@ function ConfirmModal({
 
 function LoadingSpinner() {
   return <div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-[#0a4b7a] border-t-transparent rounded-full animate-spin" /></div>;
+}
+
+// ── Auth Card Wrapper (consistente en todas las pantallas de auth) ──
+function AuthCard({ children, maxWidth = "max-w-sm" }: { children: React.ReactNode; maxWidth?: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className={`w-full ${maxWidth} bg-card rounded-2xl shadow-lg border border-border p-8`}>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function CambiarContrasenaForzado({ token, onSuccess, onCancel }: { token: string | null; onSuccess: () => void; onCancel: () => void }) {
@@ -219,70 +333,54 @@ function CambiarContrasenaForzado({ token, onSuccess, onCancel }: { token: strin
   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   const handleSubmit = async () => {
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
-    setLoading(true);
-    setError('');
+    if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (password !== confirmPassword) { setError('Las contraseñas no coinciden'); return; }
+    setLoading(true); setError('');
     try {
-      await api.post('/auth/cambiar-contrasena', {
-        password_actual: '', // No se necesita para el cambio forzado (debe_cambiar=true)
-        password_nuevo: password
-      }, {
+      await api.post('/auth/cambiar-contrasena', { password_actual: '', password_nuevo: password }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       onSuccess();
     } catch (e: any) {
       setError(e?.response?.data?.error || 'Error al cambiar la contraseña');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-      <div className="w-full max-w-md bg-card rounded-2xl shadow-lg border border-border p-8">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
-            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
-          </div>
-          <h2 className="text-xl font-bold text-foreground">Cambio de contraseña obligatorio</h2>
-          <p className="text-sm text-gray-500 text-center mt-1">Por seguridad, debes cambiar tu contraseña antes de continuar.</p>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Nueva contraseña</label>
-            <div className="relative">
-              <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground">
-                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Confirmar contraseña</label>
-            <div className="relative">
-              <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
-              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground">
-                {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
+    <AuthCard maxWidth="max-w-md">
+      <div className="flex flex-col items-center mb-6">
+        <LogoContainer size="md" />
+        <h2 className="text-xl font-bold text-foreground mt-4">Cambio de contraseña obligatorio</h2>
+        <p className="text-sm text-muted-foreground text-center mt-1">Por seguridad, debes cambiar tu contraseña antes de continuar.</p>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Nueva contraseña</label>
+          <div className="relative">
+            <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
+            <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
-        {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
-        <div className="flex gap-3 mt-6">
-          <Btn variant="primary" className="flex-1 justify-center" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Cambiando...' : 'Cambiar contraseña'}
-          </Btn>
-          <Btn variant="secondary" className="flex-1 justify-center" onClick={onCancel}>Cerrar sesión</Btn>
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Confirmar contraseña</label>
+          <div className="relative">
+            <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
+            <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+      <ErrorAlert message={error} />
+      <div className="flex gap-3 mt-6">
+        <Btn variant="primary" className="flex-1" onClick={handleSubmit} disabled={loading}>
+          {loading ? 'Cambiando...' : 'Cambiar contraseña'}
+        </Btn>
+        <Btn variant="secondary" className="flex-1" onClick={onCancel}>Cerrar sesión</Btn>
+      </div>
+    </AuthCard>
   );
 }
 
@@ -296,80 +394,65 @@ function EstablecerContrasena({ token, onSuccess }: { token: string | null; onSu
   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   const handleSubmit = async () => {
-    if (!token) {
-      setError('Token de invitación inválido');
-      return;
-    }
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
-    setLoading(true);
-    setError('');
+    if (!token) { setError('Token de invitación inválido'); return; }
+    if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (password !== confirmPassword) { setError('Las contraseñas no coinciden'); return; }
+    setLoading(true); setError('');
     try {
       await api.post('/auth/establecer-contrasena', { token, password });
       setSuccess(true);
       setTimeout(onSuccess, 2000);
-    } catch (e: any) {
-      setError(e?.response?.data?.error || 'Error al establecer la contraseña');
-    } finally {
-      setLoading(false);
-    }
+    } catch (e: any) { setError(e?.response?.data?.error || 'Error al establecer la contraseña'); }
+    finally { setLoading(false); }
   };
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-full max-w-sm bg-card rounded-2xl shadow-lg border border-border p-8">
-          <div className="text-green-500 text-5xl mb-4">✅</div>
+      <AuthCard>
+        <div className="text-center">
+          <div className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
+            <Check size={28} className="text-green-600 dark:text-green-400" />
+          </div>
           <h2 className="text-xl font-bold text-foreground">¡Contraseña establecida!</h2>
-          <p className="text-gray-500 mt-2">Ya puedes iniciar sesión con tu nueva contraseña.</p>
-          <Btn variant="primary" className="w-full mt-6 justify-center" onClick={onSuccess}>Ir al inicio de sesión</Btn>
+          <p className="text-sm text-muted-foreground mt-2">Ya puedes iniciar sesión con tu nueva contraseña.</p>
+          <Btn variant="primary" className="w-full mt-6" onClick={onSuccess}>Ir al inicio de sesión</Btn>
         </div>
-      </div>
+      </AuthCard>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="w-full max-w-md bg-card rounded-2xl shadow-lg border border-border p-8">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-3">
-            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
-          </div>
-          <h2 className="text-xl font-bold text-foreground">Establecer contraseña</h2>
-          <p className="text-sm text-gray-500 text-center mt-1">Has sido invitado a unirte al sistema. Establece tu contraseña.</p>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Contraseña</label>
-            <div className="relative">
-              <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground">
-                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Confirmar contraseña</label>
-            <div className="relative">
-              <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
-              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground">
-                {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-        </div>
-        {error && <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2"><AlertTriangle size={14}/>{error}</div>}
-        <Btn variant="primary" className="w-full mt-6 justify-center" onClick={handleSubmit} disabled={loading}>
-          {loading ? 'Estableciendo...' : 'Establecer contraseña'}
-        </Btn>
+    <AuthCard maxWidth="max-w-md">
+      <div className="flex flex-col items-center mb-6">
+        <LogoContainer size="md" />
+        <h2 className="text-xl font-bold text-foreground mt-4">Establecer contraseña</h2>
+        <p className="text-sm text-muted-foreground text-center mt-1">Has sido invitado al sistema. Establece tu contraseña.</p>
       </div>
-    </div>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Contraseña</label>
+          <div className="relative">
+            <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
+            <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Confirmar contraseña</label>
+          <div className="relative">
+            <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
+            <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
+      </div>
+      <ErrorAlert message={error} />
+      <Btn variant="primary" className="w-full mt-6" onClick={handleSubmit} disabled={loading}>
+        {loading ? 'Estableciendo...' : 'Establecer contraseña'}
+      </Btn>
+    </AuthCard>
   );
 }
 
@@ -386,189 +469,111 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   const handleSolicitar = async () => {
-    if (!email) {
-      setError('Ingresa tu correo electrónico');
-      return;
-    }
-    setLoading(true);
-    setError('');
+    if (!email) { setError('Ingresa tu correo electrónico'); return; }
+    setLoading(true); setError('');
     try {
       await api.post('/auth/solicitar-recuperacion', { email });
       setStep('verificar');
     } catch (err: any) {
-      // 🔥 Mostrar error detallado del backend (incluye 'details' si existe)
-      const msg = err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al enviar el código';
-      setError(`❌ ${msg}`);
-      console.error('Error en solicitarRecuperacion:', err);
-    } finally {
-      setLoading(false);
-    }
+      setError(err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al enviar el código');
+    } finally { setLoading(false); }
   };
 
   const handleVerificar = async () => {
-    if (!codigo || !password || password !== confirmPassword) {
-      setError('Completa todos los campos y verifica que las contraseñas coincidan');
-      return;
-    }
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    setLoading(true);
-    setError('');
+    if (!codigo || !password || password !== confirmPassword) { setError('Completa todos los campos y verifica que las contraseñas coincidan'); return; }
+    if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
+    setLoading(true); setError('');
     try {
       await api.post('/auth/recuperar-contrasena', { email, codigo, password });
       setSuccess(true);
       setTimeout(onSuccess, 2000);
     } catch (err: any) {
-      const msg = err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al restablecer la contraseña';
-      setError(`❌ ${msg}`);
-      console.error('Error en recuperarContrasena:', err);
-    } finally {
-      setLoading(false);
-    }
+      setError(err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al restablecer');
+    } finally { setLoading(false); }
   };
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-full max-w-sm bg-card rounded-2xl shadow-lg border border-border p-8 text-center">
-          <div className="text-green-500 text-5xl mb-4">✅</div>
+      <AuthCard>
+        <div className="text-center">
+          <div className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
+            <Check size={28} className="text-green-600 dark:text-green-400" />
+          </div>
           <h2 className="text-xl font-bold text-foreground">¡Contraseña restablecida!</h2>
-          <p className="text-gray-500 mt-2">Ahora puedes iniciar sesión con tu nueva contraseña.</p>
-          <Btn variant="primary" className="w-full mt-6 justify-center" onClick={onSuccess}>
-            Ir al inicio de sesión
-          </Btn>
+          <p className="text-sm text-muted-foreground mt-2">Ahora puedes iniciar sesión.</p>
+          <Btn variant="primary" className="w-full mt-6" onClick={onSuccess}>Ir al inicio de sesión</Btn>
         </div>
-      </div>
+      </AuthCard>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="w-full max-w-sm bg-card rounded-2xl shadow-lg border border-border p-8">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-4">
-            <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
-          </div>
-          <h2 className="text-xl font-bold text-foreground">
-            {step === 'solicitar' ? 'Recuperar contraseña' : 'Verificar código'}
-          </h2>
-          <p className="text-sm text-gray-500 text-center mt-1">
-            {step === 'solicitar'
-              ? 'Te enviaremos un código a tu correo'
-              : 'Ingresa el código que recibiste'}
-          </p>
-        </div>
-
-        {step === 'solicitar' ? (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Correo electrónico</label>
-              <Input
-                type="email"
-                value={email}
-                onChange={setEmail}
-                placeholder="tu@correo.com"
-              />
-            </div>
-            {error && (
-              <div className="mt-3 flex items-start gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
-                <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
-                <span className="break-words whitespace-pre-wrap">{error}</span>
-              </div>
-            )}
-            <Btn
-              variant="primary"
-              className="w-full mt-6 justify-center"
-              onClick={handleSolicitar}
-              disabled={loading}
-            >
-              {loading ? 'Enviando...' : 'Enviar código'}
-            </Btn>
-            <div className="mt-4 text-center">
-              <button onClick={onSuccess} className="text-sm text-[#0a4b7a] hover:underline flex items-center justify-center gap-1">
-                <ArrowLeft size={14} /> Volver al inicio de sesión
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Código de verificación</label>
-              <Input
-                value={codigo}
-                onChange={setCodigo}
-                placeholder="000000"
-                maxLength={6}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Nueva contraseña</label>
-              <div className="relative">
-                <Input
-                  type={showPw ? 'text' : 'password'}
-                  value={password}
-                  onChange={setPassword}
-                  placeholder="Mínimo 6 caracteres"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-                >
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Confirmar contraseña</label>
-              <div className="relative">
-                <Input
-                  type={showConfirmPw ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={setConfirmPassword}
-                  placeholder="Repite la contraseña"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPw(!showConfirmPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-                >
-                  {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            {error && (
-              <div className="mt-3 flex items-start gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
-                <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
-                <span className="break-words whitespace-pre-wrap">{error}</span>
-              </div>
-            )}
-            <Btn
-              variant="primary"
-              className="w-full mt-6 justify-center"
-              onClick={handleVerificar}
-              disabled={loading}
-            >
-              {loading ? 'Restableciendo...' : 'Restablecer contraseña'}
-            </Btn>
-            <div className="mt-4 text-center">
-              <button
-                onClick={() => setStep('solicitar')}
-                className="text-sm text-[#0a4b7a] hover:underline flex items-center justify-center gap-1"
-              >
-                <ArrowLeft size={14} /> Volver atrás
-              </button>
-            </div>
-          </>
-        )}
+    <AuthCard>
+      <div className="flex flex-col items-center mb-6">
+        <LogoContainer size="lg" />
+        <h2 className="text-xl font-bold text-foreground mt-4">
+          {step === 'solicitar' ? 'Recuperar contraseña' : 'Verificar código'}
+        </h2>
+        <p className="text-sm text-muted-foreground text-center mt-1">
+          {step === 'solicitar' ? 'Te enviaremos un código a tu correo' : 'Ingresa el código que recibiste'}
+        </p>
       </div>
-    </div>
+
+      {step === 'solicitar' ? (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Correo electrónico</label>
+            <Input type="email" value={email} onChange={setEmail} placeholder="tu@correo.com" />
+          </div>
+          <ErrorAlert message={error} />
+          <Btn variant="primary" className="w-full" onClick={handleSolicitar} disabled={loading}>
+            {loading ? 'Enviando...' : 'Enviar código'}
+          </Btn>
+          <div className="text-center">
+            <button onClick={onSuccess} className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+              <ArrowLeft size={14} /> Volver al inicio de sesión
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Código de verificación</label>
+            <Input value={codigo} onChange={setCodigo} placeholder="000000" maxLength={6} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Nueva contraseña</label>
+            <div className="relative">
+              <Input type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Mínimo 6 caracteres" />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Confirmar contraseña</label>
+            <div className="relative">
+              <Input type={showConfirmPw ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} placeholder="Repite la contraseña" />
+              <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <ErrorAlert message={error} />
+          <Btn variant="primary" className="w-full" onClick={handleVerificar} disabled={loading}>
+            {loading ? 'Restableciendo...' : 'Restablecer contraseña'}
+          </Btn>
+          <div className="text-center">
+            <button onClick={() => setStep('solicitar')} className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+              <ArrowLeft size={14} /> Volver atrás
+            </button>
+          </div>
+        </div>
+      )}
+    </AuthCard>
   );
 }
 
-// ── Login ─────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -578,95 +583,55 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
   const [showRecovery, setShowRecovery] = useState(false);
 
   async function handleLogin() {
-    if (!email || !password) {
-      setError("Complete todos los campos.");
-      return;
-    }
-    setLoading(true);
-    setError("");
+    if (!email || !password) { setError("Complete todos los campos."); return; }
+    setLoading(true); setError("");
     try {
       const data = await login(email, password);
       onLogin({ name: data.nombre, role: data.rol, id: data.id });
     } catch (err: any) {
-      const msg = err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
+      setError(err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.");
+    } finally { setLoading(false); }
   }
 
-  if (showRecovery) {
-    return <RecuperarContrasena onSuccess={() => setShowRecovery(false)} />;
-  }
+  if (showRecovery) return <RecuperarContrasena onSuccess={() => setShowRecovery(false)} />;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background" style={{ fontFamily: "Inter, sans-serif" }}>
-      <div className="w-full max-w-sm bg-card rounded-2xl shadow-lg border border-border p-8">
-        
-        {/* ✅ LOGO (ahora visible) */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#f0f7ff] border border-[#0a4b7a]/10 p-2 mb-4">
-            <img src={logoImg} alt="Farmacia San Cupertino" className="w-full h-full object-contain" />
-          </div>
-          <h1 className="text-lg font-bold text-[#0a2a44] text-center">Farmacias San Cupertino</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Sistema de gestión</p>
+    <AuthCard>
+      <div className="flex flex-col items-center mb-6">
+        <LogoContainer size="lg" />
+        <h1 className="text-lg font-bold text-foreground text-center mt-4">Farmacias San Cupertino</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">Sistema de gestión</p>
+      </div>
+
+      <h2 className="text-xl font-bold text-foreground mb-1">Iniciar sesión</h2>
+      <p className="text-sm text-muted-foreground mb-6">Ingrese sus credenciales para continuar</p>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Correo</label>
+          <Input placeholder="correo@farmacia.com" value={email} onChange={setEmail} type="email" />
         </div>
-
-        <h2 className="text-xl font-bold text-foreground mb-1">Iniciar sesión</h2>
-        <p className="text-gray-500 text-sm mb-6">Ingrese sus credenciales para continuar</p>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Correo</label>
-            <Input placeholder="correo@farmacia.com" value={email} onChange={setEmail} type="email" />
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Contraseña</label>
+          <div className="relative">
+            <Input placeholder="Contraseña" type={showPw ? "text" : "password"} value={password} onChange={setPassword} />
+            <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Contraseña</label>
-            <div className="relative">
-              <Input
-                placeholder="Contraseña"
-                type={showPw ? "text" : "password"}
-                value={password}
-                onChange={setPassword}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-              >
-                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {error && (
-          <div className="mt-3 flex items-center gap-2 text-[#d32f2f] text-sm bg-red-50 rounded-lg px-3 py-2">
-            <AlertTriangle size={14} />
-            {error}
-          </div>
-        )}
-
-        <Btn
-          variant="primary"
-          size="lg"
-          className="w-full mt-6 justify-center"
-          onClick={handleLogin}
-          disabled={loading}
-        >
-          {loading ? "Ingresando..." : "Iniciar sesión"}
-        </Btn>
-
-        <div className="mt-4 text-center">
-          <button
-            onClick={() => setShowRecovery(true)}
-            className="text-sm text-[#0a4b7a] hover:underline"
-          >
-            ¿Olvidaste tu contraseña?
-          </button>
         </div>
       </div>
-    </div>
+
+      <ErrorAlert message={error} />
+      <Btn variant="primary" size="lg" className="w-full mt-6" onClick={handleLogin} disabled={loading}>
+        {loading ? "Ingresando..." : "Iniciar sesión"}
+      </Btn>
+      <div className="mt-4 text-center">
+        <button onClick={() => setShowRecovery(true)} className="text-sm text-primary hover:underline">
+          ¿Olvidaste tu contraseña?
+        </button>
+      </div>
+    </AuthCard>
   );
 }
 
@@ -685,20 +650,15 @@ const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: 
   { screen: "auditoria", label: "Auditoría", icon: <Shield size={18} />, roles: ["administrador"] },
 ];
 
-function Sidebar({ user, current, onNav, onLogout }: { 
-  user: User; 
-  current: Screen; 
-  onNav: (s: Screen) => void; 
-  onLogout: () => void;
+function Sidebar({ user, current, onNav, onLogout }: {
+  user: User; current: Screen; onNav: (s: Screen) => void; onLogout: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const visible = NAV_ITEMS.filter(i => i.roles.includes(user.role));
-
   const { theme, toggleTheme } = useTheme();
 
   return (
     <>
-      {/* Botón hamburguesa para móvil */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed top-3 left-3 z-50 md:hidden bg-sidebar text-sidebar-accent-foreground p-2 rounded-lg shadow-lg hover:bg-sidebar-accent transition-colors"
@@ -707,42 +667,32 @@ function Sidebar({ user, current, onNav, onLogout }: {
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* Overlay oscuro para móvil */}
       {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsOpen(false)} />
       )}
 
-      {/* Sidebar - SIEMPRE VISIBLE EN ESCRITORIO */}
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-40 flex flex-col bg-sidebar w-64 transform transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:relative md:translate-x-0 md:w-60 md:flex md:flex-col md:shrink-0
-        `}
-      >
-        {/* Logo y botón de cierre en móvil */}
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10">
+      <aside className={`
+        fixed inset-y-0 left-0 z-40 flex flex-col bg-sidebar w-64 transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:relative md:translate-x-0 md:w-60 md:flex md:flex-col md:shrink-0
+      `}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 flex-shrink-0 bg-card rounded-xl flex items-center justify-center p-1">
+            <div className="w-9 h-9 flex-shrink-0 bg-sidebar-accent/20 rounded-xl flex items-center justify-center p-1">
               <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-sidebar-accent-foreground font-bold text-sm block leading-tight">Farmacias San Cupertino</span>
-              <span className="text-sidebar-accent-foreground/40 text-[10px]">Gestión Farmaceutica</span>
+              <span className="text-sidebar-accent-foreground font-bold text-sm block leading-tight">San Cupertino</span>
+              <span className="text-sidebar-foreground/40 text-[10px]">Gestión Farmacéutica</span>
             </div>
           </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="md:hidden text-sidebar-foreground/70 hover:text-sidebar-accent-foreground transition-colors"
-          >
+          <button onClick={() => setIsOpen(false)} className="md:hidden text-sidebar-foreground/70 hover:text-sidebar-accent-foreground transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        {/* Navegación */}
+        {/* Nav */}
         <nav className="flex-1 py-3 overflow-y-auto">
           {visible.map(item => {
             const active = current === item.screen;
@@ -751,39 +701,38 @@ function Sidebar({ user, current, onNav, onLogout }: {
                 key={item.screen}
                 onClick={() => { onNav(item.screen); setIsOpen(false); }}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all ${
-                  active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-accent-foreground"
+                  active
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-accent-foreground"
                 }`}
               >
                 <span className="flex-shrink-0">{item.icon}</span>
                 <span className="truncate">{item.label}</span>
-                {active && <ChevronRight size={14} className="ml-auto" />}
+                {active && <ChevronRight size={14} className="ml-auto opacity-60" />}
               </button>
             );
           })}
         </nav>
-        {/* Usuario y logout */}
-        {/* ÚNICO footer del sidebar */}
-          <div className="border-t border-white/10 p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-sidebar-accent rounded-full flex items-center justify-center text-sidebar-accent-foreground text-xs font-bold flex-shrink-0">
-                {user.name.charAt(0)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sidebar-accent-foreground text-xs font-medium truncate">{user.name}</div>
-                <div className="text-sidebar-accent-foreground/50 text-xs capitalize">{user.role}</div>
-              </div>
-              <button 
-                onClick={toggleTheme} 
-                className="text-sidebar-accent-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
-                title={theme === 'light' ? 'Modo oscuro' : 'Modo claro'}
-              >
-                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-              </button>
-              <button onClick={onLogout} className="text-sidebar-accent-foreground/40 hover:text-[#d32f2f] transition-colors">
-                <LogOut size={15} />
-              </button>
+
+        {/* Footer */}
+        <div className="border-t border-sidebar-border p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-sidebar-accent rounded-full flex items-center justify-center text-sidebar-accent-foreground text-xs font-bold flex-shrink-0">
+              {user.name.charAt(0).toUpperCase()}
             </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sidebar-accent-foreground text-xs font-medium truncate">{user.name}</div>
+              <div className="text-sidebar-foreground/50 text-xs capitalize">{user.role}</div>
+            </div>
+            <button onClick={toggleTheme} className="text-sidebar-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
+              title={theme === 'light' ? 'Modo oscuro' : 'Modo claro'}>
+              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
+            <button onClick={onLogout} className="text-sidebar-foreground/40 hover:text-destructive transition-colors p-1">
+              <LogOut size={15} />
+            </button>
           </div>
+        </div>
       </aside>
     </>
   );
@@ -792,51 +741,36 @@ function Sidebar({ user, current, onNav, onLogout }: {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function Dashboard() {
-  const [kpis, setKpis]         = useState<any>(null);
+  const [kpis, setKpis] = useState<any>(null);
   const [salesData, setSalesData] = useState<any[]>([]);
   const [expiredCount, setExpiredCount] = useState(0);
   const [avgDailySales, setAvgDailySales] = useState(0);
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
   useEffect(() => {
-    // Obtener KPIs, ventas de los últimos 7 días y productos vencidos
-    Promise.all([
-      fetchKPIs(),
-      fetchVentasUltimos7Dias(),
-      getProductos() // Importa esta función desde tu API de productos
-    ])
+    Promise.all([fetchKPIs(), fetchVentasUltimos7Dias(), getProductos()])
       .then(([k, s, productos]) => {
-        // Procesar ventas para el gráfico
         const processed = s.map((item: { dia: string; ventas: number }) => {
-        // Crear fecha local sin UTC
-        // Opción 2: ajustar la fecha restando la diferencia horaria
-        const date = new Date(item.dia + 'T12:00:00Z');
-        const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 90000);
-        const dayName = localDate.toLocaleDateString('es-ES', {
-          weekday: 'short',
-          timeZone: 'America/El_Salvador'
-        });
+          const date = new Date(item.dia + 'T12:00:00');
+          const dayName = date.toLocaleDateString('es-ES', {
+            weekday: 'short',
+            timeZone: 'America/El_Salvador'
+          });
           return { day: dayName.replace('.', ''), ventas: item.ventas };
         });
         setSalesData(processed);
 
-        // Calcular productos vencidos (fecha de vencimiento < hoy)
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
         const vencidos = productos.filter((p: any) => {
           if (!p.fecha_vencimiento) return false;
-          const vence = new Date(p.fecha_vencimiento + 'T00:00:00');
-          return vence < hoy;
+          return new Date(p.fecha_vencimiento + 'T00:00:00') < hoy;
         }).length;
         setExpiredCount(vencidos);
 
-        // Calcular venta promedio diario (últimos 7 días)
-        const totalVentas = processed.reduce((sum: any, day: { ventas: any; }) => sum + day.ventas, 0);
-        const promedio = processed.length ? totalVentas / processed.length : 0;
-        setAvgDailySales(promedio);
-
+        const totalVentas = processed.reduce((sum: number, day: { ventas: number }) => sum + day.ventas, 0);
+        setAvgDailySales(processed.length ? totalVentas / processed.length : 0);
         setKpis(k);
       })
       .catch(console.error)
@@ -846,73 +780,60 @@ function Dashboard() {
   if (loading) return <LoadingSpinner />;
 
   const cards = [
-    { label: "Ingresos del día",   value: `$${kpis?.ingresosHoy?.toFixed(2) ?? "0.00"}`, icon: <TrendingUp size={20}/>,    accent: "blue" as const },
-    { label: "Ventas del día",     value: kpis?.ventasHoy ?? 0,                           icon: <ShoppingCart size={20}/>,  accent: "blue" as const },
-    { label: "Stock Bajo (≤20)",   value: kpis?.stockBajo ?? 0,                           icon: <TrendingDown size={20}/>,  accent: "amber" as const },
-    { label: "Stock Crítico (≤10)",value: kpis?.stockCritico ?? 0,                        icon: <AlertTriangle size={20}/>, accent: "red" as const },
-    { label: "Agotados",           value: kpis?.agotados ?? 0,                            icon: <X size={20}/>,             accent: "red" as const },
-    { label: "Próx. Vencer (30d)", value: kpis?.porVencer ?? 0,                           icon: <Clock size={20}/>,         accent: "amber" as const },
-    { label: "Productos Vencidos", value: expiredCount,                                   icon: <Package size={20}/>,       accent: "red" as const },
-    { label: "Venta Promedio Diario", value: `$${avgDailySales.toFixed(2)}`,             icon: <DollarSign size={20}/>,    accent: "blue" as const },
+    { label: "Ingresos del día",      value: `$${kpis?.ingresosHoy?.toFixed(2) ?? "0.00"}`, icon: <TrendingUp size={20}/>,    accent: "blue" as const },
+    { label: "Ventas del día",        value: kpis?.ventasHoy ?? 0,                           icon: <ShoppingCart size={20}/>,  accent: "blue" as const },
+    { label: "Stock Bajo (≤20)",      value: kpis?.stockBajo ?? 0,                           icon: <TrendingDown size={20}/>,  accent: "amber" as const },
+    { label: "Stock Crítico (≤10)",   value: kpis?.stockCritico ?? 0,                        icon: <AlertTriangle size={20}/>, accent: "red" as const },
+    { label: "Agotados",              value: kpis?.agotados ?? 0,                            icon: <X size={20}/>,             accent: "red" as const },
+    { label: "Próx. Vencer (30d)",    value: kpis?.porVencer ?? 0,                           icon: <Clock size={20}/>,         accent: "amber" as const },
+    { label: "Productos Vencidos",    value: expiredCount,                                   icon: <Package size={20}/>,       accent: "red" as const },
+    { label: "Venta Promedio Diario", value: `$${avgDailySales.toFixed(2)}`,                 icon: <DollarSign size={20}/>,    accent: "blue" as const },
   ];
 
+  const iconBg = {
+    blue:  "bg-primary/10 text-primary",
+    red:   "bg-destructive/10 text-destructive",
+    amber: "bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400",
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-foreground">Tablero Principal</h1>
-        <p className="text-gray-500 text-sm">Resumen operativo — {new Date().toLocaleDateString('es-SV')}</p>
-      </div>
+    <PageLayout
+      title="Tablero Principal"
+      subtitle={`Resumen operativo — ${new Date().toLocaleDateString('es-SV')}`}
+    >
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
         {cards.map(k => (
           <Card key={k.label} accent={k.accent} className="p-4">
-            <div className={`inline-flex p-2 rounded-lg mb-3 ${
-              k.accent === "red" ? "bg-red-50 text-red-600" :
-              k.accent === "amber" ? "bg-amber-50 text-amber-600" :
-              "bg-[#e3f2fd] text-[#0a4b7a]"
-            }`}>
+            <div className={`inline-flex p-2.5 rounded-lg mb-3 ${iconBg[k.accent]}`}>
               {k.icon}
             </div>
             <div className="text-2xl font-bold text-foreground">{k.value}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{k.label}</div>
           </Card>
         ))}
       </div>
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold text-foreground mb-4">Ventas últimos 7 días</h2>
-        <ResponsiveContainer width="100%" height={200}>
+
+      <SectionCard title="Ventas últimos 7 días">
+        <ResponsiveContainer width="100%" height={220}>
           <BarChart data={salesData} barSize={28}>
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke={isDark ? "hsl(222, 12%, 22%)" : "#f0f0f0"} 
-            />
-            <XAxis 
-              tick={{ fontSize: 12, fill: isDark ? "hsl(215, 12%, 52%)" : "#6b7280" }} 
-              // ... resto de props
-            />
-            <YAxis 
-              tick={{ fontSize: 12, fill: isDark ? "hsl(215, 12%, 52%)" : "#6b7280" }} 
-              // ... resto de props
-            />
-            <Tooltip 
-              formatter={(v: number) => [`$${v}`, "Ventas"]} 
-              contentStyle={{ 
-                borderRadius: 8, 
-                border: isDark ? "1px solid hsl(222, 12%, 22%)" : "1px solid #e5e7eb", 
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "oklch(0.28 0.015 250)" : "#f0f0f0"} />
+            <XAxis dataKey="day" tick={{ fontSize: 12, fill: isDark ? "oklch(0.60 0.01 250)" : "#6b7280" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: isDark ? "oklch(0.60 0.01 250)" : "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+            <Tooltip
+              formatter={(v: number) => [`$${v}`, "Ventas"]}
+              contentStyle={{
+                borderRadius: 8,
+                border: isDark ? "1px solid oklch(0.28 0.015 250)" : "1px solid #e5e7eb",
                 fontSize: 12,
-                backgroundColor: isDark ? "hsl(222, 16%, 11%)" : "#fff",
-                color: isDark ? "hsl(215, 20%, 90%)" : "#222"
-              }} 
+                backgroundColor: isDark ? "oklch(0.20 0.015 250)" : "#fff",
+                color: isDark ? "oklch(0.92 0.008 250)" : "#222",
+              }}
             />
-            <Bar 
-              dataKey="ventas" 
-              fill={isDark ? "hsl(210, 65%, 50%)" : "#0a4b7a"} 
-              radius={[4, 4, 0, 0]} 
-            />
-            <Bar dataKey="ventas" fill="#0a4b7a" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="ventas" fill={isDark ? "oklch(0.58 0.14 250)" : "#0a4b7a"} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </Card>
-    </div>
+      </SectionCard>
+    </PageLayout>
   );
 }
 
@@ -958,27 +879,26 @@ function ExpandableCell({ text, maxLength = 30 }: { text?: string | null; maxLen
     <>
       <span
         onClick={() => isTruncated && setShowModal(true)}
-        className={isTruncated ? 'cursor-pointer underline decoration-dotted hover:text-[#0a4b7a]' : ''}
+        className={isTruncated ? 'cursor-pointer underline decoration-dotted underline-offset-2 hover:text-primary transition-colors' : ''}
         title={isTruncated ? 'Haz clic para ver completo' : ''}
       >
         {truncated}
-        {isTruncated && <span className="ml-1 text-xs">🔍</span>}
       </span>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+          <Card className="max-w-md w-full p-5 animate-in zoom-in-95 fade-in duration-200" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-lg">Información completa</h3>
-              <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
+              <h3 className="font-bold text-foreground">Información completa</h3>
+              <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground transition-colors p-1">
+                <X size={16} />
+              </button>
             </div>
-            <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
-              {text}
-            </div>
+            <div className="text-sm text-foreground/80 break-words max-h-96 overflow-y-auto leading-relaxed">{text}</div>
             <div className="mt-4 flex justify-end">
               <Btn variant="secondary" size="sm" onClick={() => setShowModal(false)}>Cerrar</Btn>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </>
