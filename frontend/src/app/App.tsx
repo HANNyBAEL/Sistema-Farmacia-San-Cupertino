@@ -1192,7 +1192,7 @@ function Productos({ user }: { user: User }) {
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o código..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm />
+                className="w-full pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm" />
             </div>
           </div>
 
@@ -1820,7 +1820,7 @@ function Ventas({ user }: { user: User }) {
                   onChange={e => setNewClientForm(prev => ({ ...prev, dui: e.target.value }))}
                   placeholder="00000000-0"
                   maxLength={10}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
                 />
               </div>
               <div>
@@ -1830,7 +1830,7 @@ function Ventas({ user }: { user: User }) {
                   onChange={e => setNewClientForm(prev => ({ ...prev, telefono: e.target.value }))}
                   placeholder="0000-0000"
                   maxLength={9}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
                 />
               </div>
               <div>
@@ -1859,7 +1859,7 @@ function Ventas({ user }: { user: User }) {
           </div>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nombre o código de barras..." className="w-full pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nombre o código de barras..." className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2 max-h-[300px] md:max-h-none">
@@ -2190,7 +2190,7 @@ function Clientes({ user }: { user: User }) {
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm" />
+                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
             </div>
           </div>
 
@@ -2201,7 +2201,7 @@ function Clientes({ user }: { user: User }) {
               onChange={e => setFilterDui(e.target.value)}
               placeholder="00000000-0"
               maxLength={10}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
             />
           </div>
 
@@ -2212,7 +2212,7 @@ function Clientes({ user }: { user: User }) {
               onChange={e => setFilterTel(e.target.value)}
               placeholder="0000-0000"
               maxLength={9}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
             />
           </div>
 
@@ -2228,13 +2228,13 @@ function Clientes({ user }: { user: User }) {
           <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
             <input value={filterCorreo} onChange={e=>setFilterCorreo(e.target.value)} placeholder="ejemplo@correo.com"
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm" />
+              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
 
           <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Dirección</label>
             <input value={filterDir} onChange={e=>setFilterDir(e.target.value)} placeholder="Calle, colonia..."
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm" />
+              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]" />
           </div>
 
           <div className="flex items-end">
@@ -2595,7 +2595,7 @@ function Proveedores({ user }: { user: User }) {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Nombre completo..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+                className="w-full pl-8 pr-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
               />
             </div>
           </div>
@@ -2607,7 +2607,7 @@ function Proveedores({ user }: { user: User }) {
               onChange={e => setFilterTelefono(e.target.value)}
               placeholder="0000-0000"
               maxLength={9}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a2e] text-gray-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-[#f8fafc] text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4b7a]/30 focus:border-[#0a4b7a]"
             />
           </div>
 
