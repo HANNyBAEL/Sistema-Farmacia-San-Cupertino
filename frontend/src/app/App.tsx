@@ -12,7 +12,7 @@ import {
   Moon
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { login as apiLogin, login, registrarEmpleado } from "../services/auth";
+import { login, registrarEmpleado } from "../services/auth";
 import { getProductos, createProducto, updateProducto, deleteProducto } from "../services/productos";
 import { fetchKPIs, fetchVentasUltimos7Dias } from "../services/dashboard";
 import { createVenta } from "../services/ventas";
@@ -760,36 +760,29 @@ function Sidebar({ user, current, onNav, onLogout }: {
             );
           })}
         </nav>
-      <div className="border-t border-white/10 p-4">
-        <div className="flex items-center gap-3">
-          {/* ... avatar, nombre, etc. ... */}
-          <button 
-            onClick={toggleTheme} 
-            className="text-sidebar-accent-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
-            title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
-          >
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
-          <button onClick={onLogout} className="text-sidebar-accent-foreground/40 hover:text-[#d32f2f] transition-colors">
-            <LogOut size={15} />
-          </button>
-        </div>
-      </div>
         {/* Usuario y logout */}
-        <div className="border-t border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-sidebar-accent rounded-full flex items-center justify-center text-sidebar-accent-foreground text-xs font-bold flex-shrink-0">
-              {user.name.charAt(0)}
+        {/* ÚNICO footer del sidebar */}
+          <div className="border-t border-white/10 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-sidebar-accent rounded-full flex items-center justify-center text-sidebar-accent-foreground text-xs font-bold flex-shrink-0">
+                {user.name.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sidebar-accent-foreground text-xs font-medium truncate">{user.name}</div>
+                <div className="text-sidebar-accent-foreground/50 text-xs capitalize">{user.role}</div>
+              </div>
+              <button 
+                onClick={toggleTheme} 
+                className="text-sidebar-accent-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
+                title={theme === 'light' ? 'Modo oscuro' : 'Modo claro'}
+              >
+                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+              </button>
+              <button onClick={onLogout} className="text-sidebar-accent-foreground/40 hover:text-[#d32f2f] transition-colors">
+                <LogOut size={15} />
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sidebar-accent-foreground text-xs font-medium truncate">{user.name}</div>
-              <div className="text-sidebar-accent-foreground/50 text-xs capitalize">{user.role}</div>
-            </div>
-            <button onClick={onLogout} className="text-sidebar-accent-foreground/40 hover:text-[#d32f2f] transition-colors">
-              <LogOut size={15} />
-            </button>
           </div>
-        </div>
       </aside>
     </>
   );
@@ -1138,45 +1131,6 @@ function Productos({ user }: { user: User }) {
 
   if (loading) return <LoadingSpinner />;
 
-  const Expandable = ({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) => {
-    const [show, setShow] = useState(false);
-    if (!text) return <span className="text-muted-foreground">—</span>;
-    const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
-    const isLong = text.length > maxLength;
-    return (
-      <>
-        <span className="inline-flex items-center gap-1">
-          {truncated}
-          {isLong && (
-            <button
-              onClick={() => setShow(true)}
-              className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
-              title="Ver completo"
-            >
-              +
-            </button>
-          )}
-        </span>
-        {show && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
-            <div className="bg-card rounded-lg shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-lg">Información completa</h3>
-                <button onClick={() => setShow(false)} className="text-muted-foreground hover:text-muted-foreground">✖</button>
-              </div>
-              <div className="text-sm text-gray-700 break-words max-h-96 overflow-y-auto">
-                {text}
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Btn variant="secondary" size="sm" onClick={() => setShow(false)}>Cerrar</Btn>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
-
   return (
     <div className="p-4 md:p-6 space-y-4 min-w-0 overflow-x-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -1289,7 +1243,7 @@ function Productos({ user }: { user: User }) {
                 {filtered.map(p => (
                   <tr key={p.id_producto} className={`border-b border-gray-50 hover:bg-muted transition-colors ${p.deleted ? 'opacity-60 bg-muted' : expiryStyle(p.fecha_vencimiento).row || 'hover:bg-muted'}`}>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 font-medium text-foreground whitespace-nowrap truncate max-w-0">
-                      <Expandable text={p.nombre_producto} maxLength={20} />
+                      <ExpandableCell text={p.nombre_producto} maxLength={20} />
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap truncate max-w-0">
                       {p.categorias_nombres ? (() => {
@@ -1318,10 +1272,10 @@ function Productos({ user }: { user: User }) {
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-[#0a4b7a] font-semibold whitespace-nowrap text-[10px] sm:text-sm">${Number(p.precio).toFixed(2)}</td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap"><span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${stockColor(p.stock)}`}>{p.stock}</span></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><Expandable text={p.lote} maxLength={10} /></td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><Expandable text={p.codigo_barras} maxLength={12} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.lote} maxLength={10} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-mono text-gray-500 whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.codigo_barras} maxLength={12} /></td>
                     <td className={`py-2 px-2 sm:py-3 sm:px-3 text-[9px] sm:text-xs font-mono whitespace-nowrap ${expiryStyle(p.fecha_vencimiento).badge}`}>{p.fecha_vencimiento}</td>
-                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><Expandable text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-muted-foreground whitespace-nowrap text-[9px] sm:text-xs truncate max-w-0"><ExpandableCell text={p.proveedor_nombre ?? `ID: ${p.id_proveedor}`} maxLength={15} /></td>
                     <td className="py-2 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
                       <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded-full font-medium ${p.deleted ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                         {p.deleted ? "Inactivo" : "Activo"}

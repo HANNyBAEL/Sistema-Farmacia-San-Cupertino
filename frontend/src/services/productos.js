@@ -19,3 +19,5 @@ export const deleteProducto = async (id) => {
   const { data } = await api.delete(`/productos/${id}`);
   return data;
 };
+
+export const moverProductoAPapelera = (id) => api.patch(`/productos/${id}/papelera`).then(r => r.data);
