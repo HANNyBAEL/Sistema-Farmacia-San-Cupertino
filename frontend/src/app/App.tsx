@@ -2954,15 +2954,8 @@ function Empleados({ user }: { user: User }) {
       }
     >
       {/* ── Filtros ── */}
-      <SectionCard
-        title="Filtros"
-        actions={
-          // *** CAMBIO AQUÍ: El botón "Limpiar" ahora siempre se muestra ***
-          <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
-            <X size={14} /> Limpiar
-          </Btn>
-        }
-      >
+      <SectionCard title="Filtros">
+        {/* Eliminamos la prop `actions` que contenía el botón duplicado */}
         <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
           <div className="flex-1 min-w-[180px]">
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
@@ -2986,6 +2979,14 @@ function Empleados({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
+          {/* Botón "Limpiar" dentro del FilterBar, alineado con los filtros, visible solo si hay filtros */}
+          {hayFiltros && (
+            <div className="flex items-end">
+              <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
+                <X size={14} /> Limpiar
+              </Btn>
+            </div>
+          )}
         </FilterBar>
       </SectionCard>
 
