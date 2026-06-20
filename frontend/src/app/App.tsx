@@ -1117,14 +1117,13 @@ function Productos({ user }: { user: User }) {
       <SectionCard
         title="Filtros"
         actions={
-          // *** CAMBIO AQUÍ: El botón "Limpiar" ahora siempre se muestra ***
           <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
             <X size={14} /> Limpiar
           </Btn>
         }
       >
-        <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
-          <div className="flex-1 min-w-[180px]">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre o código</label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -1137,7 +1136,7 @@ function Productos({ user }: { user: User }) {
             </div>
           </div>
 
-          <div className="flex-1 min-w-[130px]">
+          <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Stock</label>
             <Select value={filterStock} onChange={setFilterStock} className="w-full">
               <option value="">Todos</option>
@@ -1148,7 +1147,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="flex-1 min-w-[150px]">
+          <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Categoría</label>
             <Select value={filterCat} onChange={setFilterCat} className="w-full">
               <option value="">Todas</option>
@@ -1156,7 +1155,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="flex-1 min-w-[160px]">
+          <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor</label>
             <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
               <option value="">Todos</option>
@@ -1168,7 +1167,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="flex-1 min-w-[140px]">
+          <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Vencimiento</label>
             <Select value={filterVenc} onChange={setFilterVenc} className="w-full">
               <option value="">Todos</option>
@@ -1178,7 +1177,7 @@ function Productos({ user }: { user: User }) {
             </Select>
           </div>
 
-          <div className="flex-1 min-w-[120px]">
+          <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
               <option value="">Todos</option>
@@ -1186,7 +1185,7 @@ function Productos({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
-        </FilterBar>
+        </div>
       </SectionCard>
 
       {/* ── Tabla ── */}
