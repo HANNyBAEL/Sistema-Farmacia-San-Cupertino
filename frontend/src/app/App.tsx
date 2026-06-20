@@ -1114,77 +1114,77 @@ function Productos({ user }: { user: User }) {
       }
     >
       {/* ── Filtros ── */}
-      <SectionCard
-        title="Filtros"
-        actions={
-          <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
-            <X size={14} /> Limpiar
-          </Btn>
-        }
-      >
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre o código</label>
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={setSearch}
-                placeholder="Nombre o código..."
-                className="pl-8"
-              />
+      <SectionCard title="Filtros">
+        <div className="flex items-end gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre o código</label>
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={setSearch}
+                    placeholder="Nombre o código..."
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Stock</label>
+                <Select value={filterStock} onChange={setFilterStock} className="w-full">
+                  <option value="">Todos</option>
+                  <option value="agotado">Agotado</option>
+                  <option value="critico">Crítico</option>
+                  <option value="bajo">Bajo</option>
+                  <option value="normal">Normal</option>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Categoría</label>
+                <Select value={filterCat} onChange={setFilterCat} className="w-full">
+                  <option value="">Todas</option>
+                  {CATEGORIAS.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor</label>
+                <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
+                  <option value="">Todos</option>
+                  {suppliers
+                    .filter(s => s.deleted === 0)
+                    .map(s => (
+                      <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
+                    ))}
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Vencimiento</label>
+                <Select value={filterVenc} onChange={setFilterVenc} className="w-full">
+                  <option value="">Todos</option>
+                  <option value="vencido">Vencidos</option>
+                  <option value="proximo">Próximos (≤30 días)</option>
+                  <option value="vigente">Vigentes</option>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
+                <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
+                  <option value="">Todos</option>
+                  <option value="activo">Activo</option>
+                  <option value="inactivo">Inactivo</option>
+                </Select>
+              </div>
             </div>
           </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Stock</label>
-            <Select value={filterStock} onChange={setFilterStock} className="w-full">
-              <option value="">Todos</option>
-              <option value="agotado">Agotado</option>
-              <option value="critico">Crítico</option>
-              <option value="bajo">Bajo</option>
-              <option value="normal">Normal</option>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Categoría</label>
-            <Select value={filterCat} onChange={setFilterCat} className="w-full">
-              <option value="">Todas</option>
-              {CATEGORIAS.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor</label>
-            <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
-              <option value="">Todos</option>
-              {suppliers
-                .filter(s => s.deleted === 0)
-                .map(s => (
-                  <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
-                ))}
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Vencimiento</label>
-            <Select value={filterVenc} onChange={setFilterVenc} className="w-full">
-              <option value="">Todos</option>
-              <option value="vencido">Vencidos</option>
-              <option value="proximo">Próximos (≤30 días)</option>
-              <option value="vigente">Vigentes</option>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
-            <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
-              <option value="">Todos</option>
-              <option value="activo">Activo</option>
-              <option value="inactivo">Inactivo</option>
-            </Select>
-          </div>
+          <Btn variant="ghost" size="sm" onClick={limpiarFiltros} disabled={!hayFiltros}>
+            <X size={14} /> Limpiar
+          </Btn>
         </div>
       </SectionCard>
 
@@ -2572,36 +2572,35 @@ function Proveedores({ user }: { user: User }) {
       }
     >
       {/* ── Filtros ── */}
-      <SectionCard
-        title="Filtros"
-        actions={
-          // *** CAMBIO AQUÍ: Botón "Limpiar" siempre visible ***
-          <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
+      <SectionCard title="Filtros">
+        <div className="flex items-end gap-3">
+          <div className="flex-1 min-w-0">
+            <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
+              <div className="flex-1 min-w-[180px]">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar proveedor</label>
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
+                </div>
+              </div>
+              <div className="flex-1 min-w-[150px]">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
+                <input value={formatPhone(filterTelefono)} onChange={e => setFilterTelefono(e.target.value)} placeholder="0000-0000" maxLength={9} className={fmtClass} />
+              </div>
+              <div className="flex-1 min-w-[130px]">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
+                <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
+                  <option value="">Todos</option>
+                  <option value="activo">Activo</option>
+                  <option value="inactivo">Inactivo</option>
+                </Select>
+              </div>
+            </FilterBar>
+          </div>
+          <Btn variant="ghost" size="sm" onClick={limpiarFiltros} disabled={!hayFiltros}>
             <X size={14} /> Limpiar
           </Btn>
-        }
-      >
-        <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
-          <div className="flex-1 min-w-[180px]">
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar proveedor</label>
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
-            </div>
-          </div>
-          <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
-            <input value={formatPhone(filterTelefono)} onChange={e => setFilterTelefono(e.target.value)} placeholder="0000-0000" maxLength={9} className={fmtClass} />
-          </div>
-          <div className="flex-1 min-w-[130px]">
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
-            <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
-              <option value="">Todos</option>
-              <option value="activo">Activo</option>
-              <option value="inactivo">Inactivo</option>
-            </Select>
-          </div>
-        </FilterBar>
+        </div>
       </SectionCard>
 
       {/* ── Tabla ── */}
