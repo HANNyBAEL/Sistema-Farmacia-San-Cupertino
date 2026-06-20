@@ -2960,7 +2960,7 @@ function Empleados({ user }: { user: User }) {
     >
       {/* ── Filtros ── */}
         <Card className="p-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3 items-end">
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
             <div className="relative">
@@ -2983,7 +2983,7 @@ function Empleados({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
-                    <div className="flex items-end pb-0.5">
+          <div className="flex items-end pb-0.5">
             <Btn variant="ghost" size="sm" onClick={limpiar}><X size={14} /> Limpiar filtros</Btn>
           </div>
         </div>
