@@ -2078,9 +2078,9 @@ function Clientes({ user }: { user: User }) {
     return true;
   });
 
-  const hayFiltros = !!(filterDui || filterTel || filterCorreo || filterDir || filterEstado);
+  const hayFiltros = !!(search || filterDui || filterTel || filterCorreo || filterDir || filterEstado);
   function limpiarFiltros() {
-    setFilterDui(""); setFilterTel(""); setFilterCorreo("");
+    setSearch(""); setFilterDui(""); setFilterTel(""); setFilterCorreo("");
     setFilterDir(""); setFilterEstado("");
   }
 
