@@ -1117,11 +1117,10 @@ function Productos({ user }: { user: User }) {
       <SectionCard
         title="Filtros"
         actions={
-          hayFiltros && (
-            <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
-              <X size={14} /> Limpiar
-            </Btn>
-          )
+          // *** CAMBIO AQUÍ: El botón "Limpiar" ahora siempre se muestra ***
+          <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
+            <X size={14} /> Limpiar
+          </Btn>
         }
       >
         <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
@@ -2197,11 +2196,10 @@ function Clientes({ user }: { user: User }) {
       <SectionCard
         title="Filtros"
         actions={
-          hayFiltros && (
-            <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
-              <X size={14} /> Limpiar
-            </Btn>
-          )
+          // *** CAMBIO AQUÍ: El botón "Limpiar" ahora siempre se muestra ***
+          <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
+            <X size={14} /> Limpiar
+          </Btn>
         }
       >
         <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
@@ -2579,11 +2577,10 @@ function Proveedores({ user }: { user: User }) {
       <SectionCard
         title="Filtros"
         actions={
-          hayFiltros && (
-            <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
-              <X size={14} /> Limpiar
-            </Btn>
-          )
+          // *** CAMBIO AQUÍ: Botón "Limpiar" siempre visible ***
+          <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
+            <X size={14} /> Limpiar
+          </Btn>
         }
       >
         <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
@@ -2960,11 +2957,10 @@ function Empleados({ user }: { user: User }) {
       <SectionCard
         title="Filtros"
         actions={
-          hayFiltros && (
-            <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
-              <X size={14} /> Limpiar
-            </Btn>
-          )
+          // *** CAMBIO AQUÍ: El botón "Limpiar" ahora siempre se muestra ***
+          <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
+            <X size={14} /> Limpiar
+          </Btn>
         }
       >
         <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
