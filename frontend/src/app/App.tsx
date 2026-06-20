@@ -2959,22 +2959,31 @@ function Empleados({ user }: { user: User }) {
       }
     >
       {/* ── Filtros ── */}
-        <Card className="p-4">
+      <Card className="p-4">
         <div className="grid grid-cols-4 gap-3 items-end">
+          {/* Buscar por nombre */}
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">
+              Buscar por nombre
+            </label>
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
             </div>
           </div>
+
+          {/* Cargo */}
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Cargo</label>
             <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
               <option value="">Todos</option>
-              {CARGOS.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+              {CARGOS.map(c => (
+                <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+              ))}
             </Select>
           </div>
+
+          {/* Estado */}
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
             <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
@@ -2983,8 +2992,12 @@ function Empleados({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
+
+          {/* Botón Limpiar filtros */}
           <div className="flex items-end pb-0.5">
-            <Btn variant="ghost" size="sm" onClick={limpiar}><X size={14} /> Limpiar filtros</Btn>
+            <Btn variant="ghost" size="sm" onClick={limpiar}>
+              <X size={14} /> Limpiar filtros
+            </Btn>
           </div>
         </div>
       </Card>
