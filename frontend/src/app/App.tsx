@@ -1098,12 +1098,12 @@ function Productos({ user }: { user: User }) {
   }
 
   const hayFiltros = !!(filterStock||filterCat||filterProveedor||filterEstado||filterVenc);
+  if (loading) return <LoadingSpinner />;
+
   function limpiarFiltros() {
     setFilterStock(""); setFilterCat(""); setFilterProveedor("");
     setFilterEstado(""); setFilterVenc("");
   }
-
-  if (loading) return <LoadingSpinner />;
 
   return (
     <PageLayout
