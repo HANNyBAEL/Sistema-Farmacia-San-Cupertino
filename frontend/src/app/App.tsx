@@ -2953,37 +2953,35 @@ function Empleados({ user }: { user: User }) {
       }
     >
       {/* ── Filtros ── */}
-      <SectionCard
-        title="Filtros"
-        actions={
-          <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
-            <X size={14} /> Limpiar
-          </Btn>
-        }
-      >
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
+      <SectionCard title="Filtros">
+        <div className="flex items-end gap-3">
+          <div className="flex-1 grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">Cargo</label>
+              <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
+                <option value="">Todos</option>
+                {CARGOS.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+              </Select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
+              <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
+                <option value="">Todos</option>
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+              </Select>
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Cargo</label>
-            <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
-              <option value="">Todos</option>
-              {CARGOS.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-            </Select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
-            <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
-              <option value="">Todos</option>
-              <option value="activo">Activo</option>
-              <option value="inactivo">Inactivo</option>
-            </Select>
-          </div>
+          <Btn variant="ghost" size="sm" onClick={limpiarFiltros} disabled={!hayFiltros}>
+            <X size={14} /> Limpiar
+          </Btn>
         </div>
       </SectionCard>
 
@@ -3641,9 +3639,6 @@ function Historial() {
 }
 
 // ── Eliminados ────────────────────────────────────────────────────────────────
-
-
-// ── Eliminados ────────────────────────────────────────────────────────────────
 function Eliminados() {
   const [records, setRecords]       = useState<EliminadoRecord[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -4106,7 +4101,6 @@ function Auditoria({ user }: { user: User }) {
     </PageLayout>
   );
 }
-
 
 // ── App Shell ─────────────────────────────────────────────────────────────────
 function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
