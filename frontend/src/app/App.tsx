@@ -2944,6 +2944,12 @@ function Empleados({ user }: { user: User }) {
   // Clase compartida para inputs con formato especial
   const fmtInputClass = "w-full px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors";
 
+  function limpiar(): void {
+    setSearch("");
+    setFilterCargo("");
+    setFilterEstado("");
+  }
+
   return (
     <PageLayout
       title="Gestión de Empleados"
@@ -2953,14 +2959,7 @@ function Empleados({ user }: { user: User }) {
       }
     >
       {/* ── Filtros ── */}
-      <SectionCard
-        title="Filtros"
-        actions={
-          <Btn variant="ghost" size="sm" onClick={limpiarFiltros}>
-            <X size={14} /> Limpiar
-          </Btn>
-        }
-      >
+        <Card className="p-4">
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
@@ -2984,8 +2983,11 @@ function Empleados({ user }: { user: User }) {
               <option value="inactivo">Inactivo</option>
             </Select>
           </div>
+                    <div className="flex items-end pb-0.5">
+            <Btn variant="ghost" size="sm" onClick={limpiar}><X size={14} /> Limpiar filtros</Btn>
+          </div>
         </div>
-      </SectionCard>
+      </Card>
 
        {/* ── Tabla ── */}
       <SectionCard title="Listado de empleados" className="overflow-hidden">
