@@ -225,13 +225,13 @@ function FilterBar({ children, onClear, hasFilters }: {
   children: React.ReactNode; onClear?: () => void; hasFilters?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-end gap-2">
       {children}
-      {hasFilters && onClear && (
-        <Btn variant="ghost" size="sm" onClick={onClear}>
+      <div className="ml-auto self-end">
+        <Btn variant="ghost" size="sm" onClick={onClear} disabled={!hasFilters}>
           <X size={14} /> Limpiar
         </Btn>
-      )}
+      </div>
     </div>
   );
 }
@@ -2035,6 +2035,7 @@ function Ventas({ user }: { user: User }) {
     </div>
   );
 }
+
 // ── Clientes ──────────────────────────────────────────────────────────────────
 function Clientes({ user }: { user: User }) {
   const [clients, setClients] = useState<Client[]>([]);
