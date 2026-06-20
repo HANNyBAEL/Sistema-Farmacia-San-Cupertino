@@ -2567,34 +2567,27 @@ function Proveedores({ user }: { user: User }) {
     >
       {/* ── Filtros ── */}
       <SectionCard title="Filtros">
-        <div className="flex items-end gap-3">
-          <div className="flex-1 min-w-0">
-            <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
-              <div className="flex-1 min-w-[180px]">
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar proveedor</label>
-                <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
-                </div>
-              </div>
-              <div className="flex-1 min-w-[150px]">
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
-                <input value={formatPhone(filterTelefono)} onChange={e => setFilterTelefono(e.target.value)} placeholder="0000-0000" maxLength={9} className={fmtClass} />
-              </div>
-              <div className="flex-1 min-w-[130px]">
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
-                <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
-                  <option value="">Todos</option>
-                  <option value="activo">Activo</option>
-                  <option value="inactivo">Inactivo</option>
-                </Select>
-              </div>
-            </FilterBar>
+        <FilterBar hasFilters={hayFiltros} onClear={limpiarFiltros}>
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar proveedor</label>
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
+            </div>
           </div>
-          <Btn variant="ghost" size="sm" onClick={limpiarFiltros} disabled={!hayFiltros}>
-            <X size={14} /> Limpiar
-          </Btn>
-        </div>
+          <div className="flex-1 min-w-[150px]">
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
+            <input value={formatPhone(filterTelefono)} onChange={e => setFilterTelefono(e.target.value)} placeholder="0000-0000" maxLength={9} className={fmtClass} />
+          </div>
+          <div className="flex-1 min-w-[130px]">
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
+            <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
+              <option value="">Todos</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </Select>
+          </div>
+        </FilterBar>
       </SectionCard>
 
       {/* ── Tabla ── */}
