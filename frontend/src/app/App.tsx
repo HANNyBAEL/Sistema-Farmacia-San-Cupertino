@@ -605,17 +605,51 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
+  const recaptchaRef = useRef<HTMLDivElement | null>(null);
+  const recaptchaWidgetId = useRef<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let retryTimer: number | undefined;
+
+    const renderRecaptcha = () => {
+      if (cancelled || !recaptchaRef.current || recaptchaWidgetId.current !== null) return;
+
+      if (!window.grecaptcha?.render) {
+        retryTimer = window.setTimeout(renderRecaptcha, 250);
+        return;
+      }
+
+      recaptchaWidgetId.current = window.grecaptcha.render(recaptchaRef.current, {
+        sitekey: RECAPTCHA_SITE_KEY,
+      });
+    };
+
+    renderRecaptcha();
+
+    return () => {
+      cancelled = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
+      if (recaptchaWidgetId.current !== null) {
+        window.grecaptcha?.reset(recaptchaWidgetId.current);
+        recaptchaWidgetId.current = null;
+      }
+      if (recaptchaRef.current) recaptchaRef.current.innerHTML = "";
+    };
+  }, []);
 
   async function handleLogin() {
     if (!email || !password) { setError("Complete todos los campos."); return; }
-    const recaptchaToken = window.grecaptcha?.getResponse();
+    const recaptchaToken = recaptchaWidgetId.current !== null
+      ? window.grecaptcha?.getResponse(recaptchaWidgetId.current)
+      : "";
     if (!recaptchaToken) { setError("Confirma que no eres un robot."); return; }
     setLoading(true); setError("");
     try {
       const data = await login(email, password, recaptchaToken);
       onLogin({ name: data.nombre, role: data.rol, id: data.id });
     } catch (err: any) {
-      window.grecaptcha?.reset();
+      if (recaptchaWidgetId.current !== null) window.grecaptcha?.reset(recaptchaWidgetId.current);
       setError(err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.");
     } finally { setLoading(false); }
   }
@@ -650,7 +684,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
       </div>
 
       <div className="mt-4 flex justify-center overflow-hidden">
-        <div className="g-recaptcha" data-sitekey={RECAPTCHA_SITE_KEY}></div>
+        <div ref={recaptchaRef}></div>
       </div>
 
       <ErrorAlert message={error} />

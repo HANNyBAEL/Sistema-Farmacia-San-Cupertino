@@ -10,7 +10,11 @@ declare module '*.module.sass';
 
 interface Window {
   grecaptcha?: {
-    getResponse: () => string;
-    reset: () => void;
+    render: (
+      container: HTMLElement,
+      parameters: { sitekey: string }
+    ) => number;
+    getResponse: (widgetId?: number) => string;
+    reset: (widgetId?: number) => void;
   };
 }
