@@ -348,6 +348,62 @@ function AuthCard({ children, maxWidth = "max-w-sm" }: { children: React.ReactNo
   );
 }
 
+type RecaptchaHandle = {
+  getToken: () => string;
+  reset: () => void;
+};
+
+const RecaptchaBox = React.forwardRef<RecaptchaHandle>((_, ref) => {
+  const recaptchaRef = useRef<HTMLDivElement | null>(null);
+  const recaptchaWidgetId = useRef<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let retryTimer: number | undefined;
+
+    const renderRecaptcha = () => {
+      if (cancelled || !recaptchaRef.current || recaptchaWidgetId.current !== null) return;
+
+      if (!window.grecaptcha?.render) {
+        retryTimer = window.setTimeout(renderRecaptcha, 250);
+        return;
+      }
+
+      recaptchaWidgetId.current = window.grecaptcha.render(recaptchaRef.current, {
+        sitekey: RECAPTCHA_SITE_KEY,
+      });
+    };
+
+    renderRecaptcha();
+
+    return () => {
+      cancelled = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
+      if (recaptchaWidgetId.current !== null) {
+        window.grecaptcha?.reset(recaptchaWidgetId.current);
+        recaptchaWidgetId.current = null;
+      }
+      if (recaptchaRef.current) recaptchaRef.current.innerHTML = "";
+    };
+  }, []);
+
+  React.useImperativeHandle(ref, () => ({
+    getToken: () => recaptchaWidgetId.current !== null
+      ? window.grecaptcha?.getResponse(recaptchaWidgetId.current) ?? ""
+      : "",
+    reset: () => {
+      if (recaptchaWidgetId.current !== null) window.grecaptcha?.reset(recaptchaWidgetId.current);
+    },
+  }));
+
+  return (
+    <div className="mt-4 flex justify-center overflow-hidden">
+      <div ref={recaptchaRef}></div>
+    </div>
+  );
+});
+RecaptchaBox.displayName = "RecaptchaBox";
+
 function CambiarContrasenaForzado({ token, onSuccess, onCancel }: { token: string | null; onSuccess: () => void; onCancel: () => void }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -355,7 +411,6 @@ function CambiarContrasenaForzado({ token, onSuccess, onCancel }: { token: strin
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
-
   const handleSubmit = async () => {
     if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
     if (password !== confirmPassword) { setError('Las contraseñas no coinciden'); return; }
@@ -491,27 +546,35 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
   const [success, setSuccess] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const solicitarRecaptchaRef = useRef<RecaptchaHandle | null>(null);
+  const verificarRecaptchaRef = useRef<RecaptchaHandle | null>(null);
 
   const handleSolicitar = async () => {
-    if (!email) { setError('Ingresa tu correo electrónico'); return; }
+    if (!email) { setError('Ingresa tu correo electronico'); return; }
+    const recaptchaToken = solicitarRecaptchaRef.current?.getToken() ?? "";
+    if (!recaptchaToken) { setError('Confirma que no eres un robot.'); return; }
     setLoading(true); setError('');
     try {
-      await api.post('/auth/solicitar-recuperacion', { email });
+      await api.post('/auth/solicitar-recuperacion', { email, recaptchaToken });
       setStep('verificar');
     } catch (err: any) {
-      setError(err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al enviar el código');
+      solicitarRecaptchaRef.current?.reset();
+      setError(err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al enviar el codigo');
     } finally { setLoading(false); }
   };
 
   const handleVerificar = async () => {
-    if (!codigo || !password || password !== confirmPassword) { setError('Completa todos los campos y verifica que las contraseñas coincidan'); return; }
-    if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (!codigo || !password || password !== confirmPassword) { setError('Completa todos los campos y verifica que las contrasenas coincidan'); return; }
+    if (password.length < 6) { setError('La contrasena debe tener al menos 6 caracteres'); return; }
+    const recaptchaToken = verificarRecaptchaRef.current?.getToken() ?? "";
+    if (!recaptchaToken) { setError('Confirma que no eres un robot.'); return; }
     setLoading(true); setError('');
     try {
-      await api.post('/auth/recuperar-contrasena', { email, codigo, password });
+      await api.post('/auth/recuperar-contrasena', { email, codigo, password, recaptchaToken });
       setSuccess(true);
       setTimeout(onSuccess, 2000);
     } catch (err: any) {
+      verificarRecaptchaRef.current?.reset();
       setError(err?.response?.data?.details || err?.response?.data?.error || err?.message || 'Error al restablecer');
     } finally { setLoading(false); }
   };
@@ -549,6 +612,7 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
             <label className="block text-sm font-medium text-foreground mb-1.5">Correo electrónico</label>
             <Input type="email" value={email} onChange={setEmail} placeholder="tu@correo.com" />
           </div>
+          <RecaptchaBox ref={solicitarRecaptchaRef} />
           <ErrorAlert message={error} />
           <Btn variant="primary" className="w-full" onClick={handleSolicitar} disabled={loading}>
             {loading ? 'Enviando...' : 'Enviar código'}
@@ -583,6 +647,7 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
               </button>
             </div>
           </div>
+          <RecaptchaBox ref={verificarRecaptchaRef} />
           <ErrorAlert message={error} />
           <Btn variant="primary" className="w-full" onClick={handleVerificar} disabled={loading}>
             {loading ? 'Restableciendo...' : 'Restablecer contraseña'}
@@ -605,51 +670,18 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
-  const recaptchaRef = useRef<HTMLDivElement | null>(null);
-  const recaptchaWidgetId = useRef<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    let retryTimer: number | undefined;
-
-    const renderRecaptcha = () => {
-      if (cancelled || !recaptchaRef.current || recaptchaWidgetId.current !== null) return;
-
-      if (!window.grecaptcha?.render) {
-        retryTimer = window.setTimeout(renderRecaptcha, 250);
-        return;
-      }
-
-      recaptchaWidgetId.current = window.grecaptcha.render(recaptchaRef.current, {
-        sitekey: RECAPTCHA_SITE_KEY,
-      });
-    };
-
-    renderRecaptcha();
-
-    return () => {
-      cancelled = true;
-      if (retryTimer) window.clearTimeout(retryTimer);
-      if (recaptchaWidgetId.current !== null) {
-        window.grecaptcha?.reset(recaptchaWidgetId.current);
-        recaptchaWidgetId.current = null;
-      }
-      if (recaptchaRef.current) recaptchaRef.current.innerHTML = "";
-    };
-  }, []);
+  const loginRecaptchaRef = useRef<RecaptchaHandle | null>(null);
 
   async function handleLogin() {
     if (!email || !password) { setError("Complete todos los campos."); return; }
-    const recaptchaToken = recaptchaWidgetId.current !== null
-      ? window.grecaptcha?.getResponse(recaptchaWidgetId.current)
-      : "";
+    const recaptchaToken = loginRecaptchaRef.current?.getToken() ?? "";
     if (!recaptchaToken) { setError("Confirma que no eres un robot."); return; }
     setLoading(true); setError("");
     try {
       const data = await login(email, password, recaptchaToken);
       onLogin({ name: data.nombre, role: data.rol, id: data.id });
     } catch (err: any) {
-      if (recaptchaWidgetId.current !== null) window.grecaptcha?.reset(recaptchaWidgetId.current);
+      loginRecaptchaRef.current?.reset();
       setError(err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.");
     } finally { setLoading(false); }
   }
@@ -683,9 +715,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
         </div>
       </div>
 
-      <div className="mt-4 flex justify-center overflow-hidden">
-        <div ref={recaptchaRef}></div>
-      </div>
+      <RecaptchaBox ref={loginRecaptchaRef} />
 
       <ErrorAlert message={error} />
       <Btn variant="primary" size="lg" className="w-full mt-6" onClick={handleLogin} disabled={loading}>
@@ -4314,6 +4344,15 @@ export default function App() {
   const [pantalla, setPantalla] = useState<'login' | 'app' | 'cambiar-contrasena-forzado' | 'establecer-contrasena' | 'recuperar-contrasena'>('login');
   const [tokenTemp, setTokenTemp] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (window.location.pathname.includes('/establecer-contrasena')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      setPantalla('establecer-contrasena');
+    }
+  }, []);
+
   // Manejar login exitoso
   const handleLogin = (userData: User) => {
     setUser(userData);
@@ -4370,7 +4409,10 @@ export default function App() {
     // Obtener token de la URL (usando window.location.search)
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
-    return <EstablecerContrasena token={token} onSuccess={() => setPantalla('login')} />;
+    return <EstablecerContrasena token={token} onSuccess={() => {
+      window.history.replaceState({}, '', '/');
+      setPantalla('login');
+    }} />;
   }
 
   // Si está en recuperación de contraseña

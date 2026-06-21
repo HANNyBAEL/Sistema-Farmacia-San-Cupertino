@@ -176,10 +176,16 @@ router.post('/cambiar-contrasena', authenticate, async (req, res) => {
 
 // ─── SOLICITAR RECUPERACIÓN ──────
 router.post('/solicitar-recuperacion', async (req, res) => {
-  const { email } = req.body;
+  const { email, recaptchaToken } = req.body;
   if (!email) return res.status(400).json({ error: 'Correo requerido' });
+  if (!recaptchaToken) return res.status(400).json({ error: 'Confirma que no eres un robot' });
 
   try {
+    const recaptchaValid = await verifyRecaptchaToken(recaptchaToken, req.ip);
+    if (!recaptchaValid) {
+      return res.status(400).json({ error: 'Verificacion de reCAPTCHA fallida' });
+    }
+
     const [user] = await sequelize.query(
       `SELECT id_empleado, nombre FROM empleados WHERE correo = ?`,
       { replacements: [email], type: sequelize.QueryTypes.SELECT }
@@ -216,12 +222,19 @@ router.post('/solicitar-recuperacion', async (req, res) => {
 
 // ─── VERIFICAR CÓDIGO Y CAMBIAR CONTRASEÑA ──────────────
 router.post('/recuperar-contrasena', async (req, res) => {
-  const { email, codigo, password } = req.body;
+  const { email, codigo, password, recaptchaToken } = req.body;
   if (!email || !codigo || !password) {
     return res.status(400).json({ error: 'Correo, código y contraseña son requeridos' });
   }
 
+  if (!recaptchaToken) return res.status(400).json({ error: 'Confirma que no eres un robot' });
+
   try {
+    const recaptchaValid = await verifyRecaptchaToken(recaptchaToken, req.ip);
+    if (!recaptchaValid) {
+      return res.status(400).json({ error: 'Verificacion de reCAPTCHA fallida' });
+    }
+
     const [user] = await sequelize.query(
       `SELECT id_empleado FROM empleados WHERE correo = ?`,
       { replacements: [email], type: sequelize.QueryTypes.SELECT }
