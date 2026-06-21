@@ -8,7 +8,8 @@ router.get('/', async (req, res) => {
   try {
     const proveedores = await sequelize.query(
       `SELECT p.*,
-        EXISTS(SELECT 1 FROM productos pr WHERE pr.id_proveedor = p.id_proveedor) AS has_productos
+        EXISTS(SELECT 1 FROM productos pr WHERE pr.id_proveedor = p.id_proveedor) AS has_productos,
+        (SELECT COUNT(*) FROM productos pr WHERE pr.id_proveedor = p.id_proveedor AND pr.papelera = 0) AS product_count
        FROM proveedores p
        WHERE p.papelera = 0
        ORDER BY p.nombre ASC, p.apellido ASC`,

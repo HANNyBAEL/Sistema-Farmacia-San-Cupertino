@@ -104,6 +104,16 @@ router.delete('/:tipo/:id', async (req, res) => {
         await transaction.rollback();
         return res.status(400).json({ error: 'No se puede eliminar el empleado porque tiene ventas registradas.' });
       }
+      const acciones = await sequelize.query(
+        `SELECT COUNT(*) as count
+         FROM auditoria
+         WHERE id_empleado = :id OR (tabla = 'empleados' AND id_registro = :id)`,
+        { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction }
+      );
+      if (acciones[0].count > 0) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'No se puede eliminar el empleado porque tiene acciones registradas. Solo puede desactivarse.' });
+      }
       await sequelize.query('DELETE FROM empleados WHERE id_empleado = :id AND papelera = 1', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
     } else {
       await transaction.rollback();

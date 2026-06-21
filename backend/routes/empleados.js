@@ -13,7 +13,12 @@ router.get('/', async (req, res) => {
       `SELECT e.id_empleado, e.nombre, e.apellido, e.correo, e.telefono, e.cargo,
         e.fecha_contratacion, e.activo, e.papelera, e.dui, e.nit, e.cuenta_banco,
         e.afp, e.debe_cambiar,
-        EXISTS(SELECT 1 FROM ventas v WHERE v.id_empleado = e.id_empleado) AS has_ventas
+        EXISTS(SELECT 1 FROM ventas v WHERE v.id_empleado = e.id_empleado) AS has_ventas,
+        EXISTS(
+          SELECT 1 FROM auditoria a
+          WHERE a.id_empleado = e.id_empleado
+             OR (a.tabla = 'empleados' AND a.id_registro = e.id_empleado)
+        ) AS has_acciones
       FROM empleados e
       WHERE e.papelera = 0
       ORDER BY e.id_empleado DESC`,
@@ -32,7 +37,12 @@ router.get('/:id', async (req, res) => {
       `SELECT e.id_empleado, e.nombre, e.apellido, e.correo, e.telefono, e.cargo,
         e.fecha_contratacion, e.activo, e.papelera, e.dui, e.nit, e.cuenta_banco,
         e.afp, e.debe_cambiar,
-        EXISTS(SELECT 1 FROM ventas v WHERE v.id_empleado = e.id_empleado) AS has_ventas
+        EXISTS(SELECT 1 FROM ventas v WHERE v.id_empleado = e.id_empleado) AS has_ventas,
+        EXISTS(
+          SELECT 1 FROM auditoria a
+          WHERE a.id_empleado = e.id_empleado
+             OR (a.tabla = 'empleados' AND a.id_registro = e.id_empleado)
+        ) AS has_acciones
       FROM empleados e
       WHERE e.id_empleado = :id AND e.papelera = 0`,
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
@@ -59,7 +69,7 @@ router.post('/', async (req, res) => {
     const tempPassword = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10);
     const [result] = await sequelize.query(
       `INSERT INTO empleados 
-        (nombre, apellido, correo, telefono, cargo, password, fecha_contratacion, activo, dui, nit, cuenta_banco, afp, token_version, debe_cambiar, invitation_token, invitation_expires)
+        (nombre, apellido, correo, telefono, cargo, password_hash, fecha_contratacion, activo, dui, nit, cuenta_banco, afp, token_version, debe_cambiar, invitation_token, invitation_expires)
        VALUES 
         (:nombre, :apellido, :correo, :telefono, :cargo, :password, :fecha_contratacion, 1, :dui, :nit, :cuenta_banco, :afp, 1, 1, :invitation_token, :invitation_expires)`,
       {
@@ -185,14 +195,28 @@ router.delete('/:id', async (req, res) => {
   try {
     const [emp] = await sequelize.query(
       `SELECT e.nombre, e.apellido, e.cargo,
-        EXISTS(SELECT 1 FROM ventas v WHERE v.id_empleado = e.id_empleado) AS has_ventas
+        EXISTS(SELECT 1 FROM ventas v WHERE v.id_empleado = e.id_empleado) AS has_ventas,
+        EXISTS(
+          SELECT 1 FROM auditoria a
+          WHERE a.id_empleado = e.id_empleado
+             OR (a.tabla = 'empleados' AND a.id_registro = e.id_empleado)
+        ) AS has_acciones
       FROM empleados e
       WHERE e.id_empleado = :id AND e.papelera = 0`,
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
     );
     if (!emp) return res.status(404).json({ error: 'Empleado no encontrado' });
-    if (Number(emp.has_ventas) > 0) {
-      return res.status(400).json({ error: 'No se puede mover a papelera porque tiene ventas registradas. Solo puede desactivarse.' });
+    if (Number(emp.has_ventas) > 0 || Number(emp.has_acciones) > 0) {
+      await sequelize.query(
+        'UPDATE empleados SET activo = 0, token_version = token_version + 1 WHERE id_empleado = :id',
+        { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
+      );
+      await registrarAuditoria({
+        tabla: 'empleados', accion: 'DESACTIVAR',
+        descripcion: `Empleado desactivado por tener historial registrado: ${emp.nombre} ${emp.apellido} (${emp.cargo})`,
+        id_registro: Number(req.params.id), id_empleado: id_empleado_sesion, nombre_empleado: nombre_empleado_sesion
+      });
+      return res.json({ message: 'El empleado tiene acciones registradas, por eso fue desactivado en lugar de eliminado.' });
     }
 
     await sequelize.query(

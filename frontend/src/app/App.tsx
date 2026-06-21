@@ -11,7 +11,7 @@ import {
   RotateCcw
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { login, registrarEmpleado } from "../services/auth";
+import { login } from "../services/auth";
 import { getProductos, createProducto, updateProducto, deleteProducto } from "../services/productos";
 import { fetchKPIs, fetchVentasUltimos7Dias } from "../services/dashboard";
 import { createVenta } from "../services/ventas";
@@ -87,10 +87,12 @@ interface Supplier {
   direccion?: string;
   deleted: number;
   has_productos: any;
+  product_count?: number;
 }
 
 interface Empleado {
   has_ventas: any;
+  has_acciones: any;
   papelera: any;
   dui: string;
   nit: string;
@@ -656,10 +658,10 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
 const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: Role[] }[] = [
   { screen: "dashboard",    label: "Dashboard",             icon: <LayoutDashboard size={18}/>, roles: ["administrador"] },
   { screen: "ventas",       label: "Ventas (POS)",           icon: <ShoppingCart size={18}/>,    roles: ["administrador","cajero"] },
-  { screen: "productos",    label: "Productos",              icon: <Package size={18}/>,          roles: ["administrador"] },
+  { screen: "productos",    label: "Productos",              icon: <Package size={18}/>,          roles: ["administrador","farmaceutico"] },
   { screen: "clientes",     label: "Clientes",               icon: <Users size={18}/>,            roles: ["administrador"] },
   { screen: "empleados",    label: "Empleados",              icon: <UserCog size={18}/>,          roles: ["administrador"] },
-  { screen: "proveedores",  label: "Proveedores",            icon: <Truck size={18}/>,            roles: ["administrador"] },
+  { screen: "proveedores",  label: "Proveedores",            icon: <Truck size={18}/>,            roles: ["administrador","farmaceutico"] },
   { screen: "alertas",      label: "Alertas de Stock",       icon: <Bell size={18}/>,             roles: ["administrador","farmaceutico"] },
   { screen: "historial",    label: "Historial de Ventas",    icon: <History size={18}/>,          roles: ["administrador","farmaceutico"] },
   { screen: "eliminados",   label: "Registros Eliminados",   icon: <Trash2 size={18}/>,           roles: ["administrador"] },
@@ -2603,6 +2605,7 @@ function Proveedores({ user }: { user: User }) {
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Teléfono</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Correo</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Dirección</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Medicamentos</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Estado</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Acciones</th>
               </tr>
@@ -2624,6 +2627,11 @@ function Proveedores({ user }: { user: User }) {
                   </td>
                   <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap truncate max-w-[220px]" title={s.direccion}>
                     {s.direccion || "—"}
+                  </td>
+                  <td className="py-2.5 px-3 whitespace-nowrap">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+                      {Number(s.product_count ?? 0)}
+                    </span>
                   </td>
                   <td className="py-2.5 px-3 whitespace-nowrap">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -2846,7 +2854,7 @@ function Empleados({ user }: { user: User }) {
         await empleadosApi.update(editEmp.id_empleado, payload);
         setToast({ message: 'Empleado actualizado correctamente.', type: 'success' });
       } else {
-        await registrarEmpleado(payload);
+        await empleadosApi.create(payload);
         setToast({ message: 'Empleado registrado. Se ha enviado un correo de invitación.', type: 'success' });
       }
       setShowForm(false);
@@ -3064,7 +3072,7 @@ function Empleados({ user }: { user: User }) {
                         >
                           {emp.activo ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
-                        {Number(emp.has_ventas) === 0 && (
+                        {Number(emp.has_ventas) === 0 && Number(emp.has_acciones) === 0 && (
                           <button
                             onClick={() => handleDelete(emp.id_empleado)}
                             className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
@@ -4110,7 +4118,7 @@ function Auditoria({ user }: { user: User }) {
 function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [screen, setScreen] = useState<Screen>(() => {
     if (user.role === "cajero") return "ventas";
-    if (user.role === "farmaceutico") return "alertas";
+    if (user.role === "farmaceutico") return "productos";
     return "dashboard";
   });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
