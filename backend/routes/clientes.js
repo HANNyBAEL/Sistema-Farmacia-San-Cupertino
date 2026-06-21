@@ -151,9 +151,9 @@ router.patch('/:id/papelera', async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
-    // Mover a papelera (actualizar campo papelera)
+    // Mover a registros eliminados e inactivar sin borrar datos
     await sequelize.query(
-      'UPDATE clientes SET papelera = 1 WHERE id_cliente = :id',
+      'UPDATE clientes SET deleted = 1, papelera = 1 WHERE id_cliente = :id',
       { replacements: { id } }
     );
 
@@ -161,13 +161,13 @@ router.patch('/:id/papelera', async (req, res) => {
     await registrarAuditoria({
       tabla: 'clientes',
       accion: 'PAPELERA',
-      descripcion: `Cliente movido a papelera: ${cliente.nombre} ${cliente.apellido}`,
+      descripcion: `Cliente movido a registros eliminados: ${cliente.nombre} ${cliente.apellido}`,
       id_registro: id,
       id_empleado: id_empleado || null,
       nombre_empleado: nombre_empleado || null
     });
 
-    res.json({ message: 'Cliente movido a papelera' });
+    res.json({ message: 'Cliente movido a registros eliminados' });
   } catch (error) {
     console.error('❌ Error en PATCH /clientes/:id/papelera:', error);
     res.status(500).json({ error: error.message });
@@ -176,33 +176,24 @@ router.patch('/:id/papelera', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   const { id_empleado, nombre_empleado } = req.body;
-  const transaction = await sequelize.transaction();
   try {
-    const ventas = await sequelize.query(
-      'SELECT COUNT(*) as count FROM ventas WHERE id_cliente = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT, transaction }
-    );
-    if (ventas[0].count > 0) {
-      await transaction.rollback();
-      return res.status(400).json({ error: 'No se puede eliminar el cliente porque tiene ventas registradas.' });
-    }
     const [cliente] = await sequelize.query(
       'SELECT nombre, apellido FROM clientes WHERE id_cliente = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT, transaction }
+      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT }
     );
+    if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
+
     await sequelize.query(
-      'DELETE FROM clientes WHERE id_cliente = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.DELETE, transaction }
+      'UPDATE clientes SET deleted = 1, papelera = 1 WHERE id_cliente = :id',
+      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.UPDATE }
     );
-    await transaction.commit();
     await registrarAuditoria({
-      tabla: 'clientes', accion: 'ELIMINAR',
-      descripcion: `Cliente eliminado permanentemente: ${cliente?.nombre} ${cliente?.apellido}`,
+      tabla: 'clientes', accion: 'PAPELERA',
+      descripcion: `Cliente movido a registros eliminados: ${cliente.nombre} ${cliente.apellido}`,
       id_registro: Number(req.params.id), id_empleado, nombre_empleado
     });
-    res.json({ message: 'Cliente eliminado correctamente' });
+    res.json({ message: 'Cliente movido a registros eliminados' });
   } catch (error) {
-    await transaction.rollback();
     console.error('❌ DELETE /clientes/:id:', error);
     res.status(500).json({ error: error.message });
   }

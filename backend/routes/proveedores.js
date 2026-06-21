@@ -92,38 +92,27 @@ router.patch('/:id/papelera', async (req, res) => {
   try {
     const id = Number(req.params.id);
 
-    // Verificar si el proveedor tiene productos activos (no en papelera)
-    const [productos] = await sequelize.query(
-      'SELECT COUNT(*) as count FROM productos WHERE id_proveedor = :id AND papelera = 0',
-      { replacements: { id }, type: sequelize.QueryTypes.SELECT }
-    );
-
-    if (productos.count > 0) {
-      return res.status(400).json({
-        error: 'No se puede eliminar el proveedor porque tiene productos asociados. Solo puede desactivarlo.'
-      });
-    }
-
     const [prov] = await sequelize.query(
       'SELECT nombre, apellido FROM proveedores WHERE id_proveedor = :id',
       { replacements: { id }, type: sequelize.QueryTypes.SELECT }
     );
+    if (!prov) return res.status(404).json({ error: 'Proveedor no encontrado' });
 
     await sequelize.query(
-      'UPDATE proveedores SET papelera = 1 WHERE id_proveedor = :id',
+      'UPDATE proveedores SET deleted = 1, papelera = 1 WHERE id_proveedor = :id',
       { replacements: { id } }
     );
 
     await registrarAuditoria({
       tabla: 'proveedores',
       accion: 'PAPELERA',
-      descripcion: `Proveedor movido a papelera: ${prov.nombre} ${prov.apellido}`,
+      descripcion: `Proveedor movido a registros eliminados: ${prov.nombre} ${prov.apellido}`,
       id_registro: id,
       id_empleado,
       nombre_empleado
     });
 
-    res.json({ message: 'Proveedor movido a papelera' });
+    res.json({ message: 'Proveedor movido a registros eliminados' });
   } catch (error) {
     console.error('❌ PATCH /proveedores/:id/papelera:', error);
     res.status(500).json({ error: error.message });
@@ -132,33 +121,24 @@ router.patch('/:id/papelera', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   const { id_empleado, nombre_empleado } = req.body;
-  const transaction = await sequelize.transaction();
   try {
-    const productos = await sequelize.query(
-      'SELECT COUNT(*) as count FROM productos WHERE id_proveedor = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT, transaction }
-    );
-    if (productos[0].count > 0) {
-      await transaction.rollback();
-      return res.status(400).json({ error: 'No se puede eliminar el proveedor porque tiene productos registrados.' });
-    }
     const [prov] = await sequelize.query(
       'SELECT nombre, apellido FROM proveedores WHERE id_proveedor = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT, transaction }
+      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT }
     );
+    if (!prov) return res.status(404).json({ error: 'Proveedor no encontrado' });
+
     await sequelize.query(
-      'DELETE FROM proveedores WHERE id_proveedor = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.DELETE, transaction }
+      'UPDATE proveedores SET deleted = 1, papelera = 1 WHERE id_proveedor = :id',
+      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.UPDATE }
     );
-    await transaction.commit();
     await registrarAuditoria({
-      tabla: 'proveedores', accion: 'ELIMINAR',
-      descripcion: `Proveedor eliminado: ${prov?.nombre} ${prov?.apellido}`,
+      tabla: 'proveedores', accion: 'PAPELERA',
+      descripcion: `Proveedor movido a registros eliminados: ${prov.nombre} ${prov.apellido}`,
       id_registro: Number(req.params.id), id_empleado, nombre_empleado
     });
-    res.json({ message: 'Proveedor eliminado correctamente' });
+    res.json({ message: 'Proveedor movido a registros eliminados' });
   } catch (error) {
-    await transaction.rollback();
     console.error('❌ DELETE /proveedores/:id:', error);
     res.status(500).json({ error: error.message });
   }

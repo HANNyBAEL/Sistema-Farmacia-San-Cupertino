@@ -3,7 +3,7 @@ import sequelize from '../config/database.js';
 
 const router = express.Router();
 
-// GET todos los registros eliminados (productos, clientes, proveedores, empleados)
+// GET todos los registros eliminados logicamente.
 router.get('/', async (req, res) => {
   try {
     const productos = await sequelize.query(
@@ -52,80 +52,38 @@ router.get('/', async (req, res) => {
 
     res.json([...productos, ...clientes, ...proveedores, ...empleados]);
   } catch (error) {
-    console.error('❌ GET /eliminados:', error);
+    console.error('Error en GET /eliminados:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// PUT restaurar según tipo
+// Restaurar segun tipo y reactivar el registro.
 router.put('/:tipo/:id/restaurar', async (req, res) => {
   const { tipo, id } = req.params;
   try {
     if (tipo === 'producto') {
-      await sequelize.query('UPDATE productos SET papelera = 0 WHERE id_producto = :id', { replacements: { id } });
+      await sequelize.query('UPDATE productos SET deleted = 0, papelera = 0 WHERE id_producto = :id', { replacements: { id } });
     } else if (tipo === 'cliente') {
-      await sequelize.query('UPDATE clientes SET papelera = 0 WHERE id_cliente = :id', { replacements: { id } });
+      await sequelize.query('UPDATE clientes SET deleted = 0, papelera = 0 WHERE id_cliente = :id', { replacements: { id } });
     } else if (tipo === 'proveedor') {
-      await sequelize.query('UPDATE proveedores SET papelera = 0 WHERE id_proveedor = :id', { replacements: { id } });
+      await sequelize.query('UPDATE proveedores SET deleted = 0, papelera = 0 WHERE id_proveedor = :id', { replacements: { id } });
     } else if (tipo === 'empleado') {
       await sequelize.query('UPDATE empleados SET activo = 1, papelera = 0, token_version = token_version + 1 WHERE id_empleado = :id', { replacements: { id } });
+    } else {
+      return res.status(400).json({ error: 'Tipo no valido' });
     }
+
     res.json({ message: 'Registro restaurado correctamente' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// DELETE eliminar permanentemente según tipo
+// La eliminacion fisica queda deshabilitada por politica de trazabilidad.
 router.delete('/:tipo/:id', async (req, res) => {
-  const { tipo, id } = req.params;
-  const transaction = await sequelize.transaction();
-  try {
-    if (tipo === 'producto') {
-      await sequelize.query('DELETE FROM productos_categorias WHERE id_producto = :id', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
-      await sequelize.query('DELETE FROM productos WHERE id_producto = :id AND deleted = 1', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
-    } else if (tipo === 'cliente') {
-      const ventas = await sequelize.query('SELECT COUNT(*) as count FROM ventas WHERE id_cliente = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction });
-      if (ventas[0].count > 0) {
-        await transaction.rollback();
-        return res.status(400).json({ error: 'No se puede eliminar el cliente porque tiene ventas registradas.' });
-      }
-      await sequelize.query('DELETE FROM clientes WHERE id_cliente = :id', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
-    } else if (tipo === 'proveedor') {
-      const productos = await sequelize.query('SELECT COUNT(*) as count FROM productos WHERE id_proveedor = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction });
-      if (productos[0].count > 0) {
-        await transaction.rollback();
-        return res.status(400).json({ error: 'No se puede eliminar el proveedor porque tiene productos registrados.' });
-      }
-      await sequelize.query('DELETE FROM proveedores WHERE id_proveedor = :id', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
-    } else if (tipo === 'empleado') {
-      const ventas = await sequelize.query('SELECT COUNT(*) as count FROM ventas WHERE id_empleado = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction });
-      if (ventas[0].count > 0) {
-        await transaction.rollback();
-        return res.status(400).json({ error: 'No se puede eliminar el empleado porque tiene ventas registradas.' });
-      }
-      const acciones = await sequelize.query(
-        `SELECT COUNT(*) as count
-         FROM auditoria
-         WHERE id_empleado = :id OR (tabla = 'empleados' AND id_registro = :id)`,
-        { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction }
-      );
-      if (acciones[0].count > 0) {
-        await transaction.rollback();
-        return res.status(400).json({ error: 'No se puede eliminar el empleado porque tiene acciones registradas. Solo puede desactivarse.' });
-      }
-      await sequelize.query('DELETE FROM empleados WHERE id_empleado = :id AND papelera = 1', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
-    } else {
-      await transaction.rollback();
-      return res.status(400).json({ error: 'Tipo no válido' });
-    }
-    await transaction.commit();
-    res.json({ message: 'Registro eliminado permanentemente' });
-  } catch (error) {
-    await transaction.rollback();
-    console.error('❌ DELETE /eliminados:', error);
-    res.status(500).json({ error: error.message });
-  }
+  res.status(405).json({
+    error: 'La eliminacion permanente esta deshabilitada. Los registros se conservan como inactivos.'
+  });
 });
 
 export default router;

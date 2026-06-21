@@ -54,7 +54,6 @@ router.get('/:id', async (req, res) => {
 // POST crear producto
 router.post('/', async (req, res) => {
   const { nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, categorias, codigo_barras, id_empleado, nombre_empleado } = req.body;
-  const transaction = await sequelize.transaction();
   try {
     const [result] = await sequelize.query(
       `INSERT INTO productos (nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, deleted, codigo_barras)
@@ -220,15 +219,15 @@ router.patch('/:id/papelera', async (req, res) => {
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
     );
     await sequelize.query(
-      'UPDATE productos SET papelera = 1 WHERE id_producto = :id',
+      'UPDATE productos SET deleted = 1, papelera = 1 WHERE id_producto = :id',
       { replacements: { id: Number(req.params.id) } }
     );
     await registrarAuditoria({
       tabla: 'productos', accion: 'PAPELERA',
-      descripcion: `Producto movido a papelera: ${prod?.nombre_producto}`,
+      descripcion: `Producto movido a registros eliminados: ${prod?.nombre_producto}`,
       id_registro: Number(req.params.id), id_empleado, nombre_empleado
     });
-    res.json({ message: 'Producto movido a papelera' });
+    res.json({ message: 'Producto movido a registros eliminados' });
   } catch (error) {
     console.error('❌ PATCH /productos/:id/papelera:', error);
     res.status(500).json({ error: error.message });
@@ -240,35 +239,21 @@ router.delete('/:id', async (req, res) => {
   const { id_empleado, nombre_empleado } = req.body;
   const transaction = await sequelize.transaction();
   try {
-    const ventas = await sequelize.query(
-      'SELECT COUNT(*) as count FROM detalle_ventas WHERE id_producto = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT, transaction }
-    );
-    if (ventas[0].count > 0) {
-      await transaction.rollback();
-      return res.status(400).json({ error: 'No se puede eliminar el producto porque tiene ventas registradas.' });
-    }
     const [prod] = await sequelize.query(
       'SELECT nombre_producto FROM productos WHERE id_producto = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT, transaction }
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
     );
     await sequelize.query(
-      'DELETE FROM productos_categorias WHERE id_producto = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.DELETE, transaction }
+      'UPDATE productos SET deleted = 1, papelera = 1 WHERE id_producto = :id',
+      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
     );
-    await sequelize.query(
-      'DELETE FROM productos WHERE id_producto = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.DELETE, transaction }
-    );
-    await transaction.commit();
     await registrarAuditoria({
-      tabla: 'productos', accion: 'ELIMINAR',
-      descripcion: `Producto eliminado: ${prod?.nombre_producto}`,
+      tabla: 'productos', accion: 'PAPELERA',
+      descripcion: `Producto movido a registros eliminados: ${prod?.nombre_producto}`,
       id_registro: Number(req.params.id), id_empleado, nombre_empleado
     });
-    res.json({ message: 'Producto eliminado correctamente' });
+    res.json({ message: 'Producto movido a registros eliminados' });
   } catch (error) {
-    await transaction.rollback();
     console.error('❌ DELETE /productos/:id:', error);
     res.status(500).json({ error: error.message });
   }

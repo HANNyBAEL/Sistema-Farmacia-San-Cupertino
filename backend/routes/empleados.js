@@ -206,29 +206,16 @@ router.delete('/:id', async (req, res) => {
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
     );
     if (!emp) return res.status(404).json({ error: 'Empleado no encontrado' });
-    if (Number(emp.has_ventas) > 0 || Number(emp.has_acciones) > 0) {
-      await sequelize.query(
-        'UPDATE empleados SET activo = 0, token_version = token_version + 1 WHERE id_empleado = :id',
-        { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
-      );
-      await registrarAuditoria({
-        tabla: 'empleados', accion: 'DESACTIVAR',
-        descripcion: `Empleado desactivado por tener historial registrado: ${emp.nombre} ${emp.apellido} (${emp.cargo})`,
-        id_registro: Number(req.params.id), id_empleado: id_empleado_sesion, nombre_empleado: nombre_empleado_sesion
-      });
-      return res.json({ message: 'El empleado tiene acciones registradas, por eso fue desactivado en lugar de eliminado.' });
-    }
-
     await sequelize.query(
       'UPDATE empleados SET activo = 0, papelera = 1, token_version = token_version + 1 WHERE id_empleado = :id',
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
     );
     await registrarAuditoria({
       tabla: 'empleados', accion: 'PAPELERA',
-      descripcion: `Empleado movido a papelera: ${emp.nombre} ${emp.apellido} (${emp.cargo})`,
+      descripcion: `Empleado movido a registros eliminados: ${emp.nombre} ${emp.apellido} (${emp.cargo})`,
       id_registro: Number(req.params.id), id_empleado: id_empleado_sesion, nombre_empleado: nombre_empleado_sesion
     });
-    res.json({ message: 'Empleado movido a papelera' });
+    res.json({ message: 'Empleado movido a registros eliminados' });
   } catch (error) {
     console.error('❌ DELETE /empleados/:id:', error);
     res.status(500).json({ error: error.message });
