@@ -41,6 +41,11 @@ const Empleado = sequelize.define('Empleado', {
     allowNull: false,
     defaultValue: 1,
   },
+  papelera: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: 0,
+  },
   token_version: {
     type: DataTypes.INTEGER,
     allowNull: false,

@@ -10,8 +10,13 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const empleados = await sequelize.query(
-      `SELECT id_empleado, nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo, dui, nit, cuenta_banco, afp, debe_cambiar
-      FROM empleados ORDER BY id_empleado DESC`,
+      `SELECT e.id_empleado, e.nombre, e.apellido, e.correo, e.telefono, e.cargo,
+        e.fecha_contratacion, e.activo, e.papelera, e.dui, e.nit, e.cuenta_banco,
+        e.afp, e.debe_cambiar,
+        EXISTS(SELECT 1 FROM ventas v WHERE v.id_empleado = e.id_empleado) AS has_ventas
+      FROM empleados e
+      WHERE e.papelera = 0
+      ORDER BY e.id_empleado DESC`,
       { type: sequelize.QueryTypes.SELECT }
     );
     res.json(empleados);
@@ -24,8 +29,12 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const empleados = await sequelize.query(
-      `SELECT id_empleado, nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo, dui, nit, cuenta_banco, afp, debe_cambiar
-      FROM empleados WHERE id_empleado = :id`,
+      `SELECT e.id_empleado, e.nombre, e.apellido, e.correo, e.telefono, e.cargo,
+        e.fecha_contratacion, e.activo, e.papelera, e.dui, e.nit, e.cuenta_banco,
+        e.afp, e.debe_cambiar,
+        EXISTS(SELECT 1 FROM ventas v WHERE v.id_empleado = e.id_empleado) AS has_ventas
+      FROM empleados e
+      WHERE e.id_empleado = :id AND e.papelera = 0`,
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
     );
     if (!empleados.length) return res.status(404).json({ error: 'Empleado no encontrado' });
@@ -170,28 +179,32 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// ─── DESACTIVAR EMPLEADO ──────────────────────────────────
+// ─── MOVER EMPLEADO A PAPELERA ────────────────────────────
 router.delete('/:id', async (req, res) => {
   const { id_empleado_sesion, nombre_empleado_sesion } = req.body;
   try {
     const [emp] = await sequelize.query(
-      'SELECT nombre, apellido, cargo FROM empleados WHERE id_empleado = :id',
+      `SELECT e.nombre, e.apellido, e.cargo,
+        EXISTS(SELECT 1 FROM ventas v WHERE v.id_empleado = e.id_empleado) AS has_ventas
+      FROM empleados e
+      WHERE e.id_empleado = :id AND e.papelera = 0`,
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
     );
+    if (!emp) return res.status(404).json({ error: 'Empleado no encontrado' });
+    if (Number(emp.has_ventas) > 0) {
+      return res.status(400).json({ error: 'No se puede mover a papelera porque tiene ventas registradas. Solo puede desactivarse.' });
+    }
+
     await sequelize.query(
-      'UPDATE empleados SET activo = 0 WHERE id_empleado = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
-    );
-    await sequelize.query(
-      `UPDATE empleados SET token_version = token_version + 1 WHERE id_empleado = :id`,
+      'UPDATE empleados SET activo = 0, papelera = 1, token_version = token_version + 1 WHERE id_empleado = :id',
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
     );
     await registrarAuditoria({
-      tabla: 'empleados', accion: 'DESACTIVAR',
-      descripcion: `Empleado desactivado: ${emp?.nombre} ${emp?.apellido} (${emp?.cargo})`,
+      tabla: 'empleados', accion: 'PAPELERA',
+      descripcion: `Empleado movido a papelera: ${emp.nombre} ${emp.apellido} (${emp.cargo})`,
       id_registro: Number(req.params.id), id_empleado: id_empleado_sesion, nombre_empleado: nombre_empleado_sesion
     });
-    res.json({ message: 'Empleado desactivado' });
+    res.json({ message: 'Empleado movido a papelera' });
   } catch (error) {
     console.error('❌ DELETE /empleados/:id:', error);
     res.status(500).json({ error: error.message });

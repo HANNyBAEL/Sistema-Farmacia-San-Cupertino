@@ -45,7 +45,7 @@ router.get('/', async (req, res) => {
         NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
         e.cargo AS detalle
        FROM empleados e
-       WHERE e.activo = 0
+       WHERE e.papelera = 1
        ORDER BY e.nombre ASC`,
       { type: sequelize.QueryTypes.SELECT }
     );
@@ -68,7 +68,7 @@ router.put('/:tipo/:id/restaurar', async (req, res) => {
     } else if (tipo === 'proveedor') {
       await sequelize.query('UPDATE proveedores SET papelera = 0 WHERE id_proveedor = :id', { replacements: { id } });
     } else if (tipo === 'empleado') {
-      await sequelize.query('UPDATE empleados SET activo = 1 WHERE id_empleado = :id', { replacements: { id } });
+      await sequelize.query('UPDATE empleados SET activo = 1, papelera = 0, token_version = token_version + 1 WHERE id_empleado = :id', { replacements: { id } });
     }
     res.json({ message: 'Registro restaurado correctamente' });
   } catch (error) {
@@ -99,7 +99,12 @@ router.delete('/:tipo/:id', async (req, res) => {
       }
       await sequelize.query('DELETE FROM proveedores WHERE id_proveedor = :id', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
     } else if (tipo === 'empleado') {
-      await sequelize.query('DELETE FROM empleados WHERE id_empleado = :id AND activo = 0', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
+      const ventas = await sequelize.query('SELECT COUNT(*) as count FROM ventas WHERE id_empleado = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction });
+      if (ventas[0].count > 0) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'No se puede eliminar el empleado porque tiene ventas registradas.' });
+      }
+      await sequelize.query('DELETE FROM empleados WHERE id_empleado = :id AND papelera = 1', { replacements: { id }, type: sequelize.QueryTypes.DELETE, transaction });
     } else {
       await transaction.rollback();
       return res.status(400).json({ error: 'Tipo no válido' });

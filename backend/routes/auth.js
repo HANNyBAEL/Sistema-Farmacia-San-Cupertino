@@ -14,14 +14,14 @@ router.post('/login', async (req, res) => {
 
   try {
     const [user] = await sequelize.query(
-      `SELECT id_empleado, nombre, apellido, correo, password_hash, cargo, activo, token_version
+      `SELECT id_empleado, nombre, apellido, correo, password_hash, cargo, activo, papelera, token_version
        FROM empleados 
        WHERE correo = ?`,
       { replacements: [correo], type: sequelize.QueryTypes.SELECT }
     );
 
     if (!user) return res.status(401).json({ error: 'Credenciales inválidas' });
-    if (user.activo === 0) return res.status(401).json({ error: 'Usuario desactivado. Contacte al administrador.' });
+    if (user.activo === 0 || user.papelera === 1) return res.status(401).json({ error: 'Usuario desactivado. Contacte al administrador.' });
 
     const valid = await bcrypt.compare(contraseña, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Credenciales inválidas' });

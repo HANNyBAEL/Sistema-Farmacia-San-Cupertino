@@ -64,9 +64,17 @@ app.use('/api/facturas',    facturasRoutes);
 
 const PORT = process.env.PORT || 8000;
 
+async function ensureSchema() {
+  const [columns] = await sequelize.query("SHOW COLUMNS FROM empleados LIKE 'papelera'");
+  if (columns.length === 0) {
+    await sequelize.query("ALTER TABLE empleados ADD COLUMN papelera TINYINT(1) NOT NULL DEFAULT 0 AFTER activo");
+  }
+}
+
 async function startServer() {
   try {
     await sequelize.authenticate();
+    await ensureSchema();
     console.log('✅ Conexión a MySQL (Sequelize) exitosa');
 
     app.listen(PORT, '0.0.0.0', () => {

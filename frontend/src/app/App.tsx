@@ -91,6 +91,7 @@ interface Supplier {
 
 interface Empleado {
   has_ventas: any;
+  papelera: any;
   dui: string;
   nit: string;
   afp: string;
@@ -2890,11 +2891,11 @@ function Empleados({ user }: { user: User }) {
         data: { id_empleado_sesion: user.id, nombre_empleado_sesion: user.name }
       });
       setConfirmModal({ isOpen: false, empleadoId: null });
-      setToast({ message: "Empleado eliminado correctamente.", type: 'success' });
+      setToast({ message: "Empleado movido a papelera correctamente.", type: 'success' });
       load();
     } catch (e: any) {
       setConfirmModal({ isOpen: false, empleadoId: null });
-      setToast({ message: e?.response?.data?.error ?? "Error al eliminar el empleado.", type: 'error' });
+      setToast({ message: e?.response?.data?.error ?? "No se puede mover a papelera porque tiene ventas registradas.", type: 'error' });
     }
   }
 
@@ -3063,14 +3064,16 @@ function Empleados({ user }: { user: User }) {
                         >
                           {emp.activo ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
-                        <button
-                          onClick={() => handleDelete(emp.id_empleado)}
-                          className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          title="Eliminar empleado"
-                          aria-label={`Eliminar ${fullName}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {Number(emp.has_ventas) === 0 && (
+                          <button
+                            onClick={() => handleDelete(emp.id_empleado)}
+                            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="Mover a papelera"
+                            aria-label={`Mover a papelera ${fullName}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -3092,7 +3095,7 @@ function Empleados({ user }: { user: User }) {
       {/* ── Modal de formulario ── */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-foreground">
                 {editEmp ? "Editar Empleado" : "Nuevo Empleado"}
@@ -3121,7 +3124,7 @@ function Empleados({ user }: { user: User }) {
                 <Input type="email" value={form.correo} onChange={v => setForm(p => ({ ...p, correo: v }))} placeholder="correo@ejemplo.com" />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
                   <input
@@ -3132,47 +3135,6 @@ function Empleados({ user }: { user: User }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI <span className="text-muted-foreground font-normal">(00000000-0)</span></label>
-                  <input
-                    value={formatDUI(form.dui)}
-                    onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))}
-                    placeholder="00000000-0" maxLength={10}
-                    className={fmtInputClass}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">NIT</label>
-                  <input
-                    value={formatNIT(form.nit)}
-                    onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))}
-                    placeholder="0000-000000-000-0" maxLength={17}
-                    className={fmtInputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Cuenta Bancaria</label>
-                  <input
-                    value={formatCuentaBanco(form.cuenta_banco)}
-                    onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))}
-                    placeholder="Número de cuenta" maxLength={20}
-                    className={fmtInputClass}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">AFP</label>
-                  <Select value={form.afp} onChange={v => setForm(p => ({ ...p, afp: v }))}>
-                    <option value="">Sin AFP</option>
-                    <option value="CRECER">CRECER</option>
-                    <option value="CONFÍA">CONFÍA</option>
-                  </Select>
-                </div>
-                <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Cargo *</label>
                   <Select value={form.cargo} onChange={v => setForm(p => ({ ...p, cargo: v }))}>
                     {CARGOS.map(c => (
@@ -3180,12 +3142,54 @@ function Empleados({ user }: { user: User }) {
                     ))}
                   </Select>
                 </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha contratación</label>
+                  <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha contratación</label>
-                <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} />
-              </div>
+              <details className="rounded-lg border border-border bg-muted/30" open={!!editEmp}>
+                <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-foreground">
+                  Datos fiscales y bancarios opcionales
+                </summary>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-border p-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI <span className="text-muted-foreground font-normal">(00000000-0)</span></label>
+                    <input
+                      value={formatDUI(form.dui)}
+                      onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))}
+                      placeholder="00000000-0" maxLength={10}
+                      className={fmtInputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">NIT</label>
+                    <input
+                      value={formatNIT(form.nit)}
+                      onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))}
+                      placeholder="0000-000000-000-0" maxLength={17}
+                      className={fmtInputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Cuenta bancaria</label>
+                    <input
+                      value={formatCuentaBanco(form.cuenta_banco)}
+                      onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))}
+                      placeholder="Número de cuenta" maxLength={20}
+                      className={fmtInputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">AFP</label>
+                    <Select value={form.afp} onChange={v => setForm(p => ({ ...p, afp: v }))} className="w-full">
+                      <option value="">Sin AFP</option>
+                      <option value="CRECER">CRECER</option>
+                      <option value="CONFÍA">CONFÍA</option>
+                    </Select>
+                  </div>
+                </div>
+              </details>
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
@@ -3199,11 +3203,11 @@ function Empleados({ user }: { user: User }) {
       {/* ── Modales de confirmación ── */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
-        title="Eliminar empleado"
-        message="¿Estás seguro de que deseas eliminar este empleado? Esta acción no se puede deshacer."
+        title="Mover empleado a papelera"
+        message="¿Estás seguro de que deseas mover este empleado a la papelera? Solo se permite si no tiene ventas registradas."
         onConfirm={confirmDelete}
         onCancel={() => setConfirmModal({ isOpen: false, empleadoId: null })}
-        confirmText="Sí, eliminar"
+        confirmText="Sí, mover"
         variant="danger"
       />
 
@@ -4046,16 +4050,16 @@ function Auditoria({ user }: { user: User }) {
                       {r.accion}
                     </span>
                   </td>
-                  <td className="py-2.5 px-4 text-foreground truncate max-w-[250px]" title={r.descripcion}>
-                    {r.descripcion}
+                  <td className="py-2.5 px-4 text-foreground max-w-[250px]">
+                    <ExpandableCell text={r.descripcion} maxLength={36} />
                   </td>
-                  <td className="py-2.5 px-4 text-muted-foreground font-mono text-xs truncate max-w-[140px]" title={r.campo_modificado ?? "—"}>
-                    {r.campo_modificado ?? "—"}
+                  <td className="py-2.5 px-4 text-muted-foreground font-mono text-xs max-w-[140px]">
+                    <ExpandableCell text={r.campo_modificado} maxLength={18} />
                   </td>
                   <td className="py-2.5 px-4 max-w-[160px]">
                     {r.valor_anterior ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-mono truncate block max-w-full" title={r.valor_anterior}>
-                        {r.valor_anterior}
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-mono block max-w-full">
+                        <ExpandableCell text={r.valor_anterior} maxLength={18} />
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -4063,15 +4067,15 @@ function Auditoria({ user }: { user: User }) {
                   </td>
                   <td className="py-2.5 px-4 max-w-[140px]">
                     {r.valor_nuevo ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 font-mono truncate block max-w-full" title={r.valor_nuevo}>
-                        {r.valor_nuevo}
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 font-mono block max-w-full">
+                        <ExpandableCell text={r.valor_nuevo} maxLength={18} />
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-4 text-muted-foreground text-xs truncate max-w-[120px]" title={r.nombre_empleado ?? "—"}>
-                    {r.nombre_empleado ?? "—"}
+                  <td className="py-2.5 px-4 text-muted-foreground text-xs max-w-[120px]">
+                    <ExpandableCell text={r.nombre_empleado} maxLength={18} />
                   </td>
                 </tr>
               ))}
