@@ -208,13 +208,13 @@ function PageLayout({ title, subtitle, children, actions }: {
   title: string; subtitle?: string; children: React.ReactNode; actions?: React.ReactNode;
 }) {
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-4 md:p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-foreground">{title}</h1>
           {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
-        {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{actions}</div>}
       </div>
       {children}
     </div>
@@ -237,14 +237,16 @@ function FilterBar({ children, onClear, hasFilters }: {
 }
 
 function SectionCard({ title, children, actions, className = "" }: {
-  title: string; children: React.ReactNode; actions?: React.ReactNode; className?: string;
+  title?: string; children: React.ReactNode; actions?: React.ReactNode; className?: string;
 }) {
   return (
     <Card className={className}>
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        {actions && <div className="flex items-center gap-2">{actions}</div>}
-      </div>
+      {(title || actions) && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 md:px-5 py-3.5 border-b border-border">
+          {title && <h3 className="text-sm font-semibold text-foreground">{title}</h3>}
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+        </div>
+      )}
       <div className="p-5">{children}</div>
     </Card>
   );
@@ -2896,8 +2898,9 @@ function Empleados({ user }: { user: User }) {
     }
   }
 
-  const hayFiltros = !!(filterCargo || filterEstado);
+  const hayFiltros = !!(search || filterCargo || filterEstado);
   function limpiarFiltros() {
+    setSearch("");
     setFilterCargo("");
     setFilterEstado("");
   }
@@ -2939,8 +2942,8 @@ function Empleados({ user }: { user: User }) {
     >
       {/* ── Filtros ── */}
       <SectionCard title="Filtros">
-        <div className="flex items-end gap-3">
-          <div className="flex-1 grid grid-cols-3 gap-3">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
               <div className="relative">
@@ -2964,7 +2967,7 @@ function Empleados({ user }: { user: User }) {
               </Select>
             </div>
           </div>
-          <Btn variant="ghost" size="sm" onClick={limpiarFiltros} disabled={!hayFiltros}>
+          <Btn variant="ghost" size="sm" onClick={limpiarFiltros} disabled={!hayFiltros} className="self-start lg:self-end">
             <X size={14} /> Limpiar
           </Btn>
         </div>
@@ -2973,18 +2976,21 @@ function Empleados({ user }: { user: User }) {
        {/* ── Tabla ── */}
       <SectionCard title="Listado de empleados" className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[1180px] text-sm">
             <thead className="bg-muted">
               <tr className="border-b border-border">
+                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">ID</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Empleado</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Correo</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Teléfono</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">DUI</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">NIT</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Cuenta bancaria</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">AFP</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Cargo</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Contratación</th>
                 <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Estado</th>
-                <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Acciones</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground text-xs whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -2995,6 +3001,7 @@ function Empleados({ user }: { user: User }) {
                     key={emp.id_empleado}
                     className={`transition-colors ${!emp.activo ? 'opacity-50' : 'hover:bg-muted/50'}`}
                   >
+                    <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground whitespace-nowrap">#{emp.id_empleado}</td>
                     <td className="py-2.5 px-3 font-medium text-foreground whitespace-nowrap">
                       <ExpandableCell text={fullName} maxLength={25} />
                     </td>
@@ -3010,7 +3017,62 @@ function Empleados({ user }: { user: User }) {
                     <td className="py-2.5 px-3 text-muted-foreground font-mono text-xs whitespace-nowrap">
                       <ExpandableCell text={emp.nit} maxLength={18} />
                     </td>
-                    {/* ... resto de columnas sin cambio ... */}
+                    <td className="py-2.5 px-3 text-muted-foreground font-mono text-xs whitespace-nowrap">
+                      <ExpandableCell text={emp.cuenta_banco} maxLength={18} />
+                    </td>
+                    <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                      {emp.afp || "—"}
+                    </td>
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${CARGO_STYLE[emp.cargo] ?? "bg-muted text-muted-foreground"}`}>
+                        {CARGO_ICON[emp.cargo] ?? <UserCog size={12} />}
+                        {emp.cargo.charAt(0).toUpperCase() + emp.cargo.slice(1)}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-muted-foreground text-xs whitespace-nowrap">
+                      {emp.fecha_contratacion || "—"}
+                    </td>
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        emp.activo
+                          ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                          : "bg-destructive/10 text-destructive"
+                      }`}>
+                        {emp.activo ? "Activo" : "Inactivo"}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEdit(emp)}
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          title="Editar empleado"
+                          aria-label={`Editar ${fullName}`}
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleToggle(emp)}
+                          className={`p-1.5 rounded-md transition-colors ${
+                            emp.activo
+                              ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              : "text-muted-foreground hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                          }`}
+                          title={emp.activo ? "Desactivar empleado" : "Activar empleado"}
+                          aria-label={`${emp.activo ? "Desactivar" : "Activar"} ${fullName}`}
+                        >
+                          {emp.activo ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(emp.id_empleado)}
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title="Eliminar empleado"
+                          aria-label={`Eliminar ${fullName}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -3030,7 +3092,7 @@ function Empleados({ user }: { user: User }) {
       {/* ── Modal de formulario ── */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-foreground">
                 {editEmp ? "Editar Empleado" : "Nuevo Empleado"}
@@ -3043,7 +3105,7 @@ function Empleados({ user }: { user: User }) {
             <ErrorAlert message={formError} />
 
             <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
                   <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} />
@@ -3059,7 +3121,7 @@ function Empleados({ user }: { user: User }) {
                 <Input type="email" value={form.correo} onChange={v => setForm(p => ({ ...p, correo: v }))} placeholder="correo@ejemplo.com" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
                   <input
@@ -3080,7 +3142,7 @@ function Empleados({ user }: { user: User }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">NIT</label>
                   <input
@@ -3101,7 +3163,7 @@ function Empleados({ user }: { user: User }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">AFP</label>
                   <Select value={form.afp} onChange={v => setForm(p => ({ ...p, afp: v }))}>
