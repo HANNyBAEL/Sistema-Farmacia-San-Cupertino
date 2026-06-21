@@ -2,14 +2,11 @@ import sgMail from '@sendgrid/mail';
 
 // ─── CONFIGURACIÓN ──────────────────────────────────────
 const apiKey = process.env.SENDGRID_API_KEY;
-console.log('🔍 [SendGrid] Verificando configuración...');
-console.log('🔍 ¿SENDGRID_API_KEY existe?', apiKey ? '✅ Sí' : '❌ NO');
 
 if (!apiKey) {
   console.error('❌ [SendGrid] FALTA SENDGRID_API_KEY en variables de entorno');
 } else {
   sgMail.setApiKey(apiKey.trim());
-  console.log('✅ [SendGrid] API Key configurada correctamente');
 }
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'farmaciassanjosecupertino@gmail.com';
@@ -24,7 +21,6 @@ const formatNumber = (num) => {
 // 1️⃣  FACTURA CON PDF Y JSON ADJUNTOS
 // ═══════════════════════════════════════════════════════════
 export const enviarFacturaPorCorreo = async ({ email, pdfBase64, numero_control, codigo_generacion, total, cliente }) => {
-  console.log(`📧 [SendGrid] Enviando factura a ${email}...`);
   if (!apiKey) throw new Error('SENDGRID_API_KEY no configurada');
 
   // Construir el JSON de la factura con los datos disponibles
@@ -100,8 +96,7 @@ export const enviarFacturaPorCorreo = async ({ email, pdfBase64, numero_control,
   };
 
   try {
-    const response = await sgMail.send(msg);
-    console.log(`✅ [SendGrid] Factura enviada a ${email}: Status ${response[0].statusCode}`);
+    await sgMail.send(msg);
     return { success: true, message: 'Factura enviada correctamente' };
   } catch (error) {
     console.error(`❌ [SendGrid] Error factura:`, error.response?.body || error.message);
@@ -114,7 +109,6 @@ export const enviarFacturaPorCorreo = async ({ email, pdfBase64, numero_control,
 // 2️⃣  RECUPERACIÓN DE CONTRASEÑA
 // ═══════════════════════════════════════════════════════════
 export const sendRecoveryEmail = async (email, codigo) => {
-  console.log(`📧 [SendGrid] Enviando recuperación a ${email}...`);
   if (!apiKey) throw new Error('SENDGRID_API_KEY no configurada');
 
   const msg = {
@@ -143,7 +137,6 @@ export const sendRecoveryEmail = async (email, codigo) => {
 
   try {
     const response = await sgMail.send(msg);
-    console.log(`✅ [SendGrid] Recuperación enviada a ${email}`);
     return response;
   } catch (error) {
     console.error(`❌ [SendGrid] Error recuperación:`, error.response?.body || error.message);
@@ -157,7 +150,6 @@ export const sendRecoveryEmail = async (email, codigo) => {
 // ═══════════════════════════════════════════════════════════
 export const sendInvitationEmail = async (email, nombre, token) => {
   const link = `${process.env.FRONTEND_URL}/establecer-contrasena?token=${token}`;
-  console.log(`📧 [SendGrid] Enviando invitación a ${email}...`);
   if (!apiKey) throw new Error('SENDGRID_API_KEY no configurada');
 
   const msg = {
@@ -187,7 +179,6 @@ export const sendInvitationEmail = async (email, nombre, token) => {
 
   try {
     const response = await sgMail.send(msg);
-    console.log(`✅ [SendGrid] Invitación enviada a ${email}`);
     return response;
   } catch (error) {
     console.error(`❌ [SendGrid] Error invitación:`, error.response?.body || error.message);

@@ -9,8 +9,6 @@ router.post('/', async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
-    console.log('📥 Recibido:', { id_cliente, id_empleado, cantidadProductos: productos?.length, fecha });
-
     if (!id_empleado) throw new Error('Falta el id_empleado');
     if (!productos || productos.length === 0) throw new Error('No hay productos en la venta');
 
@@ -105,7 +103,6 @@ router.post('/', async (req, res) => {
     );
 
     await transaction.commit();
-    console.log(`✅ Venta ${id_venta} registrada con total $${total}`);
     res.status(201).json({ message: 'Venta registrada', id_venta, total });
 
   } catch (error) {

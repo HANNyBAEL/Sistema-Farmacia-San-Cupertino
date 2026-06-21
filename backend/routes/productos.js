@@ -69,7 +69,7 @@ router.post('/', async (req, res) => {
         type: sequelize.QueryTypes.INSERT, transaction
       }
     );
-    const id_producto = result;
+    const id_producto = result.insertId ?? result;
 
     if (categorias && categorias.length) {
       for (const catId of categorias) {
@@ -80,21 +80,16 @@ router.post('/', async (req, res) => {
       }
     }
 
-await transaction.commit();
+    await transaction.commit();
 
-    // Comparar campo por campo y registrar cada cambio
-    const anterior = await sequelize.query(
-      'SELECT nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor FROM productos WHERE id_producto = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
-    );
-    // El SELECT se ejecuta DESPUÉS del commit, así que comparamos contra los valores del body (que son los nuevos)
-    // Para capturar el anterior, hay que leerlo ANTES del UPDATE. Mover la lectura arriba:
     await registrarAuditoria({
-      tabla: 'productos', accion: 'EDITAR',
-      descripcion: `Producto editado: ${nombre_producto}`,
-      id_registro: Number(req.params.id), id_empleado, nombre_empleado
+      tabla: 'productos',
+      accion: 'CREAR',
+      descripcion: `Producto creado: ${nombre_producto}`,
+      id_registro: Number(id_producto),
+      id_empleado,
+      nombre_empleado
     });
-    console.log('✅ Producto creado:', id_producto);
     res.status(201).json({ id_producto, message: 'Producto creado' });
   } catch (error) {
     await transaction.rollback();
@@ -183,7 +178,6 @@ router.put('/:id', async (req, res) => {
       });
     }
 
-    console.log('✅ Producto actualizado:', req.params.id);
     res.json({ message: 'Producto actualizado' });
   } catch (error) {
     await transaction.rollback();
@@ -210,7 +204,6 @@ router.patch('/:id/toggle', async (req, res) => {
       descripcion: `Producto ${prod.deleted ? 'activado' : 'desactivado'}: ${prod.nombre_producto}`,
       id_registro: Number(req.params.id), id_empleado, nombre_empleado
     });
-    console.log('✅ Estado del producto actualizado:', req.params.id);
     res.json({ message: 'Estado del producto actualizado' });
   } catch (error) {
     console.error('❌ PATCH /productos/:id/toggle:', error);
@@ -273,7 +266,6 @@ router.delete('/:id', async (req, res) => {
       descripcion: `Producto eliminado: ${prod?.nombre_producto}`,
       id_registro: Number(req.params.id), id_empleado, nombre_empleado
     });
-    console.log('✅ Producto eliminado:', req.params.id);
     res.json({ message: 'Producto eliminado correctamente' });
   } catch (error) {
     await transaction.rollback();
