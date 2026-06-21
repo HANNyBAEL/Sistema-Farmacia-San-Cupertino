@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import sequelize from '../config/database.js';
 import { registrarAuditoria } from './auditoria.js';
 import { sendInvitationEmail } from '../services/email.js';
+import { ensureEmailIsUnique, handleEmailValidationError, validateEmailOrThrow } from '../utils/emailValidation.js';
 
 const router = express.Router();
 
@@ -61,6 +62,9 @@ router.post('/', async (req, res) => {
   if (!nombre || !apellido || !correo || !cargo)
     return res.status(400).json({ error: 'Faltan campos obligatorios.' });
   try {
+    const correoNormalizado = validateEmailOrThrow(correo);
+    await ensureEmailIsUnique(sequelize, 'empleados', correoNormalizado, 'id_empleado');
+
     // Generar token de invitación
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
@@ -74,7 +78,7 @@ router.post('/', async (req, res) => {
         (:nombre, :apellido, :correo, :telefono, :cargo, :password, :fecha_contratacion, 1, :dui, :nit, :cuenta_banco, :afp, 1, 1, :invitation_token, :invitation_expires)`,
       {
         replacements: {
-          nombre, apellido, correo,
+          nombre, apellido, correo: correoNormalizado,
           telefono: telefono || null,
           cargo,
           password: tempPassword,
@@ -92,7 +96,7 @@ router.post('/', async (req, res) => {
 
     // Enviar correo de invitación
     try {
-      await sendInvitationEmail(correo, `${nombre} ${apellido}`, token);
+      await sendInvitationEmail(correoNormalizado, `${nombre} ${apellido}`, token);
     } catch (mailError) {
       console.error('❌ Error enviando correo:', mailError);
       // No fallamos la creación, solo registramos el error
@@ -117,6 +121,9 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const { nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo, dui, nit, cuenta_banco, afp, id_empleado_sesion, nombre_empleado_sesion } = req.body;
   try {
+    const correoNormalizado = validateEmailOrThrow(correo);
+    await ensureEmailIsUnique(sequelize, 'empleados', correoNormalizado, 'id_empleado', req.params.id);
+
     const [anterior] = await sequelize.query(
       'SELECT nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo, dui, nit, cuenta_banco, afp, token_version FROM empleados WHERE id_empleado = :id',
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
@@ -128,7 +135,7 @@ router.put('/:id', async (req, res) => {
        WHERE id_empleado=:id`,
       {
         replacements: {
-          nombre, apellido, correo,
+          nombre, apellido, correo: correoNormalizado,
           telefono: telefono || null,
           cargo,
           fecha_contratacion: fecha_contratacion || null,
@@ -155,7 +162,7 @@ router.put('/:id', async (req, res) => {
     const campos = [
       { campo: 'nombre', nuevo: nombre, ant: anterior?.nombre },
       { campo: 'apellido', nuevo: apellido, ant: anterior?.apellido },
-      { campo: 'correo', nuevo: correo, ant: anterior?.correo },
+      { campo: 'correo', nuevo: correoNormalizado, ant: anterior?.correo },
       { campo: 'telefono', nuevo: telefono || null, ant: anterior?.telefono },
       { campo: 'cargo', nuevo: cargo, ant: anterior?.cargo },
       { campo: 'fecha_contratacion', nuevo: fecha_contratacion || null, ant: anterior?.fecha_contratacion },
@@ -218,6 +225,10 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Empleado movido a registros eliminados' });
   } catch (error) {
     console.error('❌ DELETE /empleados/:id:', error);
+    if (handleEmailValidationError(error, res)) return;
+    if (handleEmailValidationError(error, res)) return;
+    if (handleEmailValidationError(error, res)) return;
+    if (handleEmailValidationError(error, res)) return;
     res.status(500).json({ error: error.message });
   }
 });

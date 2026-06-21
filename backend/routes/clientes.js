@@ -1,6 +1,7 @@
 import express from 'express';
 import sequelize from '../config/database.js';
 import { registrarAuditoria } from './auditoria.js';
+import { ensureEmailIsUnique, handleEmailValidationError, validateEmailOrThrow } from '../utils/emailValidation.js';
 
 const router = express.Router();
 
@@ -17,6 +18,10 @@ router.get('/', async (req, res) => {
     res.json(clientes);
   } catch (error) {
     console.error('❌ GET /clientes:', error);
+    if (handleEmailValidationError(error, res)) return;
+    if (handleEmailValidationError(error, res)) return;
+    if (handleEmailValidationError(error, res)) return;
+    if (handleEmailValidationError(error, res)) return;
     res.status(500).json({ error: error.message });
   }
 });
@@ -43,10 +48,13 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const { nombre, apellido, telefono, correo, direccion, dui, id_empleado, nombre_empleado } = req.body;
   try {
+    const correoNormalizado = validateEmailOrThrow(correo);
+    await ensureEmailIsUnique(sequelize, 'clientes', correoNormalizado, 'id_cliente');
+
     const [result] = await sequelize.query(
       `INSERT INTO clientes (nombre, apellido, telefono, correo, direccion, dui, deleted)
        VALUES (:nombre, :apellido, :telefono, :correo, :direccion, :dui, 0)`,
-      { replacements: { nombre, apellido, telefono, correo, direccion: direccion || null, dui: dui || null } }
+      { replacements: { nombre, apellido, telefono, correo: correoNormalizado, direccion: direccion || null, dui: dui || null } }
     );
     await registrarAuditoria({
       tabla: 'clientes', accion: 'CREAR',
@@ -63,6 +71,11 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const { nombre, apellido, telefono, correo, direccion, dui, id_empleado, nombre_empleado } = req.body;
   try {
+    const correoNormalizado = validateEmailOrThrow(correo, { required: false });
+    if (correoNormalizado) {
+      await ensureEmailIsUnique(sequelize, 'clientes', correoNormalizado, 'id_cliente', req.params.id);
+    }
+
     const [anterior] = await sequelize.query(
       'SELECT nombre, apellido, telefono, correo, direccion, dui FROM clientes WHERE id_cliente = :id',
       { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT }
@@ -71,14 +84,14 @@ router.put('/:id', async (req, res) => {
     await sequelize.query(
       `UPDATE clientes SET nombre=:nombre, apellido=:apellido, telefono=:telefono,
        correo=:correo, direccion=:direccion, dui=:dui WHERE id_cliente=:id`,
-      { replacements: { nombre, apellido, telefono, correo, direccion: direccion || null, dui: dui || null, id: req.params.id } }
+      { replacements: { nombre, apellido, telefono, correo: correoNormalizado, direccion: direccion || null, dui: dui || null, id: req.params.id } }
     );
 
     const campos = [
       { campo: 'nombre',    nuevo: nombre,            ant: anterior?.nombre },
       { campo: 'apellido',  nuevo: apellido,          ant: anterior?.apellido },
       { campo: 'telefono',  nuevo: telefono,          ant: anterior?.telefono },
-      { campo: 'correo',    nuevo: correo,            ant: anterior?.correo },
+      { campo: 'correo',    nuevo: correoNormalizado, ant: anterior?.correo },
       { campo: 'direccion', nuevo: direccion || null, ant: anterior?.direccion },
       { campo: 'dui',       nuevo: dui || null,       ant: anterior?.dui },
     ];

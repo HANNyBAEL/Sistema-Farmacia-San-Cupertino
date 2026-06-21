@@ -135,6 +135,10 @@ function stockLabel(stock: number): string {
   return "Normal";
 }
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(email.trim());
+}
+
 // ── UI Components ─────────────────────────────────────────────────────────────
 // ── Design System Tokens ──
 // Todos los colores usan variables CSS de theme.css
@@ -1732,6 +1736,10 @@ function Ventas({ user }: { user: User }) {
       setNewClientError("Nombre, apellido y teléfono son obligatorios.");
       return;
     }
+    if (!newClientForm.correo || !isValidEmail(newClientForm.correo)) {
+      setNewClientError("Ingresa un correo electronico valido.");
+      return;
+    }
     setSavingClient(true);
     try {
       const payload = {
@@ -2133,6 +2141,9 @@ function Clientes({ user }: { user: User }) {
     if (!form.nombre || !form.apellido || !form.telefono || !form.correo) {
       setFormError("Complete los campos obligatorios."); return;
     }
+    if (!isValidEmail(form.correo)) {
+      setFormError("Ingresa un correo electronico valido."); return;
+    }
     try {
       const payload = { ...form, id_empleado: user.id, nombre_empleado: user.name };
       if (editClient) await clientesApi.update(editClient.id_cliente, payload);
@@ -2513,6 +2524,7 @@ function Proveedores({ user }: { user: User }) {
 
   async function saveForm() {
     if (!form.nombre || !form.apellido) { setFormError("Nombre y apellido son obligatorios."); return; }
+    if (!form.correo || !isValidEmail(form.correo)) { setFormError("Ingresa un correo electronico valido."); return; }
     try {
       const payload = { ...form, id_empleado: user.id, nombre_empleado: user.name };
       if (editSupplier) await proveedoresApi.update(editSupplier.id_proveedor, payload);
@@ -2851,6 +2863,10 @@ function Empleados({ user }: { user: User }) {
   async function saveForm() {
     if (!form.nombre || !form.apellido || !form.correo || !form.cargo) {
       setFormError("Complete los campos obligatorios.");
+      return;
+    }
+    if (!isValidEmail(form.correo)) {
+      setFormError("Ingresa un correo electronico valido.");
       return;
     }
     try {

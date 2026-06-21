@@ -1,6 +1,7 @@
 import express from 'express';
 import sequelize from '../config/database.js';
 import { registrarAuditoria } from './auditoria.js';
+import { ensureEmailIsUnique, handleEmailValidationError, validateEmailOrThrow } from '../utils/emailValidation.js';
 
 const router = express.Router();
 
@@ -18,6 +19,9 @@ router.get('/', async (req, res) => {
     res.json(proveedores);
   } catch (error) {
     console.error('❌ GET /proveedores:', error);
+    if (handleEmailValidationError(error, res)) return;
+    if (handleEmailValidationError(error, res)) return;
+    if (handleEmailValidationError(error, res)) return;
     res.status(500).json({ error: error.message });
   }
 });
@@ -26,10 +30,13 @@ router.post('/', async (req, res) => {
   const { nombre, apellido, telefono, correo, direccion, id_empleado, nombre_empleado } = req.body;
   if (!nombre || !apellido) return res.status(400).json({ error: 'Nombre y apellido son obligatorios' });
   try {
+    const correoNormalizado = validateEmailOrThrow(correo);
+    await ensureEmailIsUnique(sequelize, 'proveedores', correoNormalizado, 'id_proveedor');
+
     const [result] = await sequelize.query(
       `INSERT INTO proveedores (nombre, apellido, telefono, correo, direccion, deleted)
        VALUES (:nombre, :apellido, :telefono, :correo, :direccion, 0)`,
-      { replacements: { nombre, apellido, telefono: telefono||null, correo: correo||null, direccion: direccion||null } }
+      { replacements: { nombre, apellido, telefono: telefono||null, correo: correoNormalizado, direccion: direccion||null } }
     );
     await registrarAuditoria({
       tabla: 'proveedores', accion: 'CREAR',
@@ -47,10 +54,15 @@ router.put('/:id', async (req, res) => {
   const { nombre, apellido, telefono, correo, direccion, id_empleado, nombre_empleado } = req.body;
   if (!nombre || !apellido) return res.status(400).json({ error: 'Nombre y apellido son obligatorios' });
   try {
+    const correoNormalizado = validateEmailOrThrow(correo, { required: false });
+    if (correoNormalizado) {
+      await ensureEmailIsUnique(sequelize, 'proveedores', correoNormalizado, 'id_proveedor', req.params.id);
+    }
+
     await sequelize.query(
       `UPDATE proveedores SET nombre=:nombre, apellido=:apellido, telefono=:telefono,
        correo=:correo, direccion=:direccion WHERE id_proveedor=:id`,
-      { replacements: { nombre, apellido, telefono: telefono||null, correo: correo||null, direccion: direccion||null, id: req.params.id } }
+      { replacements: { nombre, apellido, telefono: telefono||null, correo: correoNormalizado, direccion: direccion||null, id: req.params.id } }
     );
     await registrarAuditoria({
       tabla: 'proveedores', accion: 'EDITAR',
