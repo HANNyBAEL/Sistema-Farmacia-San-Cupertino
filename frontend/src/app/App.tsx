@@ -988,6 +988,11 @@ function Productos({ user }: { user: User }) {
     nombre_producto:"", descripcion:"", precio:"", stock:"",
     lote:"", fecha_vencimiento:"", id_proveedor:"", codigo_barras:""
   });
+  const [originalForm, setOriginalForm] = useState({
+    nombre_producto:"", descripcion:"", precio:"", stock:"",
+    lote:"", fecha_vencimiento:"", id_proveedor:"", codigo_barras:""
+  });
+  const [originalSelectedCats, setOriginalSelectedCats] = useState<number[]>([]);
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -1052,8 +1057,11 @@ function Productos({ user }: { user: User }) {
 
   function openNew() {
     setEditProduct(null);
+    const initial = { nombre_producto:"", descripcion:"", precio:"", stock:"", lote:"", fecha_vencimiento:"", id_proveedor:"", codigo_barras:"" };
     setSelectedCats([]);
-    setForm({ nombre_producto:"", descripcion:"", precio:"", stock:"", lote:"", fecha_vencimiento:"", id_proveedor:"", codigo_barras:"" });
+    setOriginalSelectedCats([]);
+    setForm(initial);
+    setOriginalForm(initial);
     setFormError(""); setShowForm(true);
   }
 
@@ -1062,8 +1070,7 @@ function Productos({ user }: { user: User }) {
     const cats = p.categorias_ids
       ? String(p.categorias_ids).split(',').map(Number).filter(Boolean)
       : [];
-    setSelectedCats(cats);
-    setForm({
+    const initial = {
       nombre_producto: p.nombre_producto,
       descripcion: p.descripcion ?? "",
       precio: String(p.precio),
@@ -1072,7 +1079,11 @@ function Productos({ user }: { user: User }) {
       fecha_vencimiento: p.fecha_vencimiento,
       id_proveedor: String(p.id_proveedor),
       codigo_barras: p.codigo_barras ?? ""
-    });
+    };
+    setSelectedCats(cats);
+    setOriginalSelectedCats(cats);
+    setForm(initial);
+    setOriginalForm(initial);
     setFormError(""); setShowForm(true);
   }
 
@@ -1082,7 +1093,24 @@ function Productos({ user }: { user: User }) {
     );
   }
 
+  const hasProductChanges = () => {
+    const sameForm =
+      form.nombre_producto === originalForm.nombre_producto &&
+      form.descripcion === originalForm.descripcion &&
+      form.precio === originalForm.precio &&
+      form.stock === originalForm.stock &&
+      form.lote === originalForm.lote &&
+      form.fecha_vencimiento === originalForm.fecha_vencimiento &&
+      form.id_proveedor === originalForm.id_proveedor &&
+      form.codigo_barras === originalForm.codigo_barras;
+
+    const currentCats = [...selectedCats].sort((a, b) => a - b).join(",");
+    const originalCats = [...originalSelectedCats].sort((a, b) => a - b).join(",");
+    return !sameForm || currentCats !== originalCats;
+  };
+
   async function saveForm() {
+    if (editProduct && !hasProductChanges()) return;
     if (!form.nombre_producto || !form.precio || !form.stock || !form.lote || !form.fecha_vencimiento || !form.id_proveedor) {
       setFormError("Complete todos los campos obligatorios."); return;
     }
@@ -1445,7 +1473,9 @@ function Productos({ user }: { user: User }) {
 
             <div className="flex justify-end gap-3 mt-6">
               <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-              <Btn variant="primary" onClick={saveForm}><Check size={14} /> Guardar</Btn>
+              <Btn variant="primary" onClick={saveForm} disabled={!hasProductChanges()}>
+                <Check size={14} /> {editProduct ? "Guardar cambios" : "Guardar"}
+              </Btn>
             </div>
           </Card>
         </div>
@@ -2172,6 +2202,7 @@ function Clientes({ user }: { user: User }) {
   }
 
   async function saveForm() {
+    if (editClient && !hasChanges()) return;
     if (!form.nombre || !form.apellido || !form.telefono || !form.correo) {
       setFormError("Complete los campos obligatorios."); return;
     }
@@ -2557,6 +2588,7 @@ function Proveedores({ user }: { user: User }) {
   }
 
   async function saveForm() {
+    if (editSupplier && !hasChanges()) return;
     if (!form.nombre || !form.apellido) { setFormError("Nombre y apellido son obligatorios."); return; }
     if (!form.correo || !isValidEmail(form.correo)) { setFormError("Ingresa un correo electronico valido."); return; }
     try {
@@ -2833,6 +2865,11 @@ function Empleados({ user }: { user: User }) {
     cargo: "cajero", fecha_contratacion: "",
     dui: "", nit: "", cuenta_banco: "", afp: ""
   });
+  const [originalForm, setOriginalForm] = useState({
+    nombre: "", apellido: "", correo: "", telefono: "",
+    cargo: "cajero", fecha_contratacion: "",
+    dui: "", nit: "", cuenta_banco: "", afp: ""
+  });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; empleadoId: number | null }>({ isOpen: false, empleadoId: null });
   const [toggleModal, setToggleModal] = useState<{ isOpen: boolean; empleadoId: number | null; activo: number }>({ isOpen: false, empleadoId: null, activo: 0 });
@@ -2876,25 +2913,42 @@ function Empleados({ user }: { user: User }) {
 
   function openNew() {
     setEditEmp(null);
-    setForm({ nombre: "", apellido: "", correo: "", telefono: "", cargo: "cajero", fecha_contratacion: "", dui: "", nit: "", cuenta_banco: "", afp: "" });
+    const initial = { nombre: "", apellido: "", correo: "", telefono: "", cargo: "cajero", fecha_contratacion: "", dui: "", nit: "", cuenta_banco: "", afp: "" };
+    setForm(initial);
+    setOriginalForm(initial);
     setFormError("");
     setShowForm(true);
   }
 
   function openEdit(emp: Empleado) {
     setEditEmp(emp);
-    setForm({
+    const initial = {
       nombre: emp.nombre, apellido: emp.apellido, correo: emp.correo,
       telefono: emp.telefono ?? "", cargo: emp.cargo,
       fecha_contratacion: emp.fecha_contratacion ?? "",
       dui: emp.dui ?? "", nit: emp.nit ?? "",
       cuenta_banco: emp.cuenta_banco ?? "", afp: emp.afp ?? ""
-    });
+    };
+    setForm(initial);
+    setOriginalForm(initial);
     setFormError("");
     setShowForm(true);
   }
 
+  const hasEmployeeChanges = () =>
+    form.nombre !== originalForm.nombre ||
+    form.apellido !== originalForm.apellido ||
+    form.correo !== originalForm.correo ||
+    form.telefono !== originalForm.telefono ||
+    form.cargo !== originalForm.cargo ||
+    form.fecha_contratacion !== originalForm.fecha_contratacion ||
+    form.dui !== originalForm.dui ||
+    form.nit !== originalForm.nit ||
+    form.cuenta_banco !== originalForm.cuenta_banco ||
+    form.afp !== originalForm.afp;
+
   async function saveForm() {
+    if (editEmp && !hasEmployeeChanges()) return;
     if (!form.nombre || !form.apellido || !form.correo || !form.cargo) {
       setFormError("Complete los campos obligatorios.");
       return;
@@ -3162,7 +3216,7 @@ function Empleados({ user }: { user: User }) {
       {/* ── Modal de formulario ── */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-foreground">
                 {editEmp ? "Editar Empleado" : "Nuevo Empleado"}
@@ -3191,7 +3245,7 @@ function Empleados({ user }: { user: User }) {
                 <Input type="email" value={form.correo} onChange={v => setForm(p => ({ ...p, correo: v }))} placeholder="correo@ejemplo.com" />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
                   <input
@@ -3261,7 +3315,9 @@ function Empleados({ user }: { user: User }) {
 
             <div className="flex justify-end gap-3 mt-6">
               <Btn variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Btn>
-              <Btn variant="primary" onClick={saveForm}><Check size={14} /> Guardar</Btn>
+              <Btn variant="primary" onClick={saveForm} disabled={!hasEmployeeChanges()}>
+                <Check size={14} /> {editEmp ? "Guardar cambios" : "Guardar"}
+              </Btn>
             </div>
           </Card>
         </div>
