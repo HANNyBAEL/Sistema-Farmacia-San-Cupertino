@@ -2998,7 +2998,7 @@ function Empleados({ user }: { user: User }) {
         setToast({ message: 'Empleado actualizado correctamente.', type: 'success' });
       } else {
         await empleadosApi.create(payload);
-        setToast({ message: 'Empleado registrado. Se ha enviado un correo de invitación.', type: 'success' });
+        setToast({ message: 'Empleado registrado. Se le ha enviado la invitacion a su correo.', type: 'success' });
       }
       setShowForm(false);
       load();
@@ -4345,7 +4345,8 @@ export default function App() {
   const [tokenTemp, setTokenTemp] = useState<string | null>(null);
 
   useEffect(() => {
-    if (window.location.pathname.includes('/establecer-contrasena')) {
+    const params = new URLSearchParams(window.location.search);
+    if (window.location.pathname.includes('/establecer-contrasena') || params.has('establecer-contrasena')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setUser(null);

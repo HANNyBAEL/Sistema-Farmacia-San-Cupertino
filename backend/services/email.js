@@ -149,7 +149,10 @@ export const sendRecoveryEmail = async (email, codigo) => {
 // 3️⃣  INVITACIÓN A NUEVO EMPLEADO
 // ═══════════════════════════════════════════════════════════
 export const sendInvitationEmail = async (email, nombre, token) => {
-  const link = `${process.env.FRONTEND_URL}/establecer-contrasena?token=${token}`;
+  const frontendUrl = new URL(process.env.FRONTEND_URL);
+  frontendUrl.searchParams.set('establecer-contrasena', '1');
+  frontendUrl.searchParams.set('token', token);
+  const link = frontendUrl.toString();
   if (!apiKey) throw new Error('SENDGRID_API_KEY no configurada');
 
   const msg = {
