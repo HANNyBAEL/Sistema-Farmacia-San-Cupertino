@@ -28,6 +28,8 @@ import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
 import { useTheme } from '../context/ThemeContext';
 
+const RECAPTCHA_SITE_KEY = "6LdDLSwtAAAAAMV99lVq8BVVobDd5AxAPxGY252J";
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Role = "administrador" | "farmaceutico" | "cajero";
@@ -602,11 +604,14 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
 
   async function handleLogin() {
     if (!email || !password) { setError("Complete todos los campos."); return; }
+    const recaptchaToken = window.grecaptcha?.getResponse();
+    if (!recaptchaToken) { setError("Confirma que no eres un robot."); return; }
     setLoading(true); setError("");
     try {
-      const data = await login(email, password);
+      const data = await login(email, password, recaptchaToken);
       onLogin({ name: data.nombre, role: data.rol, id: data.id });
     } catch (err: any) {
+      window.grecaptcha?.reset();
       setError(err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.");
     } finally { setLoading(false); }
   }
@@ -638,6 +643,10 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="mt-4 flex justify-center overflow-hidden">
+        <div className="g-recaptcha" data-sitekey={RECAPTCHA_SITE_KEY}></div>
       </div>
 
       <ErrorAlert message={error} />

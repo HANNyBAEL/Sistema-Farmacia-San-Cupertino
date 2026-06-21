@@ -1,7 +1,8 @@
 import api from './api';
 
-export const login = async (correo, contraseña) => {
-  const { data } = await api.post('/auth/login', { correo, contraseña });
+export const login = async (correo, contrasena, recaptchaToken) => {
+  const passwordField = 'contrase\u00f1a';
+  const { data } = await api.post('/auth/login', { correo, [passwordField]: contrasena, recaptchaToken });
   localStorage.setItem('token', data.token);
   return data; // { token, rol, nombre, id }
 };

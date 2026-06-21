@@ -8,11 +8,48 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
+async function verifyRecaptchaToken(recaptchaToken, remoteIp) {
+  if (!process.env.RECAPTCHA_SECRET_KEY) {
+    throw new Error('RECAPTCHA_SECRET_KEY no configurada');
+  }
+
+  const params = new URLSearchParams({
+    secret: process.env.RECAPTCHA_SECRET_KEY,
+    response: recaptchaToken,
+  });
+
+  if (remoteIp) {
+    params.append('remoteip', remoteIp);
+  }
+
+  const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params,
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudo verificar reCAPTCHA');
+  }
+
+  const data = await response.json();
+  return data.success === true;
+}
+
 // ─── LOGIN ────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   const { correo, contraseña } = req.body;
 
   try {
+    if (!req.body.recaptchaToken) {
+      return res.status(400).json({ error: 'Confirma que no eres un robot' });
+    }
+
+    const recaptchaValid = await verifyRecaptchaToken(req.body.recaptchaToken, req.ip);
+    if (!recaptchaValid) {
+      return res.status(400).json({ error: 'Verificacion de reCAPTCHA fallida' });
+    }
+
     const [user] = await sequelize.query(
       `SELECT id_empleado, nombre, apellido, correo, password_hash, cargo, activo, papelera, token_version
        FROM empleados 

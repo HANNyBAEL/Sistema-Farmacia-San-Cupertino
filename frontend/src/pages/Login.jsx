@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { login } from '../services/auth';
 import { useNavigate } from 'react-router-dom';
 
+const RECAPTCHA_SITE_KEY = '6LdDLSwtAAAAAMV99lVq8BVVobDd5AxAPxGY252J';
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,12 +13,19 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const data = await login(email, password);
+      const recaptchaToken = window.grecaptcha?.getResponse();
+      if (!recaptchaToken) {
+        setError('Confirma que no eres un robot');
+        return;
+      }
+
+      const data = await login(email, password, recaptchaToken);
       localStorage.setItem('token', data.token);
       // Opcional: guardar datos de usuario en contexto o estado global
       navigate('/dashboard');
     } catch (err) {
-      setError('Credenciales incorrectas');
+      window.grecaptcha?.reset();
+      setError(err?.response?.data?.error || 'Credenciales incorrectas');
     }
   };
 
@@ -31,13 +40,14 @@ const Login = () => {
       />
       <input
         type="password"
-        placeholder="Contraseña"
+        placeholder="Contrasena"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
       />
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <button type="submit">Iniciar Sesión</button>
+      <div className="g-recaptcha" data-sitekey={RECAPTCHA_SITE_KEY}></div>
+      <button type="submit">Iniciar Sesion</button>
     </form>
   );
 };
