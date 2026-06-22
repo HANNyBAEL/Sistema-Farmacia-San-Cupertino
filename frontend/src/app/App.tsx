@@ -28,7 +28,7 @@ import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
 import { useTheme } from '../context/ThemeContext';
 
-const RECAPTCHA_SITE_KEY = "6LdDLSwtAAAAAMV99lVq8BVVobDd5AxAPxGY252J";
+const RECAPTCHA_SITE_KEY = "6Lc-5S0tAAAAANGcokPZobPlAHatfcoNRBqQeMYb";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
