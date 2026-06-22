@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { login } from '../services/auth';
 import { useNavigate } from 'react-router-dom';
 
-const RECAPTCHA_SITE_KEY = '6LdDLSwtAAAAAMV99lVq8BVVobDd5AxAPxGY252J';
+const RECAPTCHA_SITE_KEY = '6Lc-5S0tAAAAANGcokPZobPlAHatfcoNRBqQeMYb';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,10 +10,24 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const executeRecaptcha = () => {
+    return new Promise((resolve, reject) => {
+      if (window.grecaptcha) {
+        window.grecaptcha.ready(() => {
+          window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'login' })
+            .then(resolve)
+            .catch(reject);
+        });
+      } else {
+        reject(new Error('reCAPTCHA no cargado'));
+      }
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const recaptchaToken = window.grecaptcha?.getResponse();
+      const recaptchaToken = await executeRecaptcha();
       if (!recaptchaToken) {
         setError('Confirma que no eres un robot');
         return;
@@ -21,11 +35,9 @@ const Login = () => {
 
       const data = await login(email, password, recaptchaToken);
       localStorage.setItem('token', data.token);
-      // Opcional: guardar datos de usuario en contexto o estado global
       navigate('/dashboard');
     } catch (err) {
-      window.grecaptcha?.reset();
-      setError(err?.response?.data?.error || 'Credenciales incorrectas');
+      setError(err?.response?.data?.error || 'Error de verificación. Inténtalo de nuevo.');
     }
   };
 
@@ -46,7 +58,6 @@ const Login = () => {
         required
       />
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <div className="g-recaptcha" data-sitekey={RECAPTCHA_SITE_KEY}></div>
       <button type="submit">Iniciar Sesion</button>
     </form>
   );
