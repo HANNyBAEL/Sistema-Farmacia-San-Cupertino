@@ -2,6 +2,13 @@ import api from './api';
 
 export const login = async (correo, contrasena, recaptchaToken) => {
   const passwordField = 'contrase\u00f1a';
+  if (import.meta.env.DEV || localStorage.getItem('recaptchaDebug') === 'true') {
+    console.log('[reCAPTCHA] enviando token en login', {
+      field: 'recaptchaToken',
+      tokenLength: recaptchaToken?.length ?? 0,
+      tokenPreview: recaptchaToken ? `${recaptchaToken.slice(0, 12)}...` : '',
+    });
+  }
   const { data } = await api.post('/auth/login', { correo, [passwordField]: contrasena, recaptchaToken });
   localStorage.setItem('token', data.token);
   return data; // { token, rol, nombre, id }

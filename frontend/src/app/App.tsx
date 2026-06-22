@@ -29,6 +29,8 @@ import logoImg from "../imports/logo.png";
 import { useTheme } from '../context/ThemeContext';
 
 const RECAPTCHA_SITE_KEY = "6Lc-5S0tAAAAANGcokPZobPlAHatfcoNRBqQeMYb";
+const isRecaptchaDebugEnabled = () =>
+  import.meta.env.DEV || localStorage.getItem("recaptchaDebug") === "true";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -369,6 +371,9 @@ const RecaptchaBox = React.forwardRef<RecaptchaHandle, { action: string }>(({ ac
       }
 
       window.grecaptcha.ready(() => {
+        if (isRecaptchaDebugEnabled()) {
+          console.log("[reCAPTCHA] listo para ejecutar", { action });
+        }
         if (!cancelled) setReady(true);
       });
     };
@@ -384,7 +389,15 @@ const RecaptchaBox = React.forwardRef<RecaptchaHandle, { action: string }>(({ ac
   React.useImperativeHandle(ref, () => ({
     getToken: async () => {
       if (!window.grecaptcha?.execute) return "";
-      return window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
+      const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
+      if (isRecaptchaDebugEnabled()) {
+        console.log("[reCAPTCHA] token generado", {
+          action,
+          tokenLength: token.length,
+          tokenPreview: `${token.slice(0, 12)}...`,
+        });
+      }
+      return token;
     },
     reset: () => {},
   }));
@@ -460,6 +473,7 @@ function EstablecerContrasena({ token, onSuccess }: { token: string | null; onSu
   const [success, setSuccess] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const recaptchaRef = useRef<RecaptchaHandle | null>(null);
 
   const handleSubmit = async () => {
     if (!token) { setError('Token de invitación inválido'); return; }
@@ -467,7 +481,12 @@ function EstablecerContrasena({ token, onSuccess }: { token: string | null; onSu
     if (password !== confirmPassword) { setError('Las contraseñas no coinciden'); return; }
     setLoading(true); setError('');
     try {
-      await api.post('/auth/establecer-contrasena', { token, password });
+      const recaptchaToken = await (recaptchaRef.current?.getToken() ?? Promise.resolve(""));
+      if (!recaptchaToken) {
+        setError('Confirma que no eres un robot.');
+        return;
+      }
+      await api.post('/auth/establecer-contrasena', { token, password, recaptchaToken });
       setSuccess(true);
       setTimeout(onSuccess, 2000);
     } catch (e: any) { setError(e?.response?.data?.error || 'Error al establecer la contraseña'); }
@@ -516,6 +535,7 @@ function EstablecerContrasena({ token, onSuccess }: { token: string | null; onSu
           </div>
         </div>
       </div>
+      <RecaptchaBox ref={recaptchaRef} action="employee_invitation_password" />
       <ErrorAlert message={error} />
       <Btn variant="primary" className="w-full mt-6" onClick={handleSubmit} disabled={loading}>
         {loading ? 'Estableciendo...' : 'Establecer contraseña'}
