@@ -33,7 +33,8 @@ async function verifyRecaptchaToken(recaptchaToken, remoteIp) {
   }
 
   const data = await response.json();
-  return data.success === true;
+  // For reCAPTCHA v3, verify success and score >= 0.5
+  return data.success === true && data.score >= 0.5;
 }
 
 // ─── LOGIN ────────────────────────────────────────────────
