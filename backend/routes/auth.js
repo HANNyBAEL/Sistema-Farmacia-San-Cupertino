@@ -8,7 +8,7 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-async function verifyRecaptchaToken(recaptchaToken, remoteIp) {
+async function verifyRecaptchaToken(recaptchaToken, expectedAction, remoteIp) {
   if (!process.env.RECAPTCHA_SECRET_KEY) {
     throw new Error('RECAPTCHA_SECRET_KEY no configurada');
   }
@@ -33,8 +33,8 @@ async function verifyRecaptchaToken(recaptchaToken, remoteIp) {
   }
 
   const data = await response.json();
-  // For reCAPTCHA v3, verify success and score >= 0.5
-  return data.success === true && data.score >= 0.5;
+  const minScore = Number(process.env.RECAPTCHA_MIN_SCORE ?? 0.5);
+  return data.success === true && data.action === expectedAction && data.score >= minScore;
 }
 
 // ─── LOGIN ────────────────────────────────────────────────
@@ -46,7 +46,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Confirma que no eres un robot' });
     }
 
-    const recaptchaValid = await verifyRecaptchaToken(req.body.recaptchaToken, req.ip);
+    const recaptchaValid = await verifyRecaptchaToken(req.body.recaptchaToken, 'login', req.ip);
     if (!recaptchaValid) {
       return res.status(400).json({ error: 'Verificacion de reCAPTCHA fallida' });
     }
@@ -182,7 +182,7 @@ router.post('/solicitar-recuperacion', async (req, res) => {
   if (!recaptchaToken) return res.status(400).json({ error: 'Confirma que no eres un robot' });
 
   try {
-    const recaptchaValid = await verifyRecaptchaToken(recaptchaToken, req.ip);
+    const recaptchaValid = await verifyRecaptchaToken(recaptchaToken, 'password_recovery_request', req.ip);
     if (!recaptchaValid) {
       return res.status(400).json({ error: 'Verificacion de reCAPTCHA fallida' });
     }
@@ -231,7 +231,7 @@ router.post('/recuperar-contrasena', async (req, res) => {
   if (!recaptchaToken) return res.status(400).json({ error: 'Confirma que no eres un robot' });
 
   try {
-    const recaptchaValid = await verifyRecaptchaToken(recaptchaToken, req.ip);
+    const recaptchaValid = await verifyRecaptchaToken(recaptchaToken, 'password_recovery_reset', req.ip);
     if (!recaptchaValid) {
       return res.status(400).json({ error: 'Verificacion de reCAPTCHA fallida' });
     }

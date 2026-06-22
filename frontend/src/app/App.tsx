@@ -349,58 +349,47 @@ function AuthCard({ children, maxWidth = "max-w-sm" }: { children: React.ReactNo
 }
 
 type RecaptchaHandle = {
-  getToken: () => string;
+  getToken: () => Promise<string>;
   reset: () => void;
 };
 
-const RecaptchaBox = React.forwardRef<RecaptchaHandle>((_, ref) => {
-  const recaptchaRef = useRef<HTMLDivElement | null>(null);
-  const recaptchaWidgetId = useRef<number | null>(null);
+const RecaptchaBox = React.forwardRef<RecaptchaHandle, { action: string }>(({ action }, ref) => {
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     let retryTimer: number | undefined;
 
-    const renderRecaptcha = () => {
-      if (cancelled || !recaptchaRef.current || recaptchaWidgetId.current !== null) return;
+    const waitForRecaptcha = () => {
+      if (cancelled) return;
 
-      if (!window.grecaptcha?.render) {
-        retryTimer = window.setTimeout(renderRecaptcha, 250);
+      if (!window.grecaptcha?.ready || !window.grecaptcha?.execute) {
+        retryTimer = window.setTimeout(waitForRecaptcha, 250);
         return;
       }
 
-      recaptchaWidgetId.current = window.grecaptcha.render(recaptchaRef.current, {
-        sitekey: RECAPTCHA_SITE_KEY,
+      window.grecaptcha.ready(() => {
+        if (!cancelled) setReady(true);
       });
     };
 
-    renderRecaptcha();
+    waitForRecaptcha();
 
     return () => {
       cancelled = true;
       if (retryTimer) window.clearTimeout(retryTimer);
-      if (recaptchaWidgetId.current !== null) {
-        window.grecaptcha?.reset(recaptchaWidgetId.current);
-        recaptchaWidgetId.current = null;
-      }
-      if (recaptchaRef.current) recaptchaRef.current.innerHTML = "";
     };
   }, []);
 
   React.useImperativeHandle(ref, () => ({
-    getToken: () => recaptchaWidgetId.current !== null
-      ? window.grecaptcha?.getResponse(recaptchaWidgetId.current) ?? ""
-      : "",
-    reset: () => {
-      if (recaptchaWidgetId.current !== null) window.grecaptcha?.reset(recaptchaWidgetId.current);
+    getToken: async () => {
+      if (!window.grecaptcha?.execute) return "";
+      return window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
     },
+    reset: () => {},
   }));
 
-  return (
-    <div className="mt-4 flex justify-center overflow-hidden">
-      <div ref={recaptchaRef}></div>
-    </div>
-  );
+  return ready ? null : <p className="text-xs text-muted-foreground text-center mt-3">Preparando verificacion...</p>;
 });
 RecaptchaBox.displayName = "RecaptchaBox";
 
@@ -551,7 +540,7 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
 
   const handleSolicitar = async () => {
     if (!email) { setError('Ingresa tu correo electronico'); return; }
-    const recaptchaToken = solicitarRecaptchaRef.current?.getToken() ?? "";
+    const recaptchaToken = await (solicitarRecaptchaRef.current?.getToken() ?? Promise.resolve(""));
     if (!recaptchaToken) { setError('Confirma que no eres un robot.'); return; }
     setLoading(true); setError('');
     try {
@@ -566,7 +555,7 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
   const handleVerificar = async () => {
     if (!codigo || !password || password !== confirmPassword) { setError('Completa todos los campos y verifica que las contrasenas coincidan'); return; }
     if (password.length < 6) { setError('La contrasena debe tener al menos 6 caracteres'); return; }
-    const recaptchaToken = verificarRecaptchaRef.current?.getToken() ?? "";
+    const recaptchaToken = await (verificarRecaptchaRef.current?.getToken() ?? Promise.resolve(""));
     if (!recaptchaToken) { setError('Confirma que no eres un robot.'); return; }
     setLoading(true); setError('');
     try {
@@ -612,7 +601,7 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
             <label className="block text-sm font-medium text-foreground mb-1.5">Correo electrónico</label>
             <Input type="email" value={email} onChange={setEmail} placeholder="tu@correo.com" />
           </div>
-          <RecaptchaBox ref={solicitarRecaptchaRef} />
+          <RecaptchaBox ref={solicitarRecaptchaRef} action="password_recovery_request" />
           <ErrorAlert message={error} />
           <Btn variant="primary" className="w-full" onClick={handleSolicitar} disabled={loading}>
             {loading ? 'Enviando...' : 'Enviar código'}
@@ -647,7 +636,7 @@ function RecuperarContrasena({ onSuccess }: { onSuccess: () => void }) {
               </button>
             </div>
           </div>
-          <RecaptchaBox ref={verificarRecaptchaRef} />
+          <RecaptchaBox ref={verificarRecaptchaRef} action="password_recovery_reset" />
           <ErrorAlert message={error} />
           <Btn variant="primary" className="w-full" onClick={handleVerificar} disabled={loading}>
             {loading ? 'Restableciendo...' : 'Restablecer contraseña'}
@@ -674,7 +663,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
 
   async function handleLogin() {
     if (!email || !password) { setError("Complete todos los campos."); return; }
-    const recaptchaToken = loginRecaptchaRef.current?.getToken() ?? "";
+    const recaptchaToken = await (loginRecaptchaRef.current?.getToken() ?? Promise.resolve(""));
     if (!recaptchaToken) { setError("Confirma que no eres un robot."); return; }
     setLoading(true); setError("");
     try {
@@ -715,7 +704,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
         </div>
       </div>
 
-      <RecaptchaBox ref={loginRecaptchaRef} />
+      <RecaptchaBox ref={loginRecaptchaRef} action="login" />
 
       <ErrorAlert message={error} />
       <Btn variant="primary" size="lg" className="w-full mt-6" onClick={handleLogin} disabled={loading}>
