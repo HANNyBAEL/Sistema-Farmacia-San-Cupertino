@@ -221,6 +221,18 @@ function ErrorAlert({ message }: { message: string }) {
 function PageLayout({ title, subtitle, children, actions }: {
   title: string; subtitle?: string; children: React.ReactNode; actions?: React.ReactNode;
 }) {
+  const increaseTextSize = () => {
+    const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
+    const newSize = Math.min(currentSize + 2, 24);
+    document.documentElement.style.fontSize = `${newSize}px`;
+  };
+
+  const decreaseTextSize = () => {
+    const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
+    const newSize = Math.max(currentSize - 2, 12);
+    document.documentElement.style.fontSize = `${newSize}px`;
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -228,7 +240,15 @@ function PageLayout({ title, subtitle, children, actions }: {
           <h1 className="text-xl font-bold text-foreground">{title}</h1>
           {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{actions}</div>}
+        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+          <button onClick={decreaseTextSize} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Reducir texto">
+            <MinusIcon size={16} />
+          </button>
+          <button onClick={increaseTextSize} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Aumentar texto">
+            <PlusIcon size={16} />
+          </button>
+          {actions}
+        </div>
       </div>
       {children}
     </div>
@@ -834,22 +854,6 @@ function Sidebar({ user, current, onNav, onLogout }: {
             <button onClick={toggleTheme} className="text-sidebar-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
               title={theme === 'light' ? 'Modo oscuro' : 'Modo claro'}>
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-            </button>
-            <button onClick={() => {
-              const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
-              const newSize = Math.min(currentSize + 2, 24);
-              document.documentElement.style.fontSize = `${newSize}px`;
-            }} className="text-sidebar-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
-              title="Aumentar texto">
-              <PlusIcon size={15} />
-            </button>
-            <button onClick={() => {
-              const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
-              const newSize = Math.max(currentSize - 2, 12);
-              document.documentElement.style.fontSize = `${newSize}px`;
-            }} className="text-sidebar-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
-              title="Reducir texto">
-              <MinusIcon size={15} />
             </button>
             <button onClick={onLogout} className="text-sidebar-foreground/40 hover:text-destructive transition-colors p-1">
               <LogOut size={15} />
