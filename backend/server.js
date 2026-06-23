@@ -8,6 +8,7 @@ import pool from './db.js';
 
 // Importa Sequelize si lo usas para modelos
 import sequelize from './config/database.js';
+import { createRateLimiter, noStoreApiCache, securityHeaders } from './middlewares/security.js';
 
 // Importa rutas
 import authRoutes from './routes/auth.js';
@@ -23,6 +24,10 @@ import auditoriaRoutes from './routes/auditoria.js';
 import facturasRoutes from './routes/facturasRoutes.js';
 
 const app = express();
+
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+app.use(securityHeaders);
 
 // ✅ CORS primero
 const allowedOrigins = [
@@ -50,6 +55,25 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // ✅ Rutas DESPUÉS de los parsers
+app.use('/api', noStoreApiCache);
+
+const authRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Demasiados intentos. Espera unos minutos antes de volver a intentar.',
+});
+
+const passwordRecoveryRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Demasiadas solicitudes. Espera unos minutos antes de volver a intentar.',
+});
+
+app.use('/api/auth/login', authRateLimiter);
+app.use('/api/auth/establecer-contrasena', passwordRecoveryRateLimiter);
+app.use('/api/auth/solicitar-recuperacion', passwordRecoveryRateLimiter);
+app.use('/api/auth/recuperar-contrasena', passwordRecoveryRateLimiter);
+
 app.use('/api/auth',        authRoutes);
 app.use('/api/productos',   productoRoutes);
 app.use('/api/ventas',      ventaRoutes);
