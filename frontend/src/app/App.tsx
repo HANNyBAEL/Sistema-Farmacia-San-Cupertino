@@ -743,15 +743,15 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: Role[] }[] = [
   { screen: "dashboard",    label: "Dashboard",             icon: <LayoutDashboard size={18}/>, roles: ["administrador"] },
-  { screen: "ventas",       label: "Ventas (POS)",           icon: <ShoppingCart size={18}/>,    roles: ["administrador","cajero"] },
-  { screen: "productos",    label: "Productos",              icon: <Package size={18}/>,          roles: ["administrador","farmaceutico"] },
-  { screen: "clientes",     label: "Clientes",               icon: <Users size={18}/>,            roles: ["administrador"] },
-  { screen: "empleados",    label: "Empleados",              icon: <UserCog size={18}/>,          roles: ["administrador"] },
-  { screen: "proveedores",  label: "Proveedores",            icon: <Truck size={18}/>,            roles: ["administrador","farmaceutico"] },
-  { screen: "alertas",      label: "Alertas de Stock",       icon: <Bell size={18}/>,             roles: ["administrador","farmaceutico"] },
-  { screen: "historial",    label: "Historial de Ventas",    icon: <History size={18}/>,          roles: ["administrador","farmaceutico"] },
-  { screen: "eliminados",   label: "Registros Eliminados",   icon: <Trash2 size={18}/>,           roles: ["administrador"] },
-  { screen: "auditoria", label: "Auditoría", icon: <Shield size={18} />, roles: ["administrador"] },
+  { screen: "ventas",       label: "Ventas (POS)",          icon: <ShoppingCart size={18}/>,    roles: ["administrador","cajero"] },
+  { screen: "productos",    label: "Productos",             icon: <Package size={18}/>,          roles: ["administrador","farmaceutico"] },
+  { screen: "clientes",     label: "Clientes",              icon: <Users size={18}/>,            roles: ["administrador"] },
+  { screen: "empleados",    label: "Empleados",             icon: <UserCog size={18}/>,          roles: ["administrador"] },
+  { screen: "proveedores",  label: "Proveedores",           icon: <Truck size={18}/>,            roles: ["administrador","farmaceutico"] },
+  { screen: "alertas",      label: "Alertas de Stock",      icon: <Bell size={18}/>,             roles: ["administrador","farmaceutico"] },
+  { screen: "historial",    label: "Historial de Ventas",   icon: <History size={18}/>,          roles: ["administrador"] },
+  { screen: "eliminados",   label: "Registros Eliminados",  icon: <Trash2 size={18}/>,           roles: ["administrador"] },
+  { screen: "auditoria",    label: "Auditoría",             icon: <Shield size={18} />,          roles: ["administrador"] },
 ];
 
 function Sidebar({ user, current, onNav, onLogout }: {
