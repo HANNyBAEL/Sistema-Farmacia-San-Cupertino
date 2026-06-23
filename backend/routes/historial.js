@@ -37,6 +37,7 @@ router.get('/', async (req, res) => {
       `SELECT
          v.id_venta,
          DATE_FORMAT(v.fecha, '%Y-%m-%d') AS fecha,
+         DATE_FORMAT(v.fecha, '%H:%i:%s') AS hora,
          v.total,
          v.id_cliente,
          CONCAT(c.nombre, ' ', c.apellido) AS cliente,

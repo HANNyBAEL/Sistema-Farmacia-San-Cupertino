@@ -8,7 +8,10 @@ import {
   DollarSign, Menu, ArrowLeft, Moon, Sun,
   FileSpreadsheet,
   Camera,
-  RotateCcw
+  RotateCcw,
+  Power,
+  Plus as PlusIcon,
+  Minus as MinusIcon
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { login } from "../services/auth";
@@ -750,7 +753,7 @@ const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: 
   { screen: "proveedores",  label: "Proveedores",           icon: <Truck size={18}/>,            roles: ["administrador","farmaceutico"] },
   { screen: "alertas",      label: "Alertas de Stock",      icon: <Bell size={18}/>,             roles: ["administrador","farmaceutico"] },
   { screen: "historial",    label: "Historial de Ventas",   icon: <History size={18}/>,          roles: ["administrador"] },
-  { screen: "eliminados",   label: "Registros Eliminados",  icon: <Trash2 size={18}/>,           roles: ["administrador"] },
+  { screen: "eliminados",   label: "Registros Desactivados",  icon: <Trash2 size={18}/>,           roles: ["administrador"] },
   { screen: "auditoria",    label: "Auditoría",             icon: <Shield size={18} />,          roles: ["administrador"] },
 ];
 
@@ -831,6 +834,22 @@ function Sidebar({ user, current, onNav, onLogout }: {
             <button onClick={toggleTheme} className="text-sidebar-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
               title={theme === 'light' ? 'Modo oscuro' : 'Modo claro'}>
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
+            <button onClick={() => {
+              const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
+              const newSize = Math.min(currentSize + 2, 24);
+              document.documentElement.style.fontSize = `${newSize}px`;
+            }} className="text-sidebar-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
+              title="Aumentar texto">
+              <PlusIcon size={15} />
+            </button>
+            <button onClick={() => {
+              const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
+              const newSize = Math.max(currentSize - 2, 12);
+              document.documentElement.style.fontSize = `${newSize}px`;
+            }} className="text-sidebar-foreground/40 hover:text-sidebar-accent-foreground transition-colors p-1"
+              title="Reducir texto">
+              <MinusIcon size={15} />
             </button>
             <button onClick={onLogout} className="text-sidebar-foreground/40 hover:text-destructive transition-colors p-1">
               <LogOut size={15} />
@@ -2477,11 +2496,25 @@ function Clientes({ user }: { user: User }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" />
+                  <Input 
+                    value={form.nombre} 
+                    onChange={v => {
+                      const value = v.replace(/[0-9]/g, '');
+                      setForm(p => ({ ...p, nombre: value }));
+                    }} 
+                    placeholder="Nombre" 
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" />
+                  <Input 
+                    value={form.apellido} 
+                    onChange={v => {
+                      const value = v.replace(/[0-9]/g, '');
+                      setForm(p => ({ ...p, apellido: value }));
+                    }} 
+                    placeholder="Apellido" 
+                  />
                 </div>
               </div>
               <div>
@@ -2498,7 +2531,10 @@ function Clientes({ user }: { user: User }) {
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono *</label>
                 <input
                   value={formatPhone(form.telefono)}
-                  onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
+                  onChange={e => {
+                    const value = e.target.value.replace(/[^0-9-]/g, '');
+                    setForm(prev => ({ ...prev, telefono: value }));
+                  }}
                   placeholder="0000-0000"
                   maxLength={9}
                   className={fmtClass}
@@ -2831,16 +2867,37 @@ function Proveedores({ user }: { user: User }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" />
+                  <Input 
+                    value={form.nombre} 
+                    onChange={v => {
+                      const value = v.replace(/[0-9]/g, '');
+                      setForm(p => ({ ...p, nombre: value }));
+                    }} 
+                    placeholder="Nombre" 
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" />
+                  <Input 
+                    value={form.apellido} 
+                    onChange={v => {
+                      const value = v.replace(/[0-9]/g, '');
+                      setForm(p => ({ ...p, apellido: value }));
+                    }} 
+                    placeholder="Apellido" 
+                  />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
-                <Input value={form.telefono} onChange={v => setForm(p => ({ ...p, telefono: v }))} placeholder="0000-0000" />
+                <Input 
+                  value={form.telefono} 
+                  onChange={v => {
+                    const value = v.replace(/[^0-9-]/g, '');
+                    setForm(p => ({ ...p, telefono: value }));
+                  }} 
+                  placeholder="0000-0000" 
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
@@ -3222,7 +3279,7 @@ function Empleados({ user }: { user: User }) {
                           title={emp.activo ? "Desactivar empleado" : "Activar empleado"}
                           aria-label={`${emp.activo ? "Desactivar" : "Activar"} ${fullName}`}
                         >
-                          {emp.activo ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {emp.activo ? <Power size={14} /> : <Power size={14} />}
                         </button>
                         {Number(emp.has_ventas) === 0 && Number(emp.has_acciones) === 0 && (
                           <button
@@ -3271,11 +3328,23 @@ function Empleados({ user }: { user: User }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} />
+                  <Input 
+                    value={form.nombre} 
+                    onChange={v => {
+                      const value = v.replace(/[0-9]/g, '');
+                      setForm(p => ({ ...p, nombre: value }));
+                    }} 
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} />
+                  <Input 
+                    value={form.apellido} 
+                    onChange={v => {
+                      const value = v.replace(/[0-9]/g, '');
+                      setForm(p => ({ ...p, apellido: value }));
+                    }} 
+                  />
                 </div>
               </div>
 
@@ -3289,7 +3358,10 @@ function Empleados({ user }: { user: User }) {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
                   <input
                     value={formatPhone(form.telefono)}
-                    onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
+                    onChange={e => {
+                      const value = e.target.value.replace(/[^0-9-]/g, '');
+                      setForm(prev => ({ ...prev, telefono: value }));
+                    }}
                     placeholder="0000-0000" maxLength={9}
                     className={fmtInputClass}
                   />
@@ -3405,8 +3477,8 @@ function Alertas() {
   const in30 = new Date(); in30.setDate(today.getDate() + 30); in30.setHours(0, 0, 0, 0);
 
   const agotados = products.filter(p => p.stock === 0);
-  const criticos = products.filter(p => p.stock > 0 && p.stock <= 10);
-  const bajos = products.filter(p => p.stock > 10 && p.stock <= 20);
+  const criticos = products.filter(p => p.stock > 0 && p.stock <= 5);
+  const bajos = products.filter(p => p.stock > 5 && p.stock <= 15);
   const vencer = products.filter(p => {
     if (!p.fecha_vencimiento) return false;
     const d = new Date(p.fecha_vencimiento + 'T00:00:00');
@@ -3423,8 +3495,8 @@ function Alertas() {
   const tabs = [
     { id: "todos", label: "Todos", count: totalTodos, active: "bg-card text-foreground shadow-sm" },
     { id: "agotado", label: "Agotados", count: agotados.length, active: "bg-destructive/10 text-destructive" },
-    { id: "critico", label: "Críticos", count: criticos.length, active: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400" },
-    { id: "bajo", label: "Bajo (11-20)", count: bajos.length, active: "bg-amber-50/50 text-amber-700 dark:bg-amber-900/10 dark:text-amber-400" },
+    { id: "critico", label: "Críticos (1-5)", count: criticos.length, active: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400" },
+    { id: "bajo", label: "Bajo (6-15)", count: bajos.length, active: "bg-amber-50/50 text-amber-700 dark:bg-amber-900/10 dark:text-amber-400" },
     { id: "vencer", label: "Próx. vencer", count: vencer.length, active: "bg-primary/10 text-primary" },
     { id: "vencido", label: "Vencidos", count: vencidos.length, active: "bg-destructive/10 text-destructive" },
   ];
@@ -3439,13 +3511,13 @@ function Alertas() {
 
   function stockBadgeCls(stock: number) {
     if (stock === 0) return "bg-destructive/15 text-destructive font-semibold";
-    if (stock <= 10) return "bg-destructive/10 text-destructive font-semibold";
+    if (stock <= 5) return "bg-destructive/10 text-destructive font-semibold";
     return "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 font-semibold";
   }
 
   function stockLabel(stock: number) {
     if (stock === 0) return "Agotado";
-    if (stock <= 10) return "Crítico";
+    if (stock <= 5) return "Crítico";
     return "Bajo";
   }
 
@@ -3676,7 +3748,7 @@ function Historial() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted">
-                {["# Venta", "Fecha", "Cliente", "Empleado", "Total", "Detalle"].map(h => (
+                {["# Venta", "Fecha y Hora", "Cliente", "Empleado", "Total", "Detalle"].map(h => (
                   <th key={h} className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -3685,7 +3757,10 @@ function Historial() {
               {data.ventas.map(v => (
                 <tr key={v.id_venta} className="transition-colors hover:bg-muted/50">
                   <td className="py-2.5 px-4 font-mono text-xs text-primary font-semibold whitespace-nowrap">#{v.id_venta}</td>
-                  <td className="py-2.5 px-4 text-muted-foreground text-xs whitespace-nowrap">{v.fecha}</td>
+                  <td className="py-2.5 px-4 text-muted-foreground text-xs whitespace-nowrap">
+                    <div>{v.fecha}</div>
+                    <div className="text-xs opacity-70">{v.hora}</div>
+                  </td>
                   <td className="py-2.5 px-4 text-foreground whitespace-nowrap truncate max-w-[200px]" title={v.cliente ?? "Consumidor final"}>
                     {v.cliente ?? "Consumidor final"}
                   </td>
@@ -3897,8 +3972,8 @@ function Eliminados() {
 
   return (
     <PageLayout
-      title="Registros Eliminados"
-      subtitle={`${records.length} registros en papelera`}
+      title="Registros Desactivados"
+      subtitle={`${records.length} registros desactivados`}
       actions={
         <Btn variant="secondary" size="sm" onClick={load}>
           <RefreshCw size={14} /> Actualizar
@@ -4018,7 +4093,7 @@ function Eliminados() {
             title={records.length === 0 ? "La papelera está vacía" : "Sin resultados"}
             description={
               records.length === 0
-                ? "No hay registros eliminados en este momento."
+                ? "No hay registros desactivados en este momento."
                 : "No se encontraron registros para esta búsqueda."
             }
           />
@@ -4286,7 +4361,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
     proveedores: "Proveedores",
     alertas: "Alertas de Stock",
     historial: "Historial de Ventas",
-    eliminados: "Registros Eliminados",
+    eliminados: "Registros Desactivados",
     auditoria: "Auditoría del Sistema",
   };
 
