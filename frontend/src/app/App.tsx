@@ -1571,6 +1571,7 @@ function Ventas({ user }: { user: User }) {
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   const cartContainerRef = useRef<HTMLDivElement>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   // Helper: extraer string de campos que a veces vienen como objeto de la BD
   function extraerString(valor: any): string {
@@ -1614,6 +1615,38 @@ function Ventas({ user }: { user: User }) {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  // Barcode scanner input handler for physical barcode readers
+  useEffect(() => {
+    const barcodeBuffer: string[] = [];
+    let barcodeTimeout: NodeJS.Timeout | null = null;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // No capturar si el input está enfocado en otro elemento
+      if (document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (event.key === 'Enter' && barcodeBuffer.length > 0) {
+        const code = barcodeBuffer.join('');
+        handleCodigoDetectado(code);
+        barcodeBuffer.length = 0;
+      } else if (event.key.length === 1) {
+        barcodeBuffer.push(event.key);
+        
+        if (barcodeTimeout) clearTimeout(barcodeTimeout);
+        barcodeTimeout = setTimeout(() => {
+          barcodeBuffer.length = 0;
+        }, 100);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (barcodeTimeout) clearTimeout(barcodeTimeout);
+    };
+  }, [products]);
 
   const results = products
     .filter(p => {
@@ -1682,13 +1715,21 @@ function Ventas({ user }: { user: User }) {
   }
 
   function handleCodigoDetectado(codigo: string) {
-    setShowScanner(false);
+    // Cerrar el escáner de cámara si está abierto
+    if (showScanner) {
+      setShowScanner(false);
+    }
+    
+    // Limpiar el campo de búsqueda
+    setSearch("");
+    
     const producto = products.find(p => p.codigo_barras === codigo);
     if (!producto) {
       setToast({ message: `Código no encontrado: ${codigo}`, type: 'error' });
       return;
     }
     addToCart(producto);
+    setToast({ message: `${producto.nombre_producto} agregado al carrito`, type: 'success' });
   }
 
   function removeFromCart(id: number) { setCart(prev => prev.filter(i => i.product.id_producto !== id)); }
