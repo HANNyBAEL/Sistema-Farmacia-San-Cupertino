@@ -8,7 +8,7 @@ import pool from './db.js';
 
 // Importa Sequelize si lo usas para modelos
 import sequelize from './config/database.js';
-import { createRateLimiter, noStoreApiCache, securityHeaders } from './middlewares/security.js';
+import { createRateLimiter, helmetSecurityHeaders, noStoreApiCache, securityHeaders } from './middlewares/security.js';
 
 // Importa rutas
 import authRoutes from './routes/auth.js';
@@ -27,6 +27,7 @@ const app = express();
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
+app.use(helmetSecurityHeaders);
 app.use(securityHeaders);
 
 // ✅ CORS primero

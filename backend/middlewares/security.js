@@ -1,35 +1,54 @@
 const FIVE_MINUTES = 5 * 60 * 1000;
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
+import helmet from 'helmet';
+
 const attempts = new Map();
 
-const cspDirectives = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  "script-src 'self' https://www.google.com https://www.gstatic.com",
-  "frame-src https://www.google.com",
-  "connect-src 'self' https://www.google.com https://www.gstatic.com",
-  "img-src 'self' data: blob:",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com data:",
-  "upgrade-insecure-requests",
-];
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  baseUri: ["'self'"],
+  objectSrc: ["'none'"],
+  frameAncestors: ["'none'"],
+  formAction: ["'self'"],
+  scriptSrc: ["'self'", 'https://www.google.com', 'https://www.gstatic.com'],
+  scriptSrcAttr: ["'none'"],
+  frameSrc: ['https://www.google.com'],
+  connectSrc: [
+    "'self'",
+    'https://farmacia-san-cupertino.onrender.com',
+    'https://www.google.com',
+    'https://www.gstatic.com',
+  ],
+  imgSrc: ["'self'", 'data:', 'blob:'],
+  styleSrc: ["'self'", 'https://fonts.googleapis.com'],
+  styleSrcElem: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+  styleSrcAttr: ["'unsafe-inline'"],
+  fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+  upgradeInsecureRequests: [],
+};
+
+export const helmetSecurityHeaders = helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: cspDirectives,
+  },
+  frameguard: { action: 'deny' },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  noSniff: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+});
 
 function getClientIp(req) {
   return req.ip || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
 }
 
 export function securityHeaders(req, res, next) {
-  res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   res.removeHeader('X-Powered-By');
   next();
 }
