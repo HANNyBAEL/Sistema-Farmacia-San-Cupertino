@@ -1728,6 +1728,25 @@ function Ventas({ user }: { user: User }) {
       setToast({ message: `Código no encontrado: ${codigo}`, type: 'error' });
       return;
     }
+    
+    // Verificar si el producto puede ser agregado al carrito
+    if (producto.papelera || producto.deleted === 1) {
+      setToast({ message: `"${producto.nombre_producto}" no está disponible.`, type: 'error' });
+      return;
+    }
+    
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const vencimiento = new Date(producto.fecha_vencimiento + 'T00:00:00');
+    if (vencimiento < hoy) {
+      setToast({ message: `"${producto.nombre_producto}" no agregado por estar vencido.`, type: 'error' });
+      return;
+    }
+    
+    if (producto.stock === 0) {
+      setToast({ message: `"${producto.nombre_producto}" no agregado por no tener stock.`, type: 'error' });
+      return;
+    }
+    
     addToCart(producto);
     setToast({ message: `${producto.nombre_producto} agregado al carrito`, type: 'success' });
   }
