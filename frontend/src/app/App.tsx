@@ -8,7 +8,9 @@ import {
   DollarSign, Menu, ArrowLeft, Moon, Sun,
   FileSpreadsheet,
   Camera,
-  RotateCcw
+  RotateCcw,
+  Plus as PlusIcon,
+  Minus as MinusIcon
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { login } from "../services/auth";
@@ -4290,6 +4292,18 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
     auditoria: "Auditoría del Sistema",
   };
 
+  const increaseTextSize = () => {
+    const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
+    const newSize = Math.min(currentSize + 2, 24);
+    document.documentElement.style.fontSize = `${newSize}px`;
+  };
+
+  const decreaseTextSize = () => {
+    const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
+    const newSize = Math.max(currentSize - 2, 12);
+    document.documentElement.style.fontSize = `${newSize}px`;
+  };
+
   const handleLogoutClick = () => setShowLogoutModal(true);
   const handleLogoutConfirm = () => {
     setShowLogoutModal(false);
@@ -4302,9 +4316,17 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
       <Sidebar user={user} current={screen} onNav={setScreen} onLogout={handleLogoutClick} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header con padding adaptado para móvil */}
-        <header className="h-14 bg-card border-b-2 border-primary/10 flex items-center px-3 md:px-6 gap-4 flex-shrink-0 pl-14 md:pl-6">
+        <header className="h-14 bg-card border-b-2 border-primary/10 flex items-center gap-4 flex-shrink-0 px-3 md:px-6 pl-14 md:pl-6">
           <h2 className="font-semibold text-foreground text-sm truncate">{screenTitle[screen]}</h2>
           <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <button onClick={decreaseTextSize} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Reducir texto">
+                <MinusIcon size={14} />
+              </button>
+              <button onClick={increaseTextSize} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Aumentar texto">
+                <PlusIcon size={14} />
+              </button>
+            </div>
             <div className="flex items-center gap-2 pl-3 border-l border-border">
               <div className="w-7 h-7 bg-sidebar-accent rounded-full flex items-center justify-center text-sidebar-accent-foreground text-xs font-bold flex-shrink-0">
                 {user.name.charAt(0)}
