@@ -1937,9 +1937,9 @@ function Ventas({ user }: { user: User }) {
     <div className="flex flex-col md:flex-row h-full gap-3 md:gap-0 p-0" style={{ minHeight: 0 }}>
       {/* Toast flotante */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-          <div className={`rounded-lg shadow-lg px-4 py-3 text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'}`}>
-            {toast.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 animate-in zoom-in-95 fade-in duration-200">
+          <div className={`rounded-lg shadow-lg px-6 py-4 text-sm flex items-center gap-3 ${toast.type === 'error' ? 'bg-destructive/10 border border-red-200 text-destructive' : 'bg-green-50 border border-green-200 text-green-700'}`}>
+            {toast.type === 'error' ? <AlertTriangle size={20} /> : <Check size={20} />}
             {toast.message}
           </div>
         </div>
