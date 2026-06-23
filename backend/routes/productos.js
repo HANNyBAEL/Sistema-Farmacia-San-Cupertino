@@ -52,35 +52,51 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST crear producto
+// POST crear producto
 router.post('/', async (req, res) => {
   const { nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, categorias, codigo_barras, id_empleado, nombre_empleado } = req.body;
+
+  // ✅ Iniciar transacción
+  const transaction = await sequelize.transaction();
+
   try {
     const [result] = await sequelize.query(
       `INSERT INTO productos (nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, deleted, codigo_barras)
        VALUES (:nombre_producto, :descripcion, :precio, :stock, :lote, :fecha_vencimiento, :id_proveedor, 0, :codigo_barras)`,
       {
         replacements: {
-          nombre_producto, descripcion: descripcion || null,
-          precio: Number(precio), stock: Number(stock),
-          lote, fecha_vencimiento, id_proveedor: Number(id_proveedor),
+          nombre_producto,
+          descripcion: descripcion || null,
+          precio: Number(precio),
+          stock: Number(stock),
+          lote,
+          fecha_vencimiento,
+          id_proveedor: Number(id_proveedor),
           codigo_barras: codigo_barras || null
         },
-        type: sequelize.QueryTypes.INSERT, transaction
+        type: sequelize.QueryTypes.INSERT,
+        transaction // ✅ shorthand para transaction: transaction
       }
     );
+
     const id_producto = result.insertId ?? result;
 
     if (categorias && categorias.length) {
       for (const catId of categorias) {
         await sequelize.query(
           'INSERT INTO productos_categorias (id_producto, id_categoria) VALUES (:id_producto, :id_categoria)',
-          { replacements: { id_producto, id_categoria: catId }, type: sequelize.QueryTypes.INSERT, transaction }
+          {
+            replacements: { id_producto, id_categoria: catId },
+            type: sequelize.QueryTypes.INSERT,
+            transaction // ✅ misma transacción
+          }
         );
       }
     }
 
     await transaction.commit();
 
+    // Auditoría después del commit (no requiere transacción)
     await registrarAuditoria({
       tabla: 'productos',
       accion: 'CREAR',
@@ -89,6 +105,7 @@ router.post('/', async (req, res) => {
       id_empleado,
       nombre_empleado
     });
+
     res.status(201).json({ id_producto, message: 'Producto creado' });
   } catch (error) {
     await transaction.rollback();
