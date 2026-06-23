@@ -8,10 +8,7 @@ import {
   DollarSign, Menu, ArrowLeft, Moon, Sun,
   FileSpreadsheet,
   Camera,
-  RotateCcw,
-  Power,
-  Plus as PlusIcon,
-  Minus as MinusIcon
+  RotateCcw
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { login } from "../services/auth";
@@ -221,18 +218,6 @@ function ErrorAlert({ message }: { message: string }) {
 function PageLayout({ title, subtitle, children, actions }: {
   title: string; subtitle?: string; children: React.ReactNode; actions?: React.ReactNode;
 }) {
-  const increaseTextSize = () => {
-    const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
-    const newSize = Math.min(currentSize + 2, 24);
-    document.documentElement.style.fontSize = `${newSize}px`;
-  };
-
-  const decreaseTextSize = () => {
-    const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
-    const newSize = Math.max(currentSize - 2, 12);
-    document.documentElement.style.fontSize = `${newSize}px`;
-  };
-
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -240,15 +225,7 @@ function PageLayout({ title, subtitle, children, actions }: {
           <h1 className="text-xl font-bold text-foreground">{title}</h1>
           {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
-        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-          <button onClick={decreaseTextSize} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Reducir texto">
-            <MinusIcon size={16} />
-          </button>
-          <button onClick={increaseTextSize} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Aumentar texto">
-            <PlusIcon size={16} />
-          </button>
-          {actions}
-        </div>
+        {actions && <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{actions}</div>}
       </div>
       {children}
     </div>
@@ -773,7 +750,7 @@ const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: 
   { screen: "proveedores",  label: "Proveedores",           icon: <Truck size={18}/>,            roles: ["administrador","farmaceutico"] },
   { screen: "alertas",      label: "Alertas de Stock",      icon: <Bell size={18}/>,             roles: ["administrador","farmaceutico"] },
   { screen: "historial",    label: "Historial de Ventas",   icon: <History size={18}/>,          roles: ["administrador"] },
-  { screen: "eliminados",   label: "Registros Desactivados",  icon: <Trash2 size={18}/>,           roles: ["administrador"] },
+  { screen: "eliminados",   label: "Registros Eliminados",  icon: <Trash2 size={18}/>,           roles: ["administrador"] },
   { screen: "auditoria",    label: "Auditoría",             icon: <Shield size={18} />,          roles: ["administrador"] },
 ];
 
@@ -1894,18 +1871,6 @@ function Ventas({ user }: { user: User }) {
     }
   }
 
-  const increaseTextSize = () => {
-    const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
-    const newSize = Math.min(currentSize + 2, 24);
-    document.documentElement.style.fontSize = `${newSize}px`;
-  };
-
-  const decreaseTextSize = () => {
-    const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
-    const newSize = Math.max(currentSize - 2, 12);
-    document.documentElement.style.fontSize = `${newSize}px`;
-  };
-
   return (
     <div className="flex flex-col md:flex-row h-full gap-3 md:gap-0 p-0" style={{ minHeight: 0 }}>
       {/* Toast flotante */}
@@ -1917,16 +1882,6 @@ function Ventas({ user }: { user: User }) {
           </div>
         </div>
       )}
-
-      {/* Text size controls */}
-      <div className="fixed top-4 left-4 z-40 flex gap-2">
-        <button onClick={decreaseTextSize} className="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm" title="Reducir texto">
-          <MinusIcon size={16} />
-        </button>
-        <button onClick={increaseTextSize} className="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm" title="Aumentar texto">
-          <PlusIcon size={16} />
-        </button>
-      </div>
 
       {/* Modal medicamento controlado */}
       {controlledModal.show && controlledModal.product && (
@@ -2522,25 +2477,11 @@ function Clientes({ user }: { user: User }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input 
-                    value={form.nombre} 
-                    onChange={v => {
-                      const value = v.replace(/[0-9]/g, '');
-                      setForm(p => ({ ...p, nombre: value }));
-                    }} 
-                    placeholder="Nombre" 
-                  />
+                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input 
-                    value={form.apellido} 
-                    onChange={v => {
-                      const value = v.replace(/[0-9]/g, '');
-                      setForm(p => ({ ...p, apellido: value }));
-                    }} 
-                    placeholder="Apellido" 
-                  />
+                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" />
                 </div>
               </div>
               <div>
@@ -2557,10 +2498,7 @@ function Clientes({ user }: { user: User }) {
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono *</label>
                 <input
                   value={formatPhone(form.telefono)}
-                  onChange={e => {
-                    const value = e.target.value.replace(/[^0-9-]/g, '');
-                    setForm(prev => ({ ...prev, telefono: value }));
-                  }}
+                  onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
                   placeholder="0000-0000"
                   maxLength={9}
                   className={fmtClass}
@@ -2804,17 +2742,17 @@ function Proveedores({ user }: { user: User }) {
                   key={s.id_proveedor}
                   className={`transition-colors ${s.deleted ? 'opacity-50 bg-muted/50' : 'hover:bg-muted/50'}`}
                 >
-                  <td className="py-2.5 px-3 font-medium text-foreground whitespace-nowrap truncate max-w-[200px]">
-                    <ExpandableCell text={`${s.nombre} ${s.apellido}`} maxLength={25} />
+                  <td className="py-2.5 px-3 font-medium text-foreground whitespace-nowrap truncate max-w-[200px]" title={`${s.nombre} ${s.apellido}`}>
+                    {s.nombre} {s.apellido}
                   </td>
                   <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
                     {s.telefono || "—"}
                   </td>
-                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap truncate max-w-[200px]">
-                    <ExpandableCell text={s.correo || "—"} maxLength={25} />
+                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap truncate max-w-[200px]" title={s.correo}>
+                    {s.correo || "—"}
                   </td>
-                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap truncate max-w-[220px]">
-                    <ExpandableCell text={s.direccion || "—"} maxLength={30} />
+                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap truncate max-w-[220px]" title={s.direccion}>
+                    {s.direccion || "—"}
                   </td>
                   <td className="py-2.5 px-3 whitespace-nowrap">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
@@ -2893,37 +2831,16 @@ function Proveedores({ user }: { user: User }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input 
-                    value={form.nombre} 
-                    onChange={v => {
-                      const value = v.replace(/[0-9]/g, '');
-                      setForm(p => ({ ...p, nombre: value }));
-                    }} 
-                    placeholder="Nombre" 
-                  />
+                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input 
-                    value={form.apellido} 
-                    onChange={v => {
-                      const value = v.replace(/[0-9]/g, '');
-                      setForm(p => ({ ...p, apellido: value }));
-                    }} 
-                    placeholder="Apellido" 
-                  />
+                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
-                <Input 
-                  value={form.telefono} 
-                  onChange={v => {
-                    const value = v.replace(/[^0-9-]/g, '');
-                    setForm(p => ({ ...p, telefono: value }));
-                  }} 
-                  placeholder="0000-0000" 
-                />
+                <Input value={form.telefono} onChange={v => setForm(p => ({ ...p, telefono: v }))} placeholder="0000-0000" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
@@ -3305,7 +3222,7 @@ function Empleados({ user }: { user: User }) {
                           title={emp.activo ? "Desactivar empleado" : "Activar empleado"}
                           aria-label={`${emp.activo ? "Desactivar" : "Activar"} ${fullName}`}
                         >
-                          {emp.activo ? <Power size={14} /> : <Power size={14} />}
+                          {emp.activo ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
                         {Number(emp.has_ventas) === 0 && Number(emp.has_acciones) === 0 && (
                           <button
@@ -3354,23 +3271,11 @@ function Empleados({ user }: { user: User }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input 
-                    value={form.nombre} 
-                    onChange={v => {
-                      const value = v.replace(/[0-9]/g, '');
-                      setForm(p => ({ ...p, nombre: value }));
-                    }} 
-                  />
+                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input 
-                    value={form.apellido} 
-                    onChange={v => {
-                      const value = v.replace(/[0-9]/g, '');
-                      setForm(p => ({ ...p, apellido: value }));
-                    }} 
-                  />
+                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} />
                 </div>
               </div>
 
@@ -3384,10 +3289,7 @@ function Empleados({ user }: { user: User }) {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
                   <input
                     value={formatPhone(form.telefono)}
-                    onChange={e => {
-                      const value = e.target.value.replace(/[^0-9-]/g, '');
-                      setForm(prev => ({ ...prev, telefono: value }));
-                    }}
+                    onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
                     placeholder="0000-0000" maxLength={9}
                     className={fmtInputClass}
                   />
@@ -3503,8 +3405,8 @@ function Alertas() {
   const in30 = new Date(); in30.setDate(today.getDate() + 30); in30.setHours(0, 0, 0, 0);
 
   const agotados = products.filter(p => p.stock === 0);
-  const criticos = products.filter(p => p.stock > 0 && p.stock <= 5);
-  const bajos = products.filter(p => p.stock > 5 && p.stock <= 15);
+  const criticos = products.filter(p => p.stock > 0 && p.stock <= 10);
+  const bajos = products.filter(p => p.stock > 10 && p.stock <= 20);
   const vencer = products.filter(p => {
     if (!p.fecha_vencimiento) return false;
     const d = new Date(p.fecha_vencimiento + 'T00:00:00');
@@ -3521,8 +3423,8 @@ function Alertas() {
   const tabs = [
     { id: "todos", label: "Todos", count: totalTodos, active: "bg-card text-foreground shadow-sm" },
     { id: "agotado", label: "Agotados", count: agotados.length, active: "bg-destructive/10 text-destructive" },
-    { id: "critico", label: "Críticos (1-5)", count: criticos.length, active: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400" },
-    { id: "bajo", label: "Bajo (6-15)", count: bajos.length, active: "bg-amber-50/50 text-amber-700 dark:bg-amber-900/10 dark:text-amber-400" },
+    { id: "critico", label: "Críticos", count: criticos.length, active: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400" },
+    { id: "bajo", label: "Bajo (11-20)", count: bajos.length, active: "bg-amber-50/50 text-amber-700 dark:bg-amber-900/10 dark:text-amber-400" },
     { id: "vencer", label: "Próx. vencer", count: vencer.length, active: "bg-primary/10 text-primary" },
     { id: "vencido", label: "Vencidos", count: vencidos.length, active: "bg-destructive/10 text-destructive" },
   ];
@@ -3537,13 +3439,13 @@ function Alertas() {
 
   function stockBadgeCls(stock: number) {
     if (stock === 0) return "bg-destructive/15 text-destructive font-semibold";
-    if (stock <= 5) return "bg-destructive/10 text-destructive font-semibold";
+    if (stock <= 10) return "bg-destructive/10 text-destructive font-semibold";
     return "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 font-semibold";
   }
 
   function stockLabel(stock: number) {
     if (stock === 0) return "Agotado";
-    if (stock <= 5) return "Crítico";
+    if (stock <= 10) return "Crítico";
     return "Bajo";
   }
 
@@ -3625,8 +3527,8 @@ function Alertas() {
                       "hover:bg-muted/50"
                     }`}
                   >
-                    <td className="py-2.5 px-4 font-medium text-foreground whitespace-nowrap truncate max-w-[200px]">
-                      <ExpandableCell text={p.nombre_producto} maxLength={30} />
+                    <td className="py-2.5 px-4 font-medium text-foreground whitespace-nowrap truncate max-w-[200px]" title={p.nombre_producto}>
+                      {p.nombre_producto}
                     </td>
                     <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">{p.lote}</td>
                     <td className="py-2.5 px-4 font-mono font-semibold whitespace-nowrap">{p.stock} uds.</td>
@@ -3774,7 +3676,7 @@ function Historial() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted">
-                {["# Venta", "Fecha y Hora", "Cliente", "Empleado", "Total", "Detalle"].map(h => (
+                {["# Venta", "Fecha", "Cliente", "Empleado", "Total", "Detalle"].map(h => (
                   <th key={h} className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -3783,15 +3685,12 @@ function Historial() {
               {data.ventas.map(v => (
                 <tr key={v.id_venta} className="transition-colors hover:bg-muted/50">
                   <td className="py-2.5 px-4 font-mono text-xs text-primary font-semibold whitespace-nowrap">#{v.id_venta}</td>
-                  <td className="py-2.5 px-4 text-muted-foreground text-xs whitespace-nowrap">
-                    <div>{v.fecha}</div>
-                    <div className="text-xs opacity-70">{v.hora}</div>
+                  <td className="py-2.5 px-4 text-muted-foreground text-xs whitespace-nowrap">{v.fecha}</td>
+                  <td className="py-2.5 px-4 text-foreground whitespace-nowrap truncate max-w-[200px]" title={v.cliente ?? "Consumidor final"}>
+                    {v.cliente ?? "Consumidor final"}
                   </td>
-                  <td className="py-2.5 px-4 text-foreground whitespace-nowrap truncate max-w-[200px]">
-                    <ExpandableCell text={v.cliente ?? "Consumidor final"} maxLength={25} />
-                  </td>
-                  <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap truncate max-w-[180px]">
-                    <ExpandableCell text={v.empleado ?? "—"} maxLength={20} />
+                  <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap truncate max-w-[180px]" title={v.empleado ?? "—"}>
+                    {v.empleado ?? "—"}
                   </td>
                   <td className="py-2.5 px-4 font-mono font-semibold text-primary whitespace-nowrap">${Number(v.total).toFixed(2)}</td>
                   <td className="py-2.5 px-4 whitespace-nowrap">
@@ -3998,8 +3897,8 @@ function Eliminados() {
 
   return (
     <PageLayout
-      title="Registros Desactivados"
-      subtitle={`${records.length} registros desactivados`}
+      title="Registros Eliminados"
+      subtitle={`${records.length} registros en papelera`}
       actions={
         <Btn variant="secondary" size="sm" onClick={load}>
           <RefreshCw size={14} /> Actualizar
@@ -4119,7 +4018,7 @@ function Eliminados() {
             title={records.length === 0 ? "La papelera está vacía" : "Sin resultados"}
             description={
               records.length === 0
-                ? "No hay registros desactivados en este momento."
+                ? "No hay registros eliminados en este momento."
                 : "No se encontraron registros para esta búsqueda."
             }
           />
@@ -4387,7 +4286,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
     proveedores: "Proveedores",
     alertas: "Alertas de Stock",
     historial: "Historial de Ventas",
-    eliminados: "Registros Desactivados",
+    eliminados: "Registros Eliminados",
     auditoria: "Auditoría del Sistema",
   };
 
