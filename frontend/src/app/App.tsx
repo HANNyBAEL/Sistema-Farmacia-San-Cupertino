@@ -1569,6 +1569,7 @@ function Ventas({ user }: { user: User }) {
   const [controlledModal, setControlledModal] = useState<{ show: boolean; product: Product | null; onConfirm: () => void }>({ show: false, product: null, onConfirm: () => {} });
   const [noClientModal, setNoClientModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+  const [productModal, setProductModal] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
   const cartContainerRef = useRef<HTMLDivElement>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -1615,6 +1616,13 @@ function Ventas({ user }: { user: User }) {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  useEffect(() => {
+    if (productModal.show) {
+      const timer = setTimeout(() => setProductModal({ show: false, message: '', type: 'success' }), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [productModal.show]);
 
   // Barcode scanner input handler for physical barcode readers
   useEffect(() => {
@@ -1725,30 +1733,30 @@ function Ventas({ user }: { user: User }) {
     
     const producto = products.find(p => p.codigo_barras === codigo);
     if (!producto) {
-      setToast({ message: `Código no encontrado: ${codigo}`, type: 'error' });
+      setProductModal({ show: true, message: `Código no encontrado: ${codigo}`, type: 'error' });
       return;
     }
     
     // Verificar si el producto puede ser agregado al carrito
     if (producto.papelera || producto.deleted === 1) {
-      setToast({ message: `"${producto.nombre_producto}" no está disponible.`, type: 'error' });
+      setProductModal({ show: true, message: `"${producto.nombre_producto}" no está disponible.`, type: 'error' });
       return;
     }
     
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const vencimiento = new Date(producto.fecha_vencimiento + 'T00:00:00');
     if (vencimiento < hoy) {
-      setToast({ message: `"${producto.nombre_producto}" no agregado por estar vencido.`, type: 'error' });
+      setProductModal({ show: true, message: `"${producto.nombre_producto}" no agregado por estar vencido.`, type: 'error' });
       return;
     }
     
     if (producto.stock === 0) {
-      setToast({ message: `"${producto.nombre_producto}" no agregado por no tener stock.`, type: 'error' });
+      setProductModal({ show: true, message: `"${producto.nombre_producto}" no agregado por no tener stock.`, type: 'error' });
       return;
     }
     
     addToCart(producto);
-    setToast({ message: `${producto.nombre_producto} agregado al carrito`, type: 'success' });
+    setProductModal({ show: true, message: `${producto.nombre_producto} agregado al carrito`, type: 'success' });
   }
 
   function removeFromCart(id: number) { setCart(prev => prev.filter(i => i.product.id_producto !== id)); }
@@ -1942,6 +1950,28 @@ function Ventas({ user }: { user: User }) {
             {toast.type === 'error' ? <AlertTriangle size={20} /> : <Check size={20} />}
             {toast.message}
           </div>
+        </div>
+      )}
+
+      {/* Modal de producto (se cierra automáticamente) */}
+      {productModal.show && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <Card className={`max-w-sm w-full p-6 ${productModal.type === 'error' ? 'border-red-200' : 'border-green-200'}`}>
+            <div className="flex items-center justify-center gap-3">
+              {productModal.type === 'error' ? (
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                  <AlertTriangle size={24} />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                  <Check size={24} />
+                </div>
+              )}
+            </div>
+            <p className={`text-center mt-4 font-medium ${productModal.type === 'error' ? 'text-red-700' : 'text-green-700'}`}>
+              {productModal.message}
+            </p>
+          </Card>
         </div>
       )}
 
