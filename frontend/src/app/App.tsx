@@ -1894,6 +1894,18 @@ function Ventas({ user }: { user: User }) {
     }
   }
 
+  const increaseTextSize = () => {
+    const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
+    const newSize = Math.min(currentSize + 2, 24);
+    document.documentElement.style.fontSize = `${newSize}px`;
+  };
+
+  const decreaseTextSize = () => {
+    const currentSize = parseFloat(document.documentElement.style.fontSize) || 16;
+    const newSize = Math.max(currentSize - 2, 12);
+    document.documentElement.style.fontSize = `${newSize}px`;
+  };
+
   return (
     <div className="flex flex-col md:flex-row h-full gap-3 md:gap-0 p-0" style={{ minHeight: 0 }}>
       {/* Toast flotante */}
@@ -1905,6 +1917,16 @@ function Ventas({ user }: { user: User }) {
           </div>
         </div>
       )}
+
+      {/* Text size controls */}
+      <div className="fixed top-4 left-4 z-40 flex gap-2">
+        <button onClick={decreaseTextSize} className="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm" title="Reducir texto">
+          <MinusIcon size={16} />
+        </button>
+        <button onClick={increaseTextSize} className="p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm" title="Aumentar texto">
+          <PlusIcon size={16} />
+        </button>
+      </div>
 
       {/* Modal medicamento controlado */}
       {controlledModal.show && controlledModal.product && (
