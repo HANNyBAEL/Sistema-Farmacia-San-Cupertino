@@ -3119,16 +3119,119 @@ function Empleados({ user }: { user: User }) {
     form.cuenta_banco !== originalForm.cuenta_banco ||
     form.afp !== originalForm.afp;
 
+  // ── Validaciones ──
+  function validateNameSurname(value: string): string {
+    return value.replace(/[0-9]/g, '');
+  }
+
+  function validatePhone(value: string): string {
+    const numbers = value.replace(/\D/g, '').slice(0, 8);
+    if (numbers.length <= 4) return numbers;
+    return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
+  }
+
+  function isValidPhoneFormat(phone: string): boolean {
+    const regex = /^\d{4}-\d{4}$/;
+    return regex.test(phone);
+  }
+
+  function formatDUI(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 9);
+    if (d.length <= 8) return d;
+    return `${d.slice(0, 8)}-${d.slice(8, 9)}`;
+  }
+
+  function isValidDUIFormat(dui: string): boolean {
+    const regex = /^\d{8}-\d{1}$/;
+    return regex.test(dui);
+  }
+
+  function formatNIT(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 14);
+    if (d.length <= 4) return d;
+    if (d.length <= 10) return `${d.slice(0, 4)}-${d.slice(4)}`;
+    if (d.length <= 13) return `${d.slice(0, 4)}-${d.slice(4, 10)}-${d.slice(10)}`;
+    return `${d.slice(0, 4)}-${d.slice(4, 10)}-${d.slice(10, 13)}-${d.slice(13)}`;
+  }
+
+  function isValidNITFormat(nit: string): boolean {
+    const regex = /^\d{4}-\d{6}-\d{3}-\d{1}$/;
+    return regex.test(nit);
+  }
+
+  function formatCuentaBanco(v: string): string {
+    return v.replace(/\D/g, '').slice(0, 20);
+  }
+
   async function saveForm() {
     if (editEmp && !hasEmployeeChanges()) return;
+    
+    // Validar campos obligatorios básicos
     if (!form.nombre || !form.apellido || !form.correo || !form.cargo) {
       setFormError("Complete los campos obligatorios.");
       return;
     }
+    
+    // Validar que nombre y apellido no contengan números
+    if (/\d/.test(form.nombre) || /\d/.test(form.apellido)) {
+      setFormError("Nombre y apellido no deben contener números.");
+      return;
+    }
+    
+    // Validar correo
     if (!isValidEmail(form.correo)) {
       setFormError("Ingresa un correo electronico valido.");
       return;
     }
+    
+    // Validar teléfono (obligatorio y formato correcto)
+    if (!form.telefono) {
+      setFormError("El teléfono es obligatorio.");
+      return;
+    }
+    if (!isValidPhoneFormat(form.telefono)) {
+      setFormError("El teléfono debe tener el formato 0000-0000.");
+      return;
+    }
+    
+    // Validar fecha de contratación
+    if (!form.fecha_contratacion) {
+      setFormError("La fecha de contratación es obligatoria.");
+      return;
+    }
+    
+    // Validar DUI (obligatorio y formato correcto)
+    if (!form.dui) {
+      setFormError("El DUI es obligatorio.");
+      return;
+    }
+    if (!isValidDUIFormat(form.dui)) {
+      setFormError("El DUI debe tener el formato 00000000-0.");
+      return;
+    }
+    
+    // Validar NIT (obligatorio y formato correcto)
+    if (!form.nit) {
+      setFormError("El NIT es obligatorio.");
+      return;
+    }
+    if (!isValidNITFormat(form.nit)) {
+      setFormError("El NIT debe tener el formato 0000-000000-000-0.");
+      return;
+    }
+    
+    // Validar cuenta bancaria (obligatoria)
+    if (!form.cuenta_banco) {
+      setFormError("La cuenta bancaria es obligatoria.");
+      return;
+    }
+    
+    // Validar AFP (obligatoria)
+    if (!form.afp) {
+      setFormError("Debe seleccionar una AFP.");
+      return;
+    }
+    
     try {
       const payload: any = {
         ...form,
@@ -3200,28 +3303,6 @@ function Empleados({ user }: { user: User }) {
   }
 
   if (loading) return <LoadingSpinner />;
-
-  // ── Formateadores ──
-  function formatDUI(v: string): string {
-    const d = v.replace(/\D/g, '').slice(0, 9);
-    if (d.length <= 8) return d;
-    return `${d.slice(0, 8)}-${d.slice(8, 9)}`;
-  }
-  function formatNIT(v: string): string {
-    const d = v.replace(/\D/g, '').slice(0, 14);
-    if (d.length <= 4) return d;
-    if (d.length <= 10) return `${d.slice(0, 4)}-${d.slice(4)}`;
-    if (d.length <= 13) return `${d.slice(0, 4)}-${d.slice(4, 10)}-${d.slice(10)}`;
-    return `${d.slice(0, 4)}-${d.slice(4, 10)}-${d.slice(10, 13)}-${d.slice(13)}`;
-  }
-  function formatPhone(v: string): string {
-    const d = v.replace(/\D/g, '').slice(0, 8);
-    if (d.length <= 4) return d;
-    return `${d.slice(0, 4)}-${d.slice(4)}`;
-  }
-  function formatCuentaBanco(v: string): string {
-    return v.replace(/\D/g, '').slice(0, 20);
-  }
 
   // Clase compartida para inputs con formato especial
   const fmtInputClass = "w-full px-3 py-2.5 border border-border rounded-lg bg-input-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors";
@@ -3394,11 +3475,17 @@ function Empleados({ user }: { user: User }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} />
+                  <Input 
+                    value={form.nombre} 
+                    onChange={v => setForm(p => ({ ...p, nombre: validateNameSurname(v) }))} 
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} />
+                  <Input 
+                    value={form.apellido} 
+                    onChange={v => setForm(p => ({ ...p, apellido: validateNameSurname(v) }))} 
+                  />
                 </div>
               </div>
 
@@ -3409,11 +3496,12 @@ function Empleados({ user }: { user: User }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono * <span className="font-normal text-muted-foreground">(0000-0000)</span></label>
                   <input
-                    value={formatPhone(form.telefono)}
-                    onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
-                    placeholder="0000-0000" maxLength={9}
+                    value={form.telefono}
+                    onChange={e => setForm(prev => ({ ...prev, telefono: validatePhone(e.target.value) }))}
+                    placeholder="0000-0000" 
+                    maxLength={9}
                     className={fmtInputClass}
                   />
                 </div>
@@ -3426,53 +3514,56 @@ function Empleados({ user }: { user: User }) {
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha contratación</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Fecha contratación *</label>
                   <Input type="date" value={form.fecha_contratacion} onChange={v => setForm(p => ({ ...p, fecha_contratacion: v }))} />
                 </div>
               </div>
 
-              <details className="rounded-lg border border-border bg-muted/30" open={!!editEmp}>
-                <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-foreground">
-                  Datos fiscales y bancarios opcionales
-                </summary>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-border p-4">
+              <div className="rounded-lg border border-border bg-muted/30 p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3">
+                  Datos fiscales y bancarios
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI <span className="text-muted-foreground font-normal">(00000000-0)</span></label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI * <span className="font-normal text-muted-foreground">(00000000-0)</span></label>
                     <input
-                      value={formatDUI(form.dui)}
-                      onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))}
-                      placeholder="00000000-0" maxLength={10}
+                      value={form.dui}
+                      onChange={e => setForm(prev => ({ ...prev, dui: formatDUI(e.target.value) }))}
+                      placeholder="00000000-0" 
+                      maxLength={10}
                       className={fmtInputClass}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">NIT</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">NIT * <span className="font-normal text-muted-foreground">(0000-000000-000-0)</span></label>
                     <input
-                      value={formatNIT(form.nit)}
-                      onChange={e => setForm(prev => ({ ...prev, nit: e.target.value }))}
-                      placeholder="0000-000000-000-0" maxLength={17}
+                      value={form.nit}
+                      onChange={e => setForm(prev => ({ ...prev, nit: formatNIT(e.target.value) }))}
+                      placeholder="0000-000000-000-0" 
+                      maxLength={17}
                       className={fmtInputClass}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Cuenta bancaria</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Cuenta bancaria *</label>
                     <input
-                      value={formatCuentaBanco(form.cuenta_banco)}
-                      onChange={e => setForm(prev => ({ ...prev, cuenta_banco: e.target.value }))}
-                      placeholder="Número de cuenta" maxLength={20}
+                      value={form.cuenta_banco}
+                      onChange={e => setForm(prev => ({ ...prev, cuenta_banco: formatCuentaBanco(e.target.value) }))}
+                      placeholder="Número de cuenta" 
+                      maxLength={20}
                       className={fmtInputClass}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">AFP</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">AFP *</label>
                     <Select value={form.afp} onChange={v => setForm(p => ({ ...p, afp: v }))} className="w-full">
-                      <option value="">Sin AFP</option>
+                      <option value="">Seleccione una AFP</option>
                       <option value="CRECER">CRECER</option>
                       <option value="CONFÍA">CONFÍA</option>
                     </Select>
                   </div>
                 </div>
-              </details>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
