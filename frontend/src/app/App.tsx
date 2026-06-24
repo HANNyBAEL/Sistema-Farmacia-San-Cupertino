@@ -1824,7 +1824,24 @@ function Ventas({ user }: { user: User }) {
           setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
           try {
             const { numero_control } = await getSiguienteCorrelativo();
-            const codigo_generacion = Date.now().toString(36) + Math.random().toString(36).substring(2);
+            // Generate UUIDv4 format (36 characters with hyphens)
+            const generateUUIDv4 = (): string => {
+              return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+              });
+            };
+            const codigo_generacion = generateUUIDv4();
+            // Generate mock Sello de Recepción (unique alphanumeric string)
+            const generateSelloRecepcion = (numeroControl: string): string => {
+              const year = new Date().getFullYear();
+              const tipoDoc = '01'; // Factura
+              const correlativo = numeroControl.split('-').pop() || '00000000';
+              const randomPart = Math.random().toString(36).substring(2, 14).toUpperCase();
+              return `${year}DTE${tipoDoc}${correlativo}${randomPart}`;
+            };
+            const sello_recepcion = generateSelloRecepcion(numero_control);
             const fechaHoraLocal = `${year}-${month}-${day} ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
             
             await guardarFactura({
@@ -1844,6 +1861,8 @@ function Ventas({ user }: { user: User }) {
             const datosFactura = {
               numero_control,
               codigo_generacion,
+              sello_recepcion,
+              ambiente_destino: '00', // CAT-001: Ambiente de Pruebas
               fecha_emision: fechaHoraLocal,
               receptor: {
                 nombre: `${extraerString(selectedClient?.nombre)} ${extraerString(selectedClient?.apellido)}`,

@@ -6,6 +6,8 @@ import type { CellInput } from "jspdf-autotable";
 export interface FacturaData {
   numero_control: string;
   codigo_generacion: string;
+  sello_recepcion?: string;
+  ambiente_destino?: string; // CAT-001: '00' = Ambiente de Pruebas
   fecha_emision: string;
   receptor: {
     nombre: string;
@@ -61,7 +63,7 @@ function numeroALetras(n: number): string {
     }
     return String(num);
   }
-  return `${convertir(entero)} ${centavos}/100`;
+  return `${convertir(entero)} ${centavos}/100 DÓLARES`;
 }
 function construirPDF(doc: jsPDF, data: FacturaData): void {
   const W = 215.9;
@@ -154,9 +156,21 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
   doc.text(`Teléfono: ${data.receptor.telefono ?? "—"}`, rx, y + 23 + recDirLines.length * 3.5 + 4);
 
   const startY = 112;
-  const total = data.total;
-  const totalGravado = total;
-  const sumaVentasGravadas = totalGravado;
+  // Apply strict 2-decimal rounding with commercial rounding
+  const roundToTwoDecimals = (value: number): number => {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  };
+  const total = roundToTwoDecimals(data.total);
+  const totalGravado = roundToTwoDecimals(total);
+  const sumaVentasGravadas = roundToTwoDecimals(totalGravado);
+  
+  // Validate arithmetic consistency with $0.01 tolerance
+  const calculatedSum = data.items.reduce((sum, item) => roundToTwoDecimals(sum + roundToTwoDecimals(item.subtotal)), 0);
+  const discrepancy = Math.abs(calculatedSum - total);
+  if (discrepancy > 0.01) {
+    console.error(`Descuadre aritmético detectado: suma calculada ${calculatedSum.toFixed(2)} vs total ${total.toFixed(2)} (diferencia: ${discrepancy.toFixed(2)})`);
+    throw new Error(`Descuadre aritmético: la diferencia de ${discrepancy.toFixed(2)} excede la tolerancia permitida de $0.01`);
+  }
 
   const productRows: CellInput[][] = data.items.map((item, idx) => [
     { content: String(idx + 1), styles: { halign: "center" } },
@@ -251,7 +265,7 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
     doc.text(`Nombre: ${data.empleado.toUpperCase()}`, 11, apY + 14);
   }
   doc.setFont("helvetica", "normal");
-  doc.text(`Sello: ${data.codigo_generacion}`, 11, apY + 19);
+  doc.text(`Sello: ${data.sello_recepcion || data.codigo_generacion}`, 11, apY + 19);
 }
 
 // Versión original: descarga el PDF

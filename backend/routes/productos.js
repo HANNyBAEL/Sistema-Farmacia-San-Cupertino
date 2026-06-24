@@ -52,7 +52,6 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST crear producto
-// POST crear producto
 router.post('/', async (req, res) => {
   const { nombre_producto, descripcion, precio, stock, lote, fecha_vencimiento, id_proveedor, categorias, codigo_barras, id_empleado, nombre_empleado } = req.body;
 
