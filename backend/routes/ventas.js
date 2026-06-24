@@ -1,10 +1,11 @@
 import express from 'express';
 import sequelize from '../config/database.js';
+import { getFechaHoraLocal } from '../utils/fechaLocal.js';
 
 const router = express.Router();
 
 router.post('/', async (req, res) => {
-  const { id_cliente, id_empleado, productos, fecha } = req.body;
+  const { id_cliente, id_empleado, productos } = req.body;
   const transaction = await sequelize.transaction();
 
   try {
@@ -14,14 +15,7 @@ router.post('/', async (req, res) => {
     const clienteId = id_cliente ? Number(id_cliente) : null;
     const empleadoId = Number(id_empleado);
 
-    let fechaVenta = fecha;
-    if (!fechaVenta) {
-      const [[{ fechaHoraLocal }]] = await sequelize.query(
-        `SELECT DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '-06:00'), '%Y-%m-%d %H:%i:%s') as fechaHoraLocal`
-      );
-      fechaVenta = fechaHoraLocal;
-      console.warn('⚠️ No se recibió fecha en la petición. Usando fecha calculada:', fechaVenta);
-    }
+    const fechaVenta = getFechaHoraLocal();
 
     // 1. Insertar cabecera de la venta
     const [ventaResult] = await sequelize.query(

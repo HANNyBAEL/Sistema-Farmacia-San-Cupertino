@@ -10,4 +10,3 @@ const proveedoresApi = {
 };
 
 export default proveedoresApi;
-export const moverProductoAPapelera = (id) => api.patch(`/productos/${id}/papelera`).then(r => r.data);

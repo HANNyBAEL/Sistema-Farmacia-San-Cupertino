@@ -1810,21 +1810,14 @@ function Ventas({ user }: { user: User }) {
 
   async function procesarVenta(id_cliente: number) {
     try {
-      const ahora = new Date();
-      const year = ahora.getFullYear();
-      const month = String(ahora.getMonth() + 1).padStart(2, '0');
-      const day = String(ahora.getDate()).padStart(2, '0');
-      const time = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
-      const fechaLocal = `${year}-${month}-${day}`;
-      const fechaHoraLocal = `${fechaLocal} ${time}`;
-
       const ventaResp = await createVenta({
         id_cliente: id_cliente,
         id_empleado: user.id,
         metodo_pago: metodoPago,
         productos: cart.map(i => ({ id_producto: i.product.id_producto, cantidad: i.qty })),
-        fecha: fechaHoraLocal
       });
+
+      const fechaHoraLocal = ventaResp.fecha;
 
       const finalizarVentaExitosa = async () => {
         setSaleDone(true);

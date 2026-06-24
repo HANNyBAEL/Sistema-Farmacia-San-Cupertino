@@ -1,19 +1,12 @@
 import express from 'express';
 import sequelize from '../config/database.js';
+import { getHoyLocal } from '../utils/fechaLocal.js';
 
 const router = express.Router();
 
-// Función auxiliar para obtener la fecha actual en El Salvador (formato YYYY-MM-DD)
-async function getHoyLocal() {
-  const [[{ hoy }]] = await sequelize.query(
-    `SELECT DATE(CONVERT_TZ(NOW(), 'UTC', 'America/El_Salvador')) as hoy`
-  );
-  return hoy;
-}
-
 router.get('/kpis', async (req, res) => {
   try {
-    const hoyLocal = await getHoyLocal();
+    const hoyLocal = getHoyLocal();
 
     const [[{ totalProductos }]] = await sequelize.query(`SELECT COUNT(*) as totalProductos FROM productos`);
     const [[{ stockBajo }]] = await sequelize.query(`SELECT COUNT(*) as stockBajo FROM productos WHERE stock BETWEEN 1 AND 20`);
@@ -58,12 +51,12 @@ router.get('/kpis', async (req, res) => {
 
 router.get('/ventas-ultimos-7-dias', async (req, res) => {
   try {
-    const hoyLocal = await getHoyLocal();
+    const hoyLocal = getHoyLocal();
 
     // Obtener ventas agrupadas por fecha en los últimos 7 días (usando fecha local)
     const rows = await sequelize.query(
       `SELECT 
-         DATE(fecha) as dia,
+         DATE_FORMAT(DATE(fecha), '%Y-%m-%d') as dia,
          COALESCE(SUM(total), 0) as ventas
        FROM ventas
        WHERE DATE(fecha) >= DATE_SUB(:hoyLocal, INTERVAL 6 DAY)
@@ -85,12 +78,7 @@ router.get('/ventas-ultimos-7-dias', async (req, res) => {
       const fechaStr = `${year}-${month}-${day}`;
 
       // Buscar si hay ventas para esa fecha
-      const found = rows.find(r => {
-        const diaStr = r.dia instanceof Date 
-          ? r.dia.toISOString().slice(0, 10) 
-          : String(r.dia).slice(0, 10);
-        return diaStr === fechaStr;
-      });
+      const found = rows.find(r => String(r.dia).slice(0, 10) === fechaStr);
 
       result.push({
         dia: fechaStr,

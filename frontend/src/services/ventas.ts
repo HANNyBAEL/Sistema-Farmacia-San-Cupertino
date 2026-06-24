@@ -5,13 +5,13 @@ export interface VentaPayload {
   id_empleado: number;
   metodo_pago: string;
   productos: { id_producto: number; cantidad: number }[];
-  fecha: string;
 }
 
 export interface VentaResponse {
   message: string;
   id_venta: number;
   total: number;
+  fecha: string;
 }
 
 export const createVenta = (data: VentaPayload): Promise<VentaResponse> =>
