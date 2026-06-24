@@ -2691,6 +2691,21 @@ function Proveedores({ user }: { user: User }) {
     return `${d.slice(0, 4)}-${d.slice(4)}`;
   }
 
+  function validateNameSurname(value: string): string {
+    return value.replace(/[0-9]/g, '');
+  }
+
+  function validatePhone(value: string): string {
+    const numbers = value.replace(/\D/g, '').slice(0, 8);
+    if (numbers.length <= 4) return numbers;
+    return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
+  }
+
+  function isValidPhoneFormat(phone: string): boolean {
+    const regex = /^\d{4}-\d{4}$/;
+    return regex.test(phone);
+  }
+
   const filtered = suppliers.filter(s => {
     const nombreCompleto = `${s.nombre} ${s.apellido}`.toLowerCase();
     if (search && !nombreCompleto.startsWith(search.toLowerCase())) return false;
@@ -2731,15 +2746,36 @@ function Proveedores({ user }: { user: User }) {
 
   async function saveForm() {
     if (editSupplier && !hasChanges()) return;
-    if (!form.nombre || !form.apellido) { setFormError("Nombre y apellido son obligatorios."); return; }
-    if (!form.correo || !isValidEmail(form.correo)) { setFormError("Ingresa un correo electronico valido."); return; }
+    
+    if (!form.nombre || !form.apellido) { 
+      setFormError("Nombre y apellido son obligatorios."); 
+      return; 
+    }
+    
+    if (/\d/.test(form.nombre) || /\d/.test(form.apellido)) {
+      setFormError("Nombre y apellido no deben contener números.");
+      return;
+    }
+    
+    if (!form.correo || !isValidEmail(form.correo)) { 
+      setFormError("Ingresa un correo electronico valido."); 
+      return; 
+    }
+    
+    if (form.telefono && !isValidPhoneFormat(form.telefono)) {
+      setFormError("El teléfono debe tener el formato 0000-0000 (4 números, guión, 4 números).");
+      return;
+    }
+    
     try {
       const payload = { ...form, id_empleado: user.id, nombre_empleado: user.name };
       if (editSupplier) await proveedoresApi.update(editSupplier.id_proveedor, payload);
       else await proveedoresApi.create(payload);
       setShowForm(false);
       load();
-    } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
+    } catch (e: any) { 
+      setFormError(e?.response?.data?.error ?? "Error al guardar."); 
+    }
   }
 
   function handleDelete(id: number) {
@@ -2925,16 +2961,29 @@ function Proveedores({ user }: { user: User }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" />
+                  <Input 
+                    value={form.nombre} 
+                    onChange={v => setForm(p => ({ ...p, nombre: validateNameSurname(v) }))} 
+                    placeholder="Nombre" 
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" />
+                  <Input 
+                    value={form.apellido} 
+                    onChange={v => setForm(p => ({ ...p, apellido: validateNameSurname(v) }))} 
+                    placeholder="Apellido" 
+                  />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono</label>
-                <Input value={form.telefono} onChange={v => setForm(p => ({ ...p, telefono: v }))} placeholder="0000-0000" />
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono (formato: 0000-0000)</label>
+                <Input 
+                  value={form.telefono} 
+                  onChange={v => setForm(p => ({ ...p, telefono: validatePhone(v) }))} 
+                  placeholder="0000-0000" 
+                  maxLength={9}
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
