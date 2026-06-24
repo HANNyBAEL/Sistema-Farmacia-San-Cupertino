@@ -25,10 +25,11 @@ import eliminadosApi from "../services/eliminados";
 import api from "../services/api";
 import EscanerCodigoBarras from '../app/EscanerCodigoBarras';
 import { getSiguienteCorrelativo, guardarFactura } from "../services/facturas";
-import { generarFacturaPDF, generarFacturaPDFBase64 } from './GenerarFactura';
+import { generarFacturaPDF, generarFacturaPDFBase64, type FacturaData } from './GenerarFactura';
 import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
 import { useTheme } from '../context/ThemeContext';
+import { Mail, Loader2 } from 'lucide-react';
 
 const RECAPTCHA_SITE_KEY = "6Lc-5S0tAAAAANGcokPZobPlAHatfcoNRBqQeMYb";
 const isRecaptchaDebugEnabled = () =>
@@ -3829,6 +3830,8 @@ function Historial() {
   const [to, setTo] = useState("");
   const [cliente, setCliente] = useState("");
   const [empleado, setEmpleado] = useState("");
+  const [enviandoFactura, setEnviandoFactura] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const LIMIT = 20;
 
   async function load(p = 0) {
@@ -3858,6 +3861,13 @@ function Historial() {
 
   useEffect(() => { load(0); }, []);
 
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   function limpiar() {
     setFrom("");
     setTo("");
@@ -3875,6 +3885,84 @@ function Historial() {
       console.error(e);
     } finally {
       setDetailLoading(false);
+    }
+  }
+
+  async function reenviarFacturaPorCorreo() {
+    if (!detalle?.venta || !detalle?.detalle) return;
+    
+    const venta = detalle.venta;
+    const detalleProductos = detalle.detalle;
+    
+    // Validar que el cliente tenga correo
+    if (!venta.cliente_correo) {
+      setToast({ 
+        message: "Este cliente no tiene correo electrónico registrado.", 
+        type: 'error' 
+      });
+      return;
+    }
+
+    setEnviandoFactura(true);
+    
+    try {
+      // Construir el objeto datosFactura con la estructura correcta según FacturaData
+      const datosFactura: FacturaData = {
+        numero_control: venta.numero_control || `DTE-01-${String(venta.id_venta).padStart(8, '0')}`,
+        codigo_generacion: venta.codigo_generacion || `${venta.id_venta}-${Date.now()}`,
+        sello_recepcion: venta.sello_recepcion,
+        ambiente_destino: venta.ambiente_destino || "00",
+        fecha_emision: `${venta.fecha} ${venta.hora || '00:00:00'}`,
+        
+        // Datos del receptor/cliente
+        receptor: {
+          nombre: venta.cliente || "Consumidor Final",
+          dui: venta.dui,
+          correo: venta.cliente_correo,
+          telefono: venta.cliente_telefono,
+          direccion: venta.cliente_direccion,
+        },
+        
+        // Líneas de productos mapeadas a la estructura correcta
+        items: detalleProductos.map((d: any) => ({
+          codigo: d.codigo_producto || d.id_producto,
+          descripcion: d.nombre_producto,
+          cantidad: Number(d.cantidad),
+          precio_unitario: Number(d.precio_unitario),
+          subtotal: Number(d.subtotal),
+        })),
+        
+        // Total
+        total: Number(venta.total),
+        
+        // Información del empleado
+        empleado: venta.empleado,
+      };
+      
+      // Generar el PDF en base64 (NO es async, es sincrónico)
+      const pdfBase64 = generarFacturaPDFBase64(datosFactura);
+      
+      // Enviar el correo con la factura adjunta
+      await api.post('/facturas/enviar', {
+        email: venta.cliente_correo,
+        pdfBase64: pdfBase64,
+        id_venta: venta.id_venta,
+        numero_control: venta.numero_control,
+        nombre_cliente: venta.cliente,
+      });
+      
+      setToast({ 
+        message: `Factura enviada correctamente a ${venta.cliente_correo}`, 
+        type: 'success' 
+      });
+    } catch (e: any) {
+      console.error(e);
+      setToast({ 
+        message: e?.response?.data?.error ?? "Error al enviar la factura por correo.", 
+        type: 'error' 
+      });
+    } finally {
+      setEnviandoFactura(false);
     }
   }
 
@@ -4003,6 +4091,7 @@ function Historial() {
                 </p>
                 {detalle.venta?.dui && <p className="text-xs text-muted-foreground mt-0.5">DUI: {detalle.venta.dui}</p>}
                 {detalle.venta?.cliente_telefono && <p className="text-xs text-muted-foreground">Tel: {detalle.venta.cliente_telefono}</p>}
+                {detalle.venta?.cliente_correo && <p className="text-xs text-muted-foreground">Correo: {detalle.venta.cliente_correo}</p>}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Atendido por</p>
@@ -4045,10 +4134,40 @@ function Historial() {
               </div>
             </div>
 
-            <div className="flex justify-end px-6 pb-5">
+            <div className="flex justify-between items-center px-6 pb-5 gap-3">
+              <Btn 
+                variant="primary" 
+                onClick={reenviarFacturaPorCorreo}
+                disabled={enviandoFactura || !detalle.venta?.cliente_correo}
+                className="flex items-center gap-2"
+              >
+                {enviandoFactura ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Mail size={14} />
+                    Volver a mandar factura por correo
+                  </>
+                )}
+              </Btn>
               <Btn variant="secondary" onClick={() => setDetalle(null)}>Cerrar</Btn>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* ── Toast ── */}
+      {toast && (
+        <div className={`fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+          toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        }`}>
+          {toast.message}
+          <button onClick={() => setToast(null)} className="ml-2 hover:opacity-80">
+            <X size={16} />
+          </button>
         </div>
       )}
     </PageLayout>

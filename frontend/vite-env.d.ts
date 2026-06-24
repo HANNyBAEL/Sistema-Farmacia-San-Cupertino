@@ -14,3 +14,13 @@ interface Window {
     execute: (siteKey: string, options: { action: string }) => Promise<string>;
   };
 }
+
+// Types for import.meta.env
+interface ImportMetaEnv {
+  DEV?: boolean;
+  // Add other environment variables as needed
+}
+
+interface ImportMeta {
+  env: ImportMetaEnv;
+}
