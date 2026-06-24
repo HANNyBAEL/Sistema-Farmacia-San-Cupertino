@@ -56,12 +56,12 @@ router.get('/ventas-ultimos-7-dias', async (req, res) => {
     // Obtener ventas agrupadas por fecha en los últimos 7 días (usando fecha local)
     const rows = await sequelize.query(
       `SELECT 
-         DATE_FORMAT(DATE(fecha), '%Y-%m-%d') as dia,
-         COALESCE(SUM(total), 0) as ventas
+         DATE_FORMAT(DATE(fecha), '%Y-%m-%d') AS dia,
+         COALESCE(SUM(total), 0) AS ventas
        FROM ventas
        WHERE DATE(fecha) >= DATE_SUB(:hoyLocal, INTERVAL 6 DAY)
-       GROUP BY DATE(fecha)
-       ORDER BY DATE(fecha) ASC`,
+       GROUP BY DATE_FORMAT(DATE(fecha), '%Y-%m-%d')
+       ORDER BY dia ASC`,
       { replacements: { hoyLocal }, type: sequelize.QueryTypes.SELECT }
     );
 
