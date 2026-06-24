@@ -2853,17 +2853,17 @@ function Proveedores({ user }: { user: User }) {
                   key={s.id_proveedor}
                   className={`transition-colors ${s.deleted ? 'opacity-50 bg-muted/50' : 'hover:bg-muted/50'}`}
                 >
-                  <td className="py-2.5 px-3 font-medium text-foreground whitespace-nowrap truncate max-w-[200px]" title={`${s.nombre} ${s.apellido}`}>
-                    {s.nombre} {s.apellido}
+                  <td className="py-2.5 px-3 font-medium text-foreground whitespace-nowrap">
+                    <ExpandableCell text={`${s.nombre} ${s.apellido}`} maxLength={25} />
                   </td>
                   <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
-                    {s.telefono || "—"}
+                    <ExpandableCell text={s.telefono} maxLength={15} />
                   </td>
-                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap truncate max-w-[200px]" title={s.correo}>
-                    {s.correo || "—"}
+                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                    <ExpandableCell text={s.correo} maxLength={25} />
                   </td>
-                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap truncate max-w-[220px]" title={s.direccion}>
-                    {s.direccion || "—"}
+                  <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                    <ExpandableCell text={s.direccion} maxLength={30} />
                   </td>
                   <td className="py-2.5 px-3 whitespace-nowrap">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
@@ -3281,10 +3281,10 @@ function Empleados({ user }: { user: User }) {
                       <ExpandableCell text={emp.correo} maxLength={25} />
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
-                      {emp.telefono || "—"}
+                      <ExpandableCell text={emp.telefono} maxLength={15} />
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground font-mono text-xs whitespace-nowrap">
-                      {emp.dui || "—"}
+                      <ExpandableCell text={emp.dui} maxLength={12} />
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground font-mono text-xs whitespace-nowrap">
                       <ExpandableCell text={emp.nit} maxLength={18} />
@@ -3638,8 +3638,8 @@ function Alertas() {
                       "hover:bg-muted/50"
                     }`}
                   >
-                    <td className="py-2.5 px-4 font-medium text-foreground whitespace-nowrap truncate max-w-[200px]" title={p.nombre_producto}>
-                      {p.nombre_producto}
+                    <td className="py-2.5 px-4 font-medium text-foreground whitespace-nowrap">
+                      <ExpandableCell text={p.nombre_producto} maxLength={25} />
                     </td>
                     <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">{p.lote}</td>
                     <td className="py-2.5 px-4 font-mono font-semibold whitespace-nowrap">{p.stock} uds.</td>
