@@ -34,13 +34,13 @@ function dibujarLogoSVG(doc: jsPDF, x: number, y: number, w: number, h: number) 
   }
 
 const EMISOR = {
-  nombre: "FARMACÉUTICOS CATÓLICOS, S.A. DE C.V.",
+  nombre: "FARMACÉUTICOS DE SAN JOSE CUPERTINO , S.A. DE C.V.",
   nit: "0614-123456-789-0",
   nrc: "123456-7",
   actividad: "Venta de productos farmacéuticos y medicinales",
-  direccion: "5ª Avenida Norte #23, Col. Médica, San Salvador, El Salvador",
+  direccion: "5ª Avenida Norte #23, Col. Metalio ,  Acajutla, Sonsonate, El Salvador",
   telefono: "2222-3333",
-  correo: "facturacion@farmacatolicos.com",
+  correo: "farmaciassanjosecupertino@gmail.com",
 };
 
 function numeroALetras(n: number): string {
@@ -82,7 +82,7 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
   doc.setFontSize(9);
   doc.text("FACTURA", W / 2, 13.5, { align: "center" });
   doc.setFontSize(8);
-  doc.text("Ver.3", W - 8, 10, { align: "right" });
+  doc.text("", W - 8, 10, { align: "right" });
 
   let y = 24;
   doc.setTextColor(...negro);

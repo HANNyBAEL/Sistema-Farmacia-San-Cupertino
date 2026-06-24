@@ -976,20 +976,57 @@ const CATEGORIAS = [
 // ── Componente para celdas con texto largo que se pueden expandir ──
 function ExpandableCell({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) {
   const [showModal, setShowModal] = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const textRef = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    const element = textRef.current;
+    if (!element || !text) return;
+
+    const checkOverflow = () => {
+      setIsOverflowing(element.scrollWidth > element.clientWidth);
+    };
+
+    checkOverflow();
+
+    const observer = new ResizeObserver(checkOverflow);
+    observer.observe(element);
+    window.addEventListener('resize', checkOverflow);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', checkOverflow);
+    };
+  }, [text]);
+
   if (!text || text.length === 0) return <span className="text-muted-foreground">—</span>;
 
   const truncated = text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
-  const isTruncated = text.length > maxLength;
+  const canShowFull = text.length > maxLength || isOverflowing;
 
   return (
     <>
-      <span
-        onClick={() => isTruncated && setShowModal(true)}
-        className={isTruncated ? 'cursor-pointer underline decoration-dotted underline-offset-2 hover:text-primary transition-colors' : ''}
-        title={isTruncated ? 'Haz clic para ver completo' : ''}
-      >
-        {truncated}
-      </span>
+      <div className="flex min-w-0 max-w-full items-center gap-1">
+        <span
+          ref={textRef}
+          onClick={() => canShowFull && setShowModal(true)}
+          className={`block min-w-0 truncate ${canShowFull ? 'cursor-pointer underline decoration-dotted underline-offset-2 hover:text-primary transition-colors' : ''}`}
+          title={canShowFull ? 'Haz clic para ver completo' : text}
+        >
+          {truncated}
+        </span>
+        {canShowFull && (
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-ring/30"
+            title="Ver información completa"
+            aria-label="Ver información completa"
+          >
+            <Eye size={13} />
+          </button>
+        )}
+      </div>
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
@@ -3293,7 +3330,7 @@ function Empleados({ user }: { user: User }) {
                       <ExpandableCell text={emp.cuenta_banco} maxLength={18} />
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
-                      {emp.afp || "—"}
+                      <ExpandableCell text={emp.afp} maxLength={16} />
                     </td>
                     <td className="py-2.5 px-3 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${CARGO_STYLE[emp.cargo] ?? "bg-muted text-muted-foreground"}`}>
@@ -3641,7 +3678,9 @@ function Alertas() {
                     <td className="py-2.5 px-4 font-medium text-foreground whitespace-nowrap">
                       <ExpandableCell text={p.nombre_producto} maxLength={25} />
                     </td>
-                    <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">{p.lote}</td>
+                    <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                      <ExpandableCell text={p.lote} maxLength={12} />
+                    </td>
                     <td className="py-2.5 px-4 font-mono font-semibold whitespace-nowrap">{p.stock} uds.</td>
                     <td className="py-2.5 px-4 whitespace-nowrap">
                       {vencido ? (
@@ -3797,11 +3836,11 @@ function Historial() {
                 <tr key={v.id_venta} className="transition-colors hover:bg-muted/50">
                   <td className="py-2.5 px-4 font-mono text-xs text-primary font-semibold whitespace-nowrap">#{v.id_venta}</td>
                   <td className="py-2.5 px-4 text-muted-foreground text-xs whitespace-nowrap">{v.fecha}</td>
-                  <td className="py-2.5 px-4 text-foreground whitespace-nowrap truncate max-w-[200px]" title={v.cliente ?? "Consumidor final"}>
-                    {v.cliente ?? "Consumidor final"}
+                  <td className="py-2.5 px-4 text-foreground whitespace-nowrap max-w-[200px]">
+                    <ExpandableCell text={v.cliente ?? "Consumidor final"} maxLength={24} />
                   </td>
-                  <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap truncate max-w-[180px]" title={v.empleado ?? "—"}>
-                    {v.empleado ?? "—"}
+                  <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap max-w-[180px]">
+                    <ExpandableCell text={v.empleado} maxLength={22} />
                   </td>
                   <td className="py-2.5 px-4 font-mono font-semibold text-primary whitespace-nowrap">${Number(v.total).toFixed(2)}</td>
                   <td className="py-2.5 px-4 whitespace-nowrap">

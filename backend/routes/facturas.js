@@ -10,7 +10,7 @@ router.get('/siguiente-correlativo', async (req, res) => {
       `SELECT COUNT(*) as total FROM facturas`
     );
     const numero = String(parseInt(total) + 1).padStart(8, '0');
-    res.json({ numero_control: `DTE-01-S003P001-${numero}` });
+    res.json({ numero_control: `DTE-00-S001P001-${numero}` });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
