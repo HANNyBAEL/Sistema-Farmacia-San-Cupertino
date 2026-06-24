@@ -16,6 +16,7 @@ router.post('/', async (req, res) => {
     const empleadoId = Number(id_empleado);
 
     const fechaVenta = getFechaHoraLocal();
+    console.log('📅 fechaVenta enviada a DB:', fechaVenta);
 
     // 1. Insertar cabecera de la venta
     const [ventaResult] = await sequelize.query(
