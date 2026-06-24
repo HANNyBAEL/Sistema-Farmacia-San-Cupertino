@@ -2315,6 +2315,28 @@ function Clientes({ user }: { user: User }) {
     }
   }, [toast]);
 
+  // ── Validaciones ──
+  function validateNameSurname(value: string): string {
+    return value.replace(/[0-9]/g, '');
+  }
+
+  function validatePhone(value: string): string {
+    const numbers = value.replace(/\D/g, '').slice(0, 8);
+    if (numbers.length <= 4) return numbers;
+    return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
+  }
+
+  function isValidPhoneFormat(phone: string): boolean {
+    const regex = /^\d{4}-\d{4}$/;
+    return regex.test(phone);
+  }
+
+  function isValidDUIFormat(dui: string): boolean {
+    if (!dui) return true; // DUI es opcional
+    const regex = /^\d{8}-\d{1}$/;
+    return regex.test(dui);
+  }
+
   const filtered = clients.filter(c => {
     if (search && !`${c.nombre} ${c.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
     if (filterDui && !(c.dui ?? "").toLowerCase().startsWith(filterDui.toLowerCase())) return false;
@@ -2367,8 +2389,20 @@ function Clientes({ user }: { user: User }) {
     if (!form.nombre || !form.apellido || !form.telefono || !form.correo) {
       setFormError("Complete los campos obligatorios."); return;
     }
+    // Validar que nombre y apellido no contengan números
+    if (/\d/.test(form.nombre) || /\d/.test(form.apellido)) {
+      setFormError("Nombre y apellido no deben contener números."); return;
+    }
     if (!isValidEmail(form.correo)) {
       setFormError("Ingresa un correo electronico valido."); return;
+    }
+    // Validar formato de teléfono
+    if (!isValidPhoneFormat(form.telefono)) {
+      setFormError("El teléfono debe tener el formato 0000-0000."); return;
+    }
+    // Validar formato de DUI si se proporcionó
+    if (form.dui && !isValidDUIFormat(form.dui)) {
+      setFormError("El DUI debe tener el formato 00000000-0."); return;
     }
     try {
       const payload = { ...form, id_empleado: user.id, nombre_empleado: user.name };
@@ -2590,28 +2624,36 @@ function Clientes({ user }: { user: User }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre *</label>
-                  <Input value={form.nombre} onChange={v => setForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" />
+                  <Input 
+                    value={form.nombre} 
+                    onChange={v => setForm(p => ({ ...p, nombre: validateNameSurname(v) }))} 
+                    placeholder="Nombre" 
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
-                  <Input value={form.apellido} onChange={v => setForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" />
+                  <Input 
+                    value={form.apellido} 
+                    onChange={v => setForm(p => ({ ...p, apellido: validateNameSurname(v) }))} 
+                    placeholder="Apellido" 
+                  />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI <span className="font-normal text-muted-foreground">(00000000-0)</span></label>
                 <input
-                  value={formatDUI(form.dui)}
-                  onChange={e => setForm(prev => ({ ...prev, dui: e.target.value }))}
+                  value={form.dui}
+                  onChange={e => setForm(prev => ({ ...prev, dui: formatDUI(e.target.value) }))}
                   placeholder="00000000-0"
                   maxLength={10}
                   className={fmtClass}
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono * <span className="font-normal text-muted-foreground">(0000-0000)</span></label>
                 <input
-                  value={formatPhone(form.telefono)}
-                  onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
+                  value={form.telefono}
+                  onChange={e => setForm(prev => ({ ...prev, telefono: validatePhone(e.target.value) }))}
                   placeholder="0000-0000"
                   maxLength={9}
                   className={fmtClass}
