@@ -4,7 +4,6 @@ import sequelize from '../config/database.js';
 const router = express.Router();
 
 router.post('/', async (req, res) => {
-  // Extraer también 'fecha' del cuerpo de la petición
   const { id_cliente, id_empleado, productos, fecha } = req.body;
   const transaction = await sequelize.transaction();
 
@@ -15,14 +14,12 @@ router.post('/', async (req, res) => {
     const clienteId = id_cliente ? Number(id_cliente) : null;
     const empleadoId = Number(id_empleado);
 
-    // Usar la fecha enviada desde el frontend (ya en hora local)
     let fechaVenta = fecha;
     if (!fechaVenta) {
-      // Fallback: calcular con CONVERT_TZ (solo por si acaso)
-      const [[{ hoyLocal }]] = await sequelize.query(
-        `SELECT DATE(CONVERT_TZ(NOW(), '+00:00', '-06:00')) as hoyLocal`
+      const [[{ fechaHoraLocal }]] = await sequelize.query(
+        `SELECT DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '-06:00'), '%Y-%m-%d %H:%i:%s') as fechaHoraLocal`
       );
-      fechaVenta = hoyLocal;
+      fechaVenta = fechaHoraLocal;
       console.warn('⚠️ No se recibió fecha en la petición. Usando fecha calculada:', fechaVenta);
     }
 
@@ -103,7 +100,7 @@ router.post('/', async (req, res) => {
     );
 
     await transaction.commit();
-    res.status(201).json({ message: 'Venta registrada', id_venta, total });
+    res.status(201).json({ message: 'Venta registrada', id_venta, total, fecha: fechaVenta });
 
   } catch (error) {
     await transaction.rollback();

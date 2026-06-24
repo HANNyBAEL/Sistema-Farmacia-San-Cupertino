@@ -100,60 +100,11 @@ router.patch('/:id/toggle', async (req, res) => {
 });
 
 router.patch('/:id/papelera', async (req, res) => {
-  const { id_empleado, nombre_empleado } = req.body;
-  try {
-    const id = Number(req.params.id);
-
-    const [prov] = await sequelize.query(
-      'SELECT nombre, apellido FROM proveedores WHERE id_proveedor = :id',
-      { replacements: { id }, type: sequelize.QueryTypes.SELECT }
-    );
-    if (!prov) return res.status(404).json({ error: 'Proveedor no encontrado' });
-
-    await sequelize.query(
-      'UPDATE proveedores SET deleted = 1, papelera = 1 WHERE id_proveedor = :id',
-      { replacements: { id } }
-    );
-
-    await registrarAuditoria({
-      tabla: 'proveedores',
-      accion: 'PAPELERA',
-      descripcion: `Proveedor movido a registros eliminados: ${prov.nombre} ${prov.apellido}`,
-      id_registro: id,
-      id_empleado,
-      nombre_empleado
-    });
-
-    res.json({ message: 'Proveedor movido a registros eliminados' });
-  } catch (error) {
-    console.error('❌ PATCH /proveedores/:id/papelera:', error);
-    res.status(500).json({ error: error.message });
-  }
+  res.status(405).json({ error: 'Los proveedores no se eliminan. Usa la opcion Desactivar.' });
 });
 
 router.delete('/:id', async (req, res) => {
-  const { id_empleado, nombre_empleado } = req.body;
-  try {
-    const [prov] = await sequelize.query(
-      'SELECT nombre, apellido FROM proveedores WHERE id_proveedor = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT }
-    );
-    if (!prov) return res.status(404).json({ error: 'Proveedor no encontrado' });
-
-    await sequelize.query(
-      'UPDATE proveedores SET deleted = 1, papelera = 1 WHERE id_proveedor = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.UPDATE }
-    );
-    await registrarAuditoria({
-      tabla: 'proveedores', accion: 'PAPELERA',
-      descripcion: `Proveedor movido a registros eliminados: ${prov.nombre} ${prov.apellido}`,
-      id_registro: Number(req.params.id), id_empleado, nombre_empleado
-    });
-    res.json({ message: 'Proveedor movido a registros eliminados' });
-  } catch (error) {
-    console.error('❌ DELETE /proveedores/:id:', error);
-    res.status(500).json({ error: error.message });
-  }
+  res.status(405).json({ error: 'Los proveedores no se eliminan. Usa la opcion Desactivar.' });
 });
 
 export default router;

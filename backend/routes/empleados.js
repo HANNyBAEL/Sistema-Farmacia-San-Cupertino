@@ -196,41 +196,9 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// ─── MOVER EMPLEADO A PAPELERA ────────────────────────────
+// ─── DELETE deshabilitado: los empleados solo se desactivan ──
 router.delete('/:id', async (req, res) => {
-  const { id_empleado_sesion, nombre_empleado_sesion } = req.body;
-  try {
-    const [emp] = await sequelize.query(
-      `SELECT e.nombre, e.apellido, e.cargo,
-        EXISTS(SELECT 1 FROM ventas v WHERE v.id_empleado = e.id_empleado) AS has_ventas,
-        EXISTS(
-          SELECT 1 FROM auditoria a
-          WHERE a.id_empleado = e.id_empleado
-             OR (a.tabla = 'empleados' AND a.id_registro = e.id_empleado)
-        ) AS has_acciones
-      FROM empleados e
-      WHERE e.id_empleado = :id AND e.papelera = 0`,
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
-    );
-    if (!emp) return res.status(404).json({ error: 'Empleado no encontrado' });
-    await sequelize.query(
-      'UPDATE empleados SET activo = 0, papelera = 1, token_version = token_version + 1 WHERE id_empleado = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
-    );
-    await registrarAuditoria({
-      tabla: 'empleados', accion: 'PAPELERA',
-      descripcion: `Empleado movido a registros eliminados: ${emp.nombre} ${emp.apellido} (${emp.cargo})`,
-      id_registro: Number(req.params.id), id_empleado: id_empleado_sesion, nombre_empleado: nombre_empleado_sesion
-    });
-    res.json({ message: 'Empleado movido a registros eliminados' });
-  } catch (error) {
-    console.error('❌ DELETE /empleados/:id:', error);
-    if (handleEmailValidationError(error, res)) return;
-    if (handleEmailValidationError(error, res)) return;
-    if (handleEmailValidationError(error, res)) return;
-    if (handleEmailValidationError(error, res)) return;
-    res.status(500).json({ error: error.message });
-  }
+  res.status(405).json({ error: 'Los empleados no se eliminan. Usa la opcion Desactivar.' });
 });
 
 // ─── FORZAR RESTABLECIMIENTO DE CONTRASEÑA ──────────────

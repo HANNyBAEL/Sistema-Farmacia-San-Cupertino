@@ -24,11 +24,11 @@ router.get('/kpis', async (req, res) => {
 
     // Ventas e ingresos del día local
     const [[{ ventasHoy }]] = await sequelize.query(
-      `SELECT COUNT(*) as ventasHoy FROM ventas WHERE fecha = :hoyLocal`,
+      `SELECT COUNT(*) as ventasHoy FROM ventas WHERE DATE(fecha) = :hoyLocal`,
       { replacements: { hoyLocal } }
     );
     const [[{ ingresosHoy }]] = await sequelize.query(
-      `SELECT COALESCE(SUM(total), 0) as ingresosHoy FROM ventas WHERE fecha = :hoyLocal`,
+      `SELECT COALESCE(SUM(total), 0) as ingresosHoy FROM ventas WHERE DATE(fecha) = :hoyLocal`,
       { replacements: { hoyLocal } }
     );
 
@@ -63,12 +63,12 @@ router.get('/ventas-ultimos-7-dias', async (req, res) => {
     // Obtener ventas agrupadas por fecha en los últimos 7 días (usando fecha local)
     const rows = await sequelize.query(
       `SELECT 
-         fecha as dia,
+         DATE(fecha) as dia,
          COALESCE(SUM(total), 0) as ventas
        FROM ventas
-       WHERE fecha >= DATE_SUB(:hoyLocal, INTERVAL 6 DAY)
-       GROUP BY fecha
-       ORDER BY fecha ASC`,
+       WHERE DATE(fecha) >= DATE_SUB(:hoyLocal, INTERVAL 6 DAY)
+       GROUP BY DATE(fecha)
+       ORDER BY DATE(fecha) ASC`,
       { replacements: { hoyLocal }, type: sequelize.QueryTypes.SELECT }
     );
 

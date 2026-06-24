@@ -752,7 +752,7 @@ const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: 
   { screen: "proveedores",  label: "Proveedores",           icon: <Truck size={18}/>,            roles: ["administrador","farmaceutico"] },
   { screen: "alertas",      label: "Alertas de Stock",      icon: <Bell size={18}/>,             roles: ["administrador","farmaceutico"] },
   { screen: "historial",    label: "Historial de Ventas",   icon: <History size={18}/>,          roles: ["administrador"] },
-  { screen: "eliminados",   label: "Registros Eliminados",  icon: <Trash2 size={18}/>,           roles: ["administrador"] },
+  { screen: "eliminados",   label: "Historial Desactivados", icon: <EyeOff size={18}/>,           roles: ["administrador"] },
   { screen: "auditoria",    label: "Auditoría",             icon: <Shield size={18} />,          roles: ["administrador"] },
 ];
 
@@ -1456,15 +1456,6 @@ function Productos({ user }: { user: User }) {
                         >
                           {p.deleted ? "Activar" : "Desactivar"}
                         </button>
-                        {!p.has_ventas && (
-                          <button
-                            onClick={() => handleDelete(p.id_producto)}
-                            className="text-destructive p-1 rounded hover:bg-destructive/10 transition-colors"
-                            title="Mover a papelera"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -1560,16 +1551,6 @@ function Productos({ user }: { user: User }) {
       )}
 
       {/* ── Modales de confirmación ── */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title="Mover a papelera"
-        message="¿Estás seguro de que deseas mover este producto a la papelera? Podrás restaurarlo más tarde."
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmModal({ isOpen: false, productId: null })}
-        confirmText="Sí, mover a papelera"
-        variant="danger"
-      />
-
       <ConfirmModal
         isOpen={toggleModal.isOpen}
         title={toggleModal.deleted ? "Activar producto" : "Desactivar producto"}
@@ -1833,14 +1814,16 @@ function Ventas({ user }: { user: User }) {
       const year = ahora.getFullYear();
       const month = String(ahora.getMonth() + 1).padStart(2, '0');
       const day = String(ahora.getDate()).padStart(2, '0');
+      const time = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
       const fechaLocal = `${year}-${month}-${day}`;
+      const fechaHoraLocal = `${fechaLocal} ${time}`;
 
       const ventaResp = await createVenta({
         id_cliente: id_cliente,
         id_empleado: user.id,
         metodo_pago: metodoPago,
         productos: cart.map(i => ({ id_producto: i.product.id_producto, cantidad: i.qty })),
-        fecha: fechaLocal
+        fecha: fechaHoraLocal
       });
 
       const finalizarVentaExitosa = async () => {
@@ -1879,8 +1862,6 @@ function Ventas({ user }: { user: User }) {
               return `${year}DTE${tipoDoc}${correlativo}${randomPart}`;
             };
             const sello_recepcion = generateSelloRecepcion(numero_control);
-            const fechaHoraLocal = `${year}-${month}-${day} ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
-            
             await guardarFactura({
               numero_control,
               codigo_generacion,
@@ -2581,15 +2562,6 @@ function Clientes({ user }: { user: User }) {
                         >
                           {c.deleted ? "Activar" : "Desactivar"}
                         </button>
-                        {!c.has_ventas && (
-                          <button
-                            onClick={() => handleDelete(c.id_cliente)}
-                            className="text-destructive p-1 rounded hover:bg-destructive/10 transition-colors"
-                            title="Mover a papelera"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -2673,16 +2645,6 @@ function Clientes({ user }: { user: User }) {
       )}
 
       {/* ── Modales de confirmación ── */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title="Mover a papelera"
-        message="¿Estás seguro de que deseas mover este cliente a la papelera? Podrás restaurarlo más tarde."
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmModal({ isOpen: false, clienteId: null })}
-        confirmText="Sí, mover a papelera"
-        variant="danger"
-      />
-
       <ConfirmModal
         isOpen={toggleModal.isOpen}
         title={toggleModal.deleted ? "Activar cliente" : "Desactivar cliente"}
@@ -2936,15 +2898,6 @@ function Proveedores({ user }: { user: User }) {
                       >
                         {s.deleted ? "Activar" : "Desactivar"}
                       </button>
-                      {!s.has_productos && (
-                        <button
-                          onClick={() => handleDelete(s.id_proveedor)}
-                          className="text-destructive p-1 rounded hover:bg-destructive/10 transition-colors"
-                          title="Mover a papelera"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -3011,16 +2964,6 @@ function Proveedores({ user }: { user: User }) {
       )}
 
       {/* ── Modales de confirmación ── */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title="Mover a papelera"
-        message="¿Estás seguro de que deseas mover este proveedor a la papelera? Podrás restaurarlo más tarde."
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmModal({ isOpen: false, proveedorId: null })}
-        confirmText="Sí, mover a papelera"
-        variant="danger"
-      />
-
       <ConfirmModal
         isOpen={toggleModal.isOpen}
         title={toggleModal.deleted ? "Activar proveedor" : "Desactivar proveedor"}
@@ -3372,16 +3315,6 @@ function Empleados({ user }: { user: User }) {
                         >
                           {emp.activo ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
-                        {Number(emp.has_ventas) === 0 && Number(emp.has_acciones) === 0 && (
-                          <button
-                            onClick={() => handleDelete(emp.id_empleado)}
-                            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            title="Mover a papelera"
-                            aria-label={`Mover a papelera ${fullName}`}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -3511,16 +3444,6 @@ function Empleados({ user }: { user: User }) {
       )}
 
       {/* ── Modales de confirmación ── */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title="Mover empleado a papelera"
-        message="¿Estás seguro de que deseas mover este empleado a la papelera? Solo se permite si no tiene ventas registradas."
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmModal({ isOpen: false, empleadoId: null })}
-        confirmText="Sí, mover"
-        variant="danger"
-      />
-
       <ConfirmModal
         isOpen={toggleModal.isOpen}
         title={toggleModal.activo ? "Desactivar empleado" : "Activar empleado"}
@@ -3826,7 +3749,7 @@ function Historial() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted">
-                {["# Venta", "Fecha", "Cliente", "Empleado", "Total", "Detalle"].map(h => (
+                {["# Venta", "Fecha", "Hora", "Cliente", "Empleado", "Total", "Detalle"].map(h => (
                   <th key={h} className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -3836,6 +3759,7 @@ function Historial() {
                 <tr key={v.id_venta} className="transition-colors hover:bg-muted/50">
                   <td className="py-2.5 px-4 font-mono text-xs text-primary font-semibold whitespace-nowrap">#{v.id_venta}</td>
                   <td className="py-2.5 px-4 text-muted-foreground text-xs whitespace-nowrap">{v.fecha}</td>
+                  <td className="py-2.5 px-4 text-muted-foreground text-xs font-mono whitespace-nowrap">{v.hora ?? "—"}</td>
                   <td className="py-2.5 px-4 text-foreground whitespace-nowrap max-w-[200px]">
                     <ExpandableCell text={v.cliente ?? "Consumidor final"} maxLength={24} />
                   </td>
@@ -3887,7 +3811,9 @@ function Historial() {
                 <h2 className="text-lg font-bold text-foreground">
                   Detalle de Venta <span className="text-primary">#{detalle.venta?.id_venta}</span>
                 </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">{detalle.venta?.fecha}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {detalle.venta?.fecha}{detalle.venta?.hora ? ` · ${detalle.venta.hora}` : ""}
+                </p>
               </div>
               <button onClick={() => setDetalle(null)} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5">
                 <X size={20} />
@@ -3954,7 +3880,7 @@ function Historial() {
   );
 }
 
-// ── Eliminados ────────────────────────────────────────────────────────────────
+// ── Desactivados ──────────────────────────────────────────────────────────────
 function Eliminados() {
   const [records, setRecords]       = useState<EliminadoRecord[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -3965,7 +3891,7 @@ function Eliminados() {
     isOpen: boolean;
     tipo: EliminadoRecord["tipo"] | null;
     id: number | null;
-    accion: 'restaurar' | 'eliminar' | null;
+    accion: 'restaurar' | null;
   }>({ isOpen: false, tipo: null, id: null, accion: null });
 
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
@@ -4016,28 +3942,19 @@ function Eliminados() {
     setConfirmModal({ isOpen: true, tipo, id, accion: 'restaurar' });
   }
 
-  function handlePermanent(tipo: EliminadoRecord["tipo"], id: number) {
-    setConfirmModal({ isOpen: true, tipo, id, accion: 'eliminar' });
-  }
-
   async function confirmAction() {
     if (!confirmModal.tipo || confirmModal.id === null || !confirmModal.accion) return;
     const { tipo, id, accion } = confirmModal;
 
     try {
-      if (accion === 'restaurar') {
-        await eliminadosApi.restaurar(tipo, id);
-        setToast({ message: `${tipoLabel[tipo]} restaurado correctamente.`, type: 'success' });
-      } else {
-        await eliminadosApi.eliminar(tipo, id);
-        setToast({ message: `${tipoLabel[tipo]} eliminado permanentemente.`, type: 'success' });
-      }
+      await eliminadosApi.restaurar(tipo, id);
+      setToast({ message: `${tipoLabel[tipo]} activado correctamente.`, type: 'success' });
       setConfirmModal({ isOpen: false, tipo: null, id: null, accion: null });
       load();
     } catch (e: any) {
       setConfirmModal({ isOpen: false, tipo: null, id: null, accion: null });
       setToast({
-        message: e?.response?.data?.error ?? `Error al ${accion === 'restaurar' ? 'restaurar' : 'eliminar'} el registro.`,
+        message: e?.response?.data?.error ?? 'Error al activar el registro.',
         type: 'error'
       });
     }
@@ -4047,8 +3964,8 @@ function Eliminados() {
 
   return (
     <PageLayout
-      title="Registros Eliminados"
-      subtitle={`${records.length} registros en papelera`}
+      title="Historial Desactivados"
+      subtitle={`${records.length} registros desactivados`}
       actions={
         <Btn variant="secondary" size="sm" onClick={load}>
           <RefreshCw size={14} /> Actualizar
@@ -4059,7 +3976,7 @@ function Eliminados() {
       {records.length > 0 && (
         <div className="flex items-center gap-2 text-sm bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800/30 dark:text-amber-400 text-amber-800 rounded-lg px-4 py-3">
           <AlertTriangle size={15} className="flex-shrink-0" />
-          Los registros aquí pueden ser restaurados o eliminados permanentemente.
+          Los registros aquí se conservan para historial y pueden activarse nuevamente.
         </div>
       )}
 
@@ -4124,14 +4041,14 @@ function Eliminados() {
                 {filtered.map(r => (
                   <tr
                     key={`${r.tipo}-${r.id}`}
-                    className="border-b border-border hover:bg-destructive/5 transition-colors"
+                    className="border-b border-border hover:bg-muted/50 transition-colors"
                   >
                     <td className="py-3 px-4">
                       <Badge className={tipoCls[r.tipo]}>
                         {tipoLabel[r.tipo]}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 font-medium text-foreground opacity-60 line-through">
+                    <td className="py-3 px-4 font-medium text-foreground opacity-70">
                       {r.nombre}
                     </td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">
@@ -4145,15 +4062,7 @@ function Eliminados() {
                           onClick={() => handleRestore(r.tipo, r.id)}
                           className="text-green-700 hover:text-green-800 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
                         >
-                          <RotateCcw size={12} /> Restaurar
-                        </Btn>
-                        <Btn
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handlePermanent(r.tipo, r.id)}
-                          className="text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 size={12} /> Eliminar
+                          <RotateCcw size={12} /> Activar
                         </Btn>
                       </div>
                     </td>
@@ -4164,11 +4073,11 @@ function Eliminados() {
           </div>
         ) : (
           <EmptyState
-            icon={<Trash2 size={40} />}
-            title={records.length === 0 ? "La papelera está vacía" : "Sin resultados"}
+            icon={<EyeOff size={40} />}
+            title={records.length === 0 ? "No hay registros desactivados" : "Sin resultados"}
             description={
               records.length === 0
-                ? "No hay registros eliminados en este momento."
+                ? "No hay empleados, clientes, proveedores o productos desactivados en este momento."
                 : "No se encontraron registros para esta búsqueda."
             }
           />
@@ -4178,16 +4087,12 @@ function Eliminados() {
       {/* Modal de confirmación */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
-        title={confirmModal.accion === 'restaurar' ? 'Restaurar registro' : 'Eliminar permanentemente'}
-        message={
-          confirmModal.accion === 'restaurar'
-            ? `¿Restaurar este ${tipoLabel[confirmModal.tipo || 'producto']?.toLowerCase()}?`
-            : `⚠️ Esta acción es irreversible. ¿Eliminar permanentemente este ${tipoLabel[confirmModal.tipo || 'producto']?.toLowerCase()}?`
-        }
+        title="Activar registro"
+        message={`¿Activar este ${tipoLabel[confirmModal.tipo || 'producto']?.toLowerCase()}?`}
         onConfirm={confirmAction}
         onCancel={() => setConfirmModal({ isOpen: false, tipo: null, id: null, accion: null })}
-        confirmText={confirmModal.accion === 'restaurar' ? 'Sí, restaurar' : 'Sí, eliminar permanentemente'}
-        variant={confirmModal.accion === 'restaurar' ? 'primary' : 'danger'}
+        confirmText="Sí, activar"
+        variant="primary"
       />
 
       {/* Toast (usa el componente estándar del design system) */}
@@ -4436,7 +4341,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
     proveedores: "Proveedores",
     alertas: "Alertas de Stock",
     historial: "Historial de Ventas",
-    eliminados: "Registros Eliminados",
+    eliminados: "Historial Desactivados",
     auditoria: "Auditoría del Sistema",
   };
 

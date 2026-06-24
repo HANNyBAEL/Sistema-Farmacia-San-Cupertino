@@ -150,66 +150,11 @@ router.patch('/:id/toggle', async (req, res) => {
 });
 
 router.patch('/:id/papelera', async (req, res) => {
-  const { id_empleado, nombre_empleado } = req.body;
-  try {
-    const id = Number(req.params.id);
-
-    // Verificar si existe el cliente y no está ya en papelera
-    const [cliente] = await sequelize.query(
-      'SELECT nombre, apellido FROM clientes WHERE id_cliente = :id',
-      { replacements: { id }, type: sequelize.QueryTypes.SELECT }
-    );
-
-    if (!cliente) {
-      return res.status(404).json({ error: 'Cliente no encontrado' });
-    }
-
-    // Mover a registros eliminados e inactivar sin borrar datos
-    await sequelize.query(
-      'UPDATE clientes SET deleted = 1, papelera = 1 WHERE id_cliente = :id',
-      { replacements: { id } }
-    );
-
-    // Registrar auditoría (con manejo de valores nulos)
-    await registrarAuditoria({
-      tabla: 'clientes',
-      accion: 'PAPELERA',
-      descripcion: `Cliente movido a registros eliminados: ${cliente.nombre} ${cliente.apellido}`,
-      id_registro: id,
-      id_empleado: id_empleado || null,
-      nombre_empleado: nombre_empleado || null
-    });
-
-    res.json({ message: 'Cliente movido a registros eliminados' });
-  } catch (error) {
-    console.error('❌ Error en PATCH /clientes/:id/papelera:', error);
-    res.status(500).json({ error: error.message });
-  }
+  res.status(405).json({ error: 'Los clientes no se eliminan. Usa la opcion Desactivar.' });
 });
 
 router.delete('/:id', async (req, res) => {
-  const { id_empleado, nombre_empleado } = req.body;
-  try {
-    const [cliente] = await sequelize.query(
-      'SELECT nombre, apellido FROM clientes WHERE id_cliente = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT }
-    );
-    if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
-
-    await sequelize.query(
-      'UPDATE clientes SET deleted = 1, papelera = 1 WHERE id_cliente = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.UPDATE }
-    );
-    await registrarAuditoria({
-      tabla: 'clientes', accion: 'PAPELERA',
-      descripcion: `Cliente movido a registros eliminados: ${cliente.nombre} ${cliente.apellido}`,
-      id_registro: Number(req.params.id), id_empleado, nombre_empleado
-    });
-    res.json({ message: 'Cliente movido a registros eliminados' });
-  } catch (error) {
-    console.error('❌ DELETE /clientes/:id:', error);
-    res.status(500).json({ error: error.message });
-  }
+  res.status(405).json({ error: 'Los clientes no se eliminan. Usa la opcion Desactivar.' });
 });
 
 export default router;

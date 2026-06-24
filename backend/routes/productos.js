@@ -228,51 +228,12 @@ router.patch('/:id/toggle', async (req, res) => {
 
 // PATCH mover a papelera
 router.patch('/:id/papelera', async (req, res) => {
-  const { id_empleado, nombre_empleado } = req.body;
-  try {
-    const [prod] = await sequelize.query(
-      'SELECT nombre_producto FROM productos WHERE id_producto = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
-    );
-    await sequelize.query(
-      'UPDATE productos SET deleted = 1, papelera = 1 WHERE id_producto = :id',
-      { replacements: { id: Number(req.params.id) } }
-    );
-    await registrarAuditoria({
-      tabla: 'productos', accion: 'PAPELERA',
-      descripcion: `Producto movido a registros eliminados: ${prod?.nombre_producto}`,
-      id_registro: Number(req.params.id), id_empleado, nombre_empleado
-    });
-    res.json({ message: 'Producto movido a registros eliminados' });
-  } catch (error) {
-    console.error('❌ PATCH /productos/:id/papelera:', error);
-    res.status(500).json({ error: error.message });
-  }
+  res.status(405).json({ error: 'Los productos no se eliminan. Usa la opcion Desactivar.' });
 });
 
-// DELETE producto: solo si NO tiene ventas
+// DELETE deshabilitado: los productos solo se desactivan.
 router.delete('/:id', async (req, res) => {
-  const { id_empleado, nombre_empleado } = req.body;
-  const transaction = await sequelize.transaction();
-  try {
-    const [prod] = await sequelize.query(
-      'SELECT nombre_producto FROM productos WHERE id_producto = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
-    );
-    await sequelize.query(
-      'UPDATE productos SET deleted = 1, papelera = 1 WHERE id_producto = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.UPDATE }
-    );
-    await registrarAuditoria({
-      tabla: 'productos', accion: 'PAPELERA',
-      descripcion: `Producto movido a registros eliminados: ${prod?.nombre_producto}`,
-      id_registro: Number(req.params.id), id_empleado, nombre_empleado
-    });
-    res.json({ message: 'Producto movido a registros eliminados' });
-  } catch (error) {
-    console.error('❌ DELETE /productos/:id:', error);
-    res.status(500).json({ error: error.message });
-  }
+  res.status(405).json({ error: 'Los productos no se eliminan. Usa la opcion Desactivar.' });
 });
 
 export default router;

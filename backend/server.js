@@ -94,6 +94,12 @@ async function ensureSchema() {
   if (columns.length === 0) {
     await sequelize.query("ALTER TABLE empleados ADD COLUMN papelera TINYINT(1) NOT NULL DEFAULT 0 AFTER activo");
   }
+
+  const [fechaVentaColumns] = await sequelize.query("SHOW COLUMNS FROM ventas LIKE 'fecha'");
+  const fechaVentaType = fechaVentaColumns[0]?.Type?.toLowerCase() ?? '';
+  if (fechaVentaType === 'date') {
+    await sequelize.query("ALTER TABLE ventas MODIFY COLUMN fecha DATETIME NOT NULL");
+  }
 }
 
 async function startServer() {

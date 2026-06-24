@@ -3,7 +3,7 @@ import sequelize from '../config/database.js';
 
 const router = express.Router();
 
-// GET todos los registros eliminados logicamente.
+// GET todos los registros desactivados.
 router.get('/', async (req, res) => {
   try {
     const productos = await sequelize.query(
@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
         CONCAT(pr.nombre, ' ', pr.apellido) AS detalle
       FROM productos p
       LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
-      WHERE p.papelera = 1
+      WHERE p.deleted = 1
       ORDER BY p.nombre_producto ASC`,
       { type: sequelize.QueryTypes.SELECT }
     );
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
         NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
         c.correo AS detalle
       FROM clientes c
-      WHERE c.papelera = 1
+      WHERE c.deleted = 1
       ORDER BY c.nombre ASC`,
       { type: sequelize.QueryTypes.SELECT }
     );
@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
         NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
         p.correo AS detalle
       FROM proveedores p
-      WHERE p.papelera = 1
+      WHERE p.deleted = 1
       ORDER BY p.nombre ASC`,
       { type: sequelize.QueryTypes.SELECT }
     );
@@ -45,14 +45,14 @@ router.get('/', async (req, res) => {
         NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
         e.cargo AS detalle
        FROM empleados e
-       WHERE e.papelera = 1
+       WHERE e.activo = 0
        ORDER BY e.nombre ASC`,
       { type: sequelize.QueryTypes.SELECT }
     );
 
     res.json([...productos, ...clientes, ...proveedores, ...empleados]);
   } catch (error) {
-    console.error('Error en GET /eliminados:', error);
+    console.error('Error en GET /desactivados:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -73,7 +73,7 @@ router.put('/:tipo/:id/restaurar', async (req, res) => {
       return res.status(400).json({ error: 'Tipo no valido' });
     }
 
-    res.json({ message: 'Registro restaurado correctamente' });
+    res.json({ message: 'Registro activado correctamente' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -82,7 +82,7 @@ router.put('/:tipo/:id/restaurar', async (req, res) => {
 // La eliminacion fisica queda deshabilitada por politica de trazabilidad.
 router.delete('/:tipo/:id', async (req, res) => {
   res.status(405).json({
-    error: 'La eliminacion permanente esta deshabilitada. Los registros se conservan como inactivos.'
+    error: 'La eliminacion permanente esta deshabilitada. Los registros se conservan como desactivados.'
   });
 });
 
