@@ -9,6 +9,7 @@ import {
   FileSpreadsheet,
   Camera,
   RotateCcw,
+  Power, PowerOff,
   Plus as PlusIcon,
   Minus as MinusIcon
 } from "lucide-react";
