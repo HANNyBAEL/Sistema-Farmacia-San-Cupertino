@@ -1086,6 +1086,8 @@ function Productos({ user }: { user: User }) {
 
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
+  const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   async function load() {
     setLoading(true);
     try {
@@ -1111,9 +1113,9 @@ function Productos({ user }: { user: User }) {
       const dias = Math.ceil((vence.getTime() - hoy.getTime()) / (1000*60*60*24));
       
       if (search) {
-        const term = search.toLowerCase();
-        const nameMatch = p.nombre_producto.toLowerCase().startsWith(term);
-        const codeMatch = (p.codigo_barras ?? "").toLowerCase().startsWith(term);
+        const term = normalize(search);
+        const nameMatch = normalize(p.nombre_producto).startsWith(term);
+        const codeMatch = normalize(p.codigo_barras ?? "").startsWith(term);
         if (!nameMatch && !codeMatch) return false;
       }
       
@@ -1123,8 +1125,8 @@ function Productos({ user }: { user: User }) {
         if (filterStock==="bajo"    && !(p.stock>10&&p.stock<=20)) return false;
         if (filterStock==="normal"  && p.stock<=20) return false;
       }
-      if (filterCat && !(p.categorias_nombres ?? "").startsWith(filterCat)) return false;
-      if (filterProveedor && String(p.id_proveedor) !== filterProveedor) return false;
+      if (filterCat && !normalize(p.categorias_nombres ?? "").includes(normalize(filterCat))) return false;
+      if (filterProveedor && Number(p.id_proveedor) !== Number(filterProveedor)) return false;
       if (filterEstado === "activo"   && p.deleted) return false;
       if (filterEstado === "inactivo" && !p.deleted) return false;
       if (filterVenc === "vencido"  && dias >= 0) return false;
@@ -2308,6 +2310,8 @@ function Clientes({ user }: { user: User }) {
   const [toggleModal, setToggleModal] = useState<{ isOpen: boolean; clienteId: number | null; deleted: number }>({ isOpen: false, clienteId: null, deleted: 0 });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
+  const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   async function load() {
     setLoading(true);
     try { setClients(await clientesApi.getAll()); } catch (e) { console.error(e); } finally { setLoading(false); }
@@ -2344,11 +2348,11 @@ function Clientes({ user }: { user: User }) {
   }
 
   const filtered = clients.filter(c => {
-    if (search && !`${c.nombre} ${c.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
-    if (filterDui && !(c.dui ?? "").toLowerCase().startsWith(filterDui.toLowerCase())) return false;
-    if (filterTel && !c.telefono.toLowerCase().startsWith(filterTel.toLowerCase())) return false;
-    if (filterCorreo && !c.correo.toLowerCase().startsWith(filterCorreo.toLowerCase())) return false;
-    if (filterDir && !(c.direccion ?? "").toLowerCase().startsWith(filterDir.toLowerCase())) return false;
+    if (search && !normalize(`${c.nombre} ${c.apellido}`).startsWith(normalize(search))) return false;
+    if (filterDui && !normalize(c.dui ?? "").startsWith(normalize(filterDui))) return false;
+    if (filterTel && !normalize(c.telefono).startsWith(normalize(filterTel))) return false;
+    if (filterCorreo && !normalize(c.correo).startsWith(normalize(filterCorreo))) return false;
+    if (filterDir && !normalize(c.direccion ?? "").startsWith(normalize(filterDir))) return false;
     if (filterEstado === "activo" && c.deleted) return false;
     if (filterEstado === "inactivo" && !c.deleted) return false;
     return true;
@@ -2718,6 +2722,8 @@ function Proveedores({ user }: { user: User }) {
   const [toggleModal, setToggleModal] = useState<{ isOpen: boolean; proveedorId: number | null; deleted: number }>({ isOpen: false, proveedorId: null, deleted: 0 });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
+  const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   async function load() {
     setLoading(true);
     try { setSuppliers(await proveedoresApi.getAll()); }
@@ -2755,9 +2761,9 @@ function Proveedores({ user }: { user: User }) {
   }
 
   const filtered = suppliers.filter(s => {
-    const nombreCompleto = `${s.nombre} ${s.apellido}`.toLowerCase();
-    if (search && !nombreCompleto.startsWith(search.toLowerCase())) return false;
-    if (filterTelefono && !(s.telefono ?? "").toLowerCase().startsWith(filterTelefono.toLowerCase())) return false;
+    const nombreCompleto = normalize(`${s.nombre} ${s.apellido}`);
+    if (search && !nombreCompleto.startsWith(normalize(search))) return false;
+    if (filterTelefono && !normalize(s.telefono ?? "").startsWith(normalize(filterTelefono))) return false;
     if (filterEstado === "activo" && s.deleted) return false;
     if (filterEstado === "inactivo" && !s.deleted) return false;
     return true;
@@ -3124,7 +3130,7 @@ function Empleados({ user }: { user: User }) {
   const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
   const filtered = empleados.filter(e => {
-    if (search && !`${e.nombre} ${e.apellido}`.toLowerCase().startsWith(search.toLowerCase())) return false;
+    if (search && !normalize(`${e.nombre} ${e.apellido}`).startsWith(normalize(search))) return false;
     if (filterCargo && normalize(e.cargo) !== normalize(filterCargo)) return false;
     if (filterEstado === "activo" && !e.activo) return false;
     if (filterEstado === "inactivo" && e.activo) return false;
@@ -4196,6 +4202,8 @@ function Eliminados() {
 
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
+  const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   async function load() {
     setLoading(true);
     try { setRecords(await eliminadosApi.getAll()); }
@@ -4235,7 +4243,7 @@ function Eliminados() {
   ];
 
   const byTab     = tab === "todos" ? records : records.filter(r => r.tipo === tab);
-  const filtered  = byTab.filter(r => r.nombre.toLowerCase().startsWith(search.toLowerCase()));
+  const filtered  = byTab.filter(r => normalize(r.nombre).startsWith(normalize(search)));
   const hasFilters = search !== "";
 
   function handleRestore(tipo: EliminadoRecord["tipo"], id: number) {
