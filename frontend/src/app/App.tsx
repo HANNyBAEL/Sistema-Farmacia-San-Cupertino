@@ -947,32 +947,17 @@ function Dashboard() {
 
 // ── Productos ─────────────────────────────────────────────────────────────────
 const CATEGORIAS = [
-  { id: 1,  nombre: "Analgésicos" },
-  { id: 2,  nombre: "Antibióticos" },
-  { id: 3,  nombre: "Vitaminas" },
-  { id: 4,  nombre: "Antiinflamatorios" },
-  { id: 5,  nombre: "Antipsicóticos" },
-  { id: 6,  nombre: "Antidepresivos" },
-  { id: 7,  nombre: "Anticonvulsionantes" },
-  { id: 8,  nombre: "Controlados" },
-  { id: 9,  nombre: "Antihistamínicos" },
-  { id: 10, nombre: "Antidiabéticos" },
-  { id: 11, nombre: "Antihipertensivos" },
-  { id: 12, nombre: "Antibióticos orales" },
-  { id: 13, nombre: "Corticosteroides" },
-  { id: 14, nombre: "Diuréticos" },
-  { id: 15, nombre: "Antivirales" },
-  { id: 16, nombre: "Antimicóticos" },
-  { id: 17, nombre: "Antiparasitarios" },
-  { id: 18, nombre: "Suplementos" },
-  { id: 19, nombre: "Analgésicos Opioides" },
-  { id: 20, nombre: "Broncodilatadores" },
-  { id: 21, nombre: "Anticoagulantes" },
-  { id: 22, nombre: "Ansiolíticos" },
-  { id: 23, nombre: "Hipnóticos" },
-  { id: 24, nombre: "Cardioprotectores" },
-  { id: 25, nombre: "Gastrointestinal" },
-  { id: 26, nombre: "Otros" },
+  { id: 1, nombre: "Analgesicos" },
+  { id: 2, nombre: "Antibioticos" },
+  { id: 3, nombre: "Antivirales" },
+  { id: 4, nombre: "Antifungicos" },
+  { id: 5, nombre: "Antiinflamatorios" },
+  { id: 6, nombre: "Antihipertensivos" },
+  { id: 7, nombre: "Antidiabeticos" },
+  { id: 8, nombre: "Antidepresivos" },
+  { id: 9, nombre: "Anticonvulsivos" },
+  { id: 10, nombre: "Controlados" },
+  { id: 11, nombre: "Otros" },
 ];
 
 // ── Componente para celdas con texto largo que se pueden expandir ──
@@ -3491,7 +3476,7 @@ function Empleados({ user }: { user: User }) {
                           title={emp.activo ? "Desactivar empleado" : "Activar empleado"}
                           aria-label={`${emp.activo ? "Desactivar" : "Activar"} ${fullName}`}
                         >
-                          {emp.activo ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {emp.activo ? <PowerOff size={14} /> : <Power size={14} />}
                         </button>
                       </div>
                     </td>
