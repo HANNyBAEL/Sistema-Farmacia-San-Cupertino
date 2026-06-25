@@ -3662,9 +3662,21 @@ function Alertas() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const in30 = new Date(); in30.setDate(today.getDate() + 30); in30.setHours(0, 0, 0, 0);
 
-  const agotados = products.filter(p => p.stock === 0);
-  const criticos = products.filter(p => p.stock > 0 && p.stock <= 10);
-  const bajos = products.filter(p => p.stock > 10 && p.stock <= 20);
+  const agotados = products.filter(p => {
+    if (!p.fecha_vencimiento) return p.stock === 0;
+    const vencido = new Date(p.fecha_vencimiento + 'T00:00:00') < today;
+    return !vencido && p.stock === 0;
+  });
+  const criticos = products.filter(p => {
+    if (!p.fecha_vencimiento) return p.stock > 0 && p.stock <= 10;
+    const vencido = new Date(p.fecha_vencimiento + 'T00:00:00') < today;
+    return !vencido && p.stock > 0 && p.stock <= 10;
+  });
+  const bajos = products.filter(p => {
+    if (!p.fecha_vencimiento) return p.stock > 10 && p.stock <= 20;
+    const vencido = new Date(p.fecha_vencimiento + 'T00:00:00') < today;
+    return !vencido && p.stock > 10 && p.stock <= 20;
+  });
   const vencer = products.filter(p => {
     if (!p.fecha_vencimiento) return false;
     const d = new Date(p.fecha_vencimiento + 'T00:00:00');
