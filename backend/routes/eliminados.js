@@ -9,7 +9,10 @@ router.get('/', async (req, res) => {
     const productos = await sequelize.query(
       `SELECT 'producto' as tipo, p.id_producto as id, p.nombre_producto as nombre,
         p.lote, p.precio, p.stock, p.fecha_vencimiento,
-        CONCAT(pr.nombre, ' ', pr.apellido) AS detalle
+        CONCAT(pr.nombre, ' ', pr.apellido) AS detalle,
+        (SELECT a.nombre_empleado FROM auditoria a 
+         WHERE a.tabla = 'productos' AND a.accion = 'DESACTIVAR' AND a.id_registro = p.id_producto 
+         ORDER BY a.fecha DESC LIMIT 1) AS empleado_desactivo
       FROM productos p
       LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
       WHERE p.deleted = 1
@@ -21,7 +24,10 @@ router.get('/', async (req, res) => {
       `SELECT 'cliente' as tipo, c.id_cliente as id,
         CONCAT(c.nombre, ' ', c.apellido) as nombre,
         NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
-        c.correo AS detalle
+        c.correo AS detalle,
+        (SELECT a.nombre_empleado FROM auditoria a 
+         WHERE a.tabla = 'clientes' AND a.accion = 'DESACTIVAR' AND a.id_registro = c.id_cliente 
+         ORDER BY a.fecha DESC LIMIT 1) AS empleado_desactivo
       FROM clientes c
       WHERE c.deleted = 1
       ORDER BY c.nombre ASC`,
@@ -32,7 +38,10 @@ router.get('/', async (req, res) => {
       `SELECT 'proveedor' as tipo, p.id_proveedor as id,
         CONCAT(p.nombre, ' ', p.apellido) as nombre,
         NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
-        p.correo AS detalle
+        p.correo AS detalle,
+        (SELECT a.nombre_empleado FROM auditoria a 
+         WHERE a.tabla = 'proveedores' AND a.accion = 'DESACTIVAR' AND a.id_registro = p.id_proveedor 
+         ORDER BY a.fecha DESC LIMIT 1) AS empleado_desactivo
       FROM proveedores p
       WHERE p.deleted = 1
       ORDER BY p.nombre ASC`,
@@ -43,7 +52,10 @@ router.get('/', async (req, res) => {
       `SELECT 'empleado' as tipo, e.id_empleado as id,
         CONCAT(e.nombre, ' ', e.apellido) as nombre,
         NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
-        e.cargo AS detalle
+        e.cargo AS detalle,
+        (SELECT a.nombre_empleado FROM auditoria a 
+         WHERE a.tabla = 'empleados' AND a.accion = 'DESACTIVAR' AND a.id_registro = e.id_empleado 
+         ORDER BY a.fecha DESC LIMIT 1) AS empleado_desactivo
        FROM empleados e
        WHERE e.activo = 0
        ORDER BY e.nombre ASC`,

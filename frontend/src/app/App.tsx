@@ -52,6 +52,7 @@ interface EliminadoRecord {
   id: number;
   nombre: string;
   detalle: string | null;
+  empleado_desactivo: string | null;
 }
 
 interface Product {
@@ -3691,7 +3692,6 @@ function Alertas() {
   const totalTodos = totalStock + vencer.length + vencidos.length;
 
   const tabs = [
-    { id: "todos", label: "Todos", count: totalTodos, active: "bg-card text-foreground shadow-sm" },
     { id: "agotado", label: "Agotados", count: agotados.length, active: "bg-destructive/10 text-destructive" },
     { id: "critico", label: "Críticos", count: criticos.length, active: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400" },
     { id: "bajo", label: "Bajo (11-20)", count: bajos.length, active: "bg-amber-50/50 text-amber-700 dark:bg-amber-900/10 dark:text-amber-400" },
@@ -3700,7 +3700,6 @@ function Alertas() {
   ];
 
   const displayed =
-    tab === "todos" ? [...agotados, ...criticos, ...bajos, ...vencer, ...vencidos] :
     tab === "agotado" ? agotados :
     tab === "critico" ? criticos :
     tab === "bajo" ? bajos :
@@ -3777,9 +3776,23 @@ function Alertas() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted">
-                {["Producto", "Lote", "Stock", "Estado", "Vencimiento", "Días"].map(h => (
-                  <th key={h} className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">{h}</th>
-                ))}
+                {(tab === "agotado" || tab === "critico" || tab === "bajo") ? (
+                  <>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Producto</th>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Código de barras</th>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Estado</th>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Stock</th>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Unidades</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Producto</th>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Código de barras</th>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Estado</th>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Vencimiento</th>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Días faltantes</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -3801,9 +3814,8 @@ function Alertas() {
                       <ExpandableCell text={p.nombre_producto} maxLength={25} />
                     </td>
                     <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                      <ExpandableCell text={p.lote} maxLength={12} />
+                      <ExpandableCell text={p.codigo_barras ?? "—"} maxLength={15} />
                     </td>
-                    <td className="py-2.5 px-4 font-mono font-semibold whitespace-nowrap">{p.stock} uds.</td>
                     <td className="py-2.5 px-4 whitespace-nowrap">
                       {vencido ? (
                         <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-destructive/15 text-destructive">Vencido</span>
@@ -3813,16 +3825,25 @@ function Alertas() {
                         <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-primary/10 text-primary">Próx. vencer</span>
                       )}
                     </td>
-                    <td className="py-2.5 px-4 text-xs text-muted-foreground whitespace-nowrap">{p.fecha_vencimiento ?? "—"}</td>
-                    <td className="py-2.5 px-4 whitespace-nowrap">
-                      {dias !== null ? (
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${diasBadge(dias)}`}>
-                          {dias < 0 ? `Vencido hace ${Math.abs(dias)} días` : `${dias} días`}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
+                    {(tab === "agotado" || tab === "critico" || tab === "bajo") ? (
+                      <>
+                        <td className="py-2.5 px-4 font-mono font-semibold whitespace-nowrap">{p.stock}</td>
+                        <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">{p.stock} uds.</td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="py-2.5 px-4 text-xs text-muted-foreground whitespace-nowrap">{p.fecha_vencimiento ?? "—"}</td>
+                        <td className="py-2.5 px-4 whitespace-nowrap">
+                          {dias !== null ? (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${diasBadge(dias)}`}>
+                              {dias < 0 ? `Vencido hace ${Math.abs(dias)} días` : `${dias} días`}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 );
               })}
@@ -4350,7 +4371,7 @@ function Eliminados() {
             <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b border-border bg-muted">
-                  {["Tipo", "Nombre", "Detalle", "Acciones"].map(h => (
+                  {["Tipo", "Nombre", "Empleado que desactivó", "Acciones"].map(h => (
                     <th key={h} className="text-left py-3 px-4 text-xs text-muted-foreground font-semibold">
                       {h}
                     </th>
@@ -4372,7 +4393,7 @@ function Eliminados() {
                       {r.nombre}
                     </td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">
-                      {r.detalle ?? "—"}
+                      {r.empleado_desactivo ?? "—"}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
