@@ -17,12 +17,12 @@ router.get('/siguiente-correlativo', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { numero_control, codigo_generacion, id_venta, id_cliente, fecha_emision, total } = req.body;
+  const { numero_control, codigo_generacion, id_venta, id_cliente, fecha_emision, total, sello_recepcion, ambiente_destino } = req.body;
   try {
     await sequelize.query(
-      `INSERT INTO facturas (numero_control, codigo_generacion, id_venta, id_cliente, fecha_emision, total)
-       VALUES (:numero_control, :codigo_generacion, :id_venta, :id_cliente, :fecha_emision, :total)`,
-      { replacements: { numero_control, codigo_generacion, id_venta, id_cliente: id_cliente ?? null, fecha_emision, total } }
+      `INSERT INTO facturas (numero_control, codigo_generacion, id_venta, id_cliente, fecha_emision, total, sello_recepcion, ambiente_destino)
+       VALUES (:numero_control, :codigo_generacion, :id_venta, :id_cliente, :fecha_emision, :total, :sello_recepcion, :ambiente_destino)`,
+      { replacements: { numero_control, codigo_generacion, id_venta, id_cliente: id_cliente ?? null, fecha_emision, total, sello_recepcion, ambiente_destino } }
     );
     res.status(201).json({ message: 'Factura registrada' });
   } catch (error) {

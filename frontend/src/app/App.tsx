@@ -1173,6 +1173,9 @@ function Productos({ user }: { user: User }) {
   }
 
   const hasProductChanges = () => {
+    // Si es un producto nuevo, siempre permitir guardar
+    if (!editProduct) return true;
+
     const sameForm =
       form.nombre_producto === originalForm.nombre_producto &&
       form.descripcion === originalForm.descripcion &&
@@ -1190,7 +1193,7 @@ function Productos({ user }: { user: User }) {
 
   async function saveForm() {
     if (editProduct && !hasProductChanges()) return;
-    if (!form.nombre_producto || !form.precio || !form.stock || !form.lote || !form.fecha_vencimiento || !form.id_proveedor) {
+    if (!form.nombre_producto || !form.precio || !form.stock || !form.lote || !form.fecha_vencimiento || !form.id_proveedor || form.id_proveedor === "") {
       setFormError("Complete todos los campos obligatorios."); return;
     }
     const payload = {
@@ -1863,6 +1866,8 @@ function Ventas({ user }: { user: User }) {
               id_cliente: id_cliente,
               fecha_emision: fechaHoraLocal,
               total: ventaResp.total,
+              sello_recepcion,
+              ambiente_destino: '00',
             });
 
             // =====================================================================
@@ -3946,9 +3951,10 @@ function Historial() {
       await api.post('/facturas/enviar', {
         email: venta.cliente_correo,
         pdfBase64: pdfBase64,
-        id_venta: venta.id_venta,
         numero_control: venta.numero_control,
-        nombre_cliente: venta.cliente,
+        codigo_generacion: venta.codigo_generacion,
+        total: venta.total,
+        cliente: venta.cliente,
       });
       
       setToast({ 

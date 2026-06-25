@@ -92,10 +92,15 @@ router.get('/venta/:id', async (req, res) => {
          c.telefono   AS cliente_telefono,
          c.correo     AS cliente_correo,
          c.direccion  AS cliente_direccion,
-         CONCAT(e.nombre, ' ', e.apellido) AS empleado
+         CONCAT(e.nombre, ' ', e.apellido) AS empleado,
+         f.numero_control,
+         f.codigo_generacion,
+         f.sello_recepcion,
+         f.ambiente_destino
        FROM ventas v
        LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
        LEFT JOIN empleados e ON e.id_empleado = v.id_empleado
+       LEFT JOIN facturas f ON f.id_venta = v.id_venta
        WHERE v.id_venta = ?`,
       { replacements: [req.params.id] }
     );
