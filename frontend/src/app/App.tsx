@@ -1579,6 +1579,7 @@ function Ventas({ user }: { user: User }) {
   const [savingClient, setSavingClient] = useState(false);
   const [controlledModal, setControlledModal] = useState<{ show: boolean; product: Product | null; onConfirm: () => void }>({ show: false, product: null, onConfirm: () => {} });
   const [noClientModal, setNoClientModal] = useState(false);
+  const [highValueNoClientModal, setHighValueNoClientModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [productModal, setProductModal] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
@@ -1795,7 +1796,11 @@ function Ventas({ user }: { user: User }) {
       return;
     }
     if (!selectedClient) {
-      setNoClientModal(true);
+      if (total > 25000) {
+        setHighValueNoClientModal(true);
+      } else {
+        setNoClientModal(true);
+      }
       return;
     }
     await procesarVenta(selectedClient.id_cliente);
@@ -2065,25 +2070,33 @@ function Ventas({ user }: { user: User }) {
               <h2 className="text-lg font-bold text-foreground">Cliente no seleccionado</h2>
             </div>
             <p className="text-foreground mb-4">¿Desea realizar la venta para cliente anónimo?</p>
-            {total > 25000 && (
-              <p className="text-destructive text-sm mb-4">⚠️ El total de la venta (${total.toFixed(2)}) excede el límite de $25,000.00 para cliente anónimo. Por favor, seleccione un cliente registrado.</p>
-            )}
             <div className="flex justify-end gap-3">
               <Btn variant="secondary" onClick={() => setNoClientModal(false)}>Cancelar</Btn>
-              <Btn 
-                variant="primary" 
-                onClick={() => {
-                  if (total > 25000) {
-                    setToast({ message: 'No se puede realizar una venta mayor a $25,000.00 para cliente anónimo. Por favor, seleccione un cliente registrado.', type: 'error' });
-                    return;
-                  }
-                  setNoClientModal(false);
-                  procesarVenta(1, true); // ID 1 = cliente anónimo, true = generar factura automáticamente
-                }}
-                disabled={total > 25000}
-              >
+              <Btn variant="primary" onClick={() => {
+                setNoClientModal(false);
+                procesarVenta(1, true); // ID 1 = cliente anónimo, true = generar factura automáticamente
+              }}>
                 Aceptar
               </Btn>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal para ventas mayores a $25,000 sin cliente */}
+      {highValueNoClientModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                <AlertTriangle size={20} />
+              </div>
+              <h2 className="text-lg font-bold text-foreground">Venta requiere cliente registrado</h2>
+            </div>
+            <p className="text-foreground mb-2">Las ventas con un total mayor a $25,000.00 no pueden realizarse con cliente anónimo.</p>
+            <p className="text-foreground mb-4">El total de esta venta es <span className="font-bold text-primary">${total.toFixed(2)}</span>. Por favor, seleccione un cliente registrado para continuar.</p>
+            <div className="flex justify-end gap-3">
+              <Btn variant="primary" onClick={() => setHighValueNoClientModal(false)}>Entendido</Btn>
             </div>
           </Card>
         </div>
