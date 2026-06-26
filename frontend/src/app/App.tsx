@@ -963,7 +963,7 @@ const CATEGORIAS = [
 
 // ── Componente para celdas con texto largo que se pueden expandir ──
 function ExpandableCell({ text, maxLength = 30 }: { text?: string | null; maxLength?: number }) {
-  const [showModal, setShowModal] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const textRef = useRef<HTMLSpanElement | null>(null);
 
@@ -993,46 +993,38 @@ function ExpandableCell({ text, maxLength = 30 }: { text?: string | null; maxLen
   const canShowFull = text.length > maxLength || isOverflowing;
 
   return (
-    <>
-      <div className="flex min-w-0 max-w-full items-center gap-1">
-        <span
-          ref={textRef}
-          onClick={() => canShowFull && setShowModal(true)}
-          className={`block min-w-0 truncate ${canShowFull ? 'cursor-pointer underline decoration-dotted underline-offset-2 hover:text-primary transition-colors' : ''}`}
-          title={canShowFull ? 'Haz clic para ver completo' : text}
+    <div className="flex min-w-0 max-w-full items-center gap-1">
+      <span
+        ref={textRef}
+        className={`block min-w-0 ${isExpanded ? 'whitespace-normal break-words' : 'truncate'} ${canShowFull ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
+        title={isExpanded ? 'Haz clic para contraer' : (canShowFull ? 'Haz clic para expandir' : text)}
+        onClick={() => canShowFull && setIsExpanded(!isExpanded)}
+      >
+        {isExpanded ? text : truncated}
+      </span>
+      {canShowFull && !isExpanded && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(true)}
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-ring/30"
+          title="Expandir texto"
+          aria-label="Expandir texto"
         >
-          {truncated}
-        </span>
-        {canShowFull && (
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-ring/30"
-            title="Ver información completa"
-            aria-label="Ver información completa"
-          >
-            <Eye size={13} />
-          </button>
-        )}
-      </div>
-
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <Card className="max-w-md w-full p-5 animate-in zoom-in-95 fade-in duration-200" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-foreground">Información completa</h3>
-              <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground transition-colors p-1">
-                <X size={16} />
-              </button>
-            </div>
-            <div className="text-sm text-foreground/80 break-words max-h-96 overflow-y-auto leading-relaxed">{text}</div>
-            <div className="mt-4 flex justify-end">
-              <Btn variant="secondary" size="sm" onClick={() => setShowModal(false)}>Cerrar</Btn>
-            </div>
-          </Card>
-        </div>
+          <Eye size={13} />
+        </button>
       )}
-    </>
+      {canShowFull && isExpanded && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(false)}
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-ring/30"
+          title="Contraer texto"
+          aria-label="Contraer texto"
+        >
+          <EyeOff size={13} />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -3972,7 +3964,14 @@ function Alertas() {
       {/* ── Tabla ── */}
       <SectionCard className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[35%]" />
+              <col className="w-[20%]" />
+              <col className="w-[15%]" />
+              <col className="w-[15%]" />
+              <col className="w-[15%]" />
+            </colgroup>
             <thead>
               <tr className="border-b border-border bg-muted">
                 {(tab === "agotado" || tab === "critico" || tab === "bajo") ? (
@@ -3981,7 +3980,7 @@ function Alertas() {
                     <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Código de barras</th>
                     <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Estado</th>
                     <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Stock</th>
-                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Unidades</th>
+                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Categoría</th>
                   </>
                 ) : (
                   <>
@@ -4027,7 +4026,7 @@ function Alertas() {
                     {(tab === "agotado" || tab === "critico" || tab === "bajo") ? (
                       <>
                         <td className="py-2.5 px-4 font-mono font-semibold whitespace-nowrap">{p.stock}</td>
-                        <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">{p.stock} uds.</td>
+                        <td className="py-2.5 px-4 text-xs text-muted-foreground whitespace-nowrap">{p.categorias_nombres || "—"}</td>
                       </>
                     ) : (
                       <>
