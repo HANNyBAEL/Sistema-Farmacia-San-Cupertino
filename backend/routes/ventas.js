@@ -32,10 +32,14 @@ router.post('/', async (req, res) => {
     let total = 0;
 
     // 2. Procesar cada producto
+    console.log('📦 Productos a procesar:', JSON.stringify(productos, null, 2));
+    
     for (const item of productos) {
       if (!item.id_producto || !item.cantidad) {
         throw new Error(`Producto inválido: ${JSON.stringify(item)}`);
       }
+
+      console.log(`🔄 Procesando producto ID: ${item.id_producto}, cantidad: ${item.cantidad}`);
 
       const prod = await sequelize.query(
         `SELECT precio, stock FROM productos WHERE id_producto = :id`,
@@ -49,6 +53,7 @@ router.post('/', async (req, res) => {
       if (!prod.length) throw new Error(`Producto ${item.id_producto} no existe`);
 
       const { precio, stock } = prod[0];
+      console.log(`📊 Stock actual del producto ${item.id_producto}: ${stock}`);
 
       if (stock < item.cantidad) {
         throw new Error(`Stock insuficiente para producto ${item.id_producto}. Disponible: ${stock}`);
@@ -74,6 +79,7 @@ router.post('/', async (req, res) => {
       );
 
       // Actualizar stock
+      console.log(`📉 Actualizando stock: stock - ${item.cantidad} para producto ${item.id_producto}`);
       await sequelize.query(
         `UPDATE productos SET stock = stock - :cantidad WHERE id_producto = :id`,
         {
@@ -82,6 +88,17 @@ router.post('/', async (req, res) => {
           transaction
         }
       );
+      
+      // Verificar stock después de actualizar
+      const stockAfter = await sequelize.query(
+        `SELECT stock FROM productos WHERE id_producto = :id`,
+        {
+          replacements: { id: Number(item.id_producto) },
+          type: sequelize.QueryTypes.SELECT,
+          transaction
+        }
+      );
+      console.log(`✅ Stock después de actualizar para producto ${item.id_producto}: ${stockAfter[0].stock}`);
     }
 
     // 3. Actualizar total de la venta
