@@ -1954,10 +1954,10 @@ function Ventas({ user }: { user: User }) {
               direccion: {
                 departamento: '03',
                 municipio: '15',
-                complemento: esClienteAnonimo ? '' : (extraerString(selectedClient?.direccion) || '')
+                complemento: extraerString(selectedClient?.direccion) || ''
               },
-              telefono: esClienteAnonimo ? '' : (extraerString(selectedClient?.telefono) || ''),
-              correo: esClienteAnonimo ? '' : clienteCorreo
+              telefono: extraerString(selectedClient?.telefono) || '',
+              correo: clienteCorreo || ''
             },
             otrosDocumentos: null,
             ventaTercero: null,
@@ -2065,19 +2065,17 @@ function Ventas({ user }: { user: User }) {
           // Generar el PDF visual para descarga local
           generarFacturaPDF(datosFactura);
 
-          // Descargar JSON para cliente anónimo
-          if (esClienteAnonimo) {
-            const jsonData = JSON.stringify(datosFactura, null, 2);
-            const blob = new Blob([jsonData], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Factura_${numero_control.split("-").pop()}_${fechaHoraLocal.split(" ")[0].replace(/-/g, "")}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }
+          // Descargar JSON siempre
+          const jsonData = JSON.stringify(datosFactura, null, 2);
+          const blob = new Blob([jsonData], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Factura_${numero_control.split("-").pop()}_${fechaHoraLocal.split(" ")[0].replace(/-/g, "")}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
 
         } catch (fe) {
           console.error("Error generando factura:", fe);

@@ -20,6 +20,8 @@ export interface FacturaData {
     nit?: string;
     nrc?: string;
     direccion?: {
+      departamento?: string;
+      municipio?: string;
       complemento?: string;
     };
     telefono?: string;
@@ -30,7 +32,11 @@ export interface FacturaData {
     dui?: string;
     correo?: string;
     telefono?: string;
-    direccion?: string;
+    direccion?: string | {
+      departamento?: string;
+      municipio?: string;
+      complemento?: string;
+    };
     tipoDocumento?: string;
     numDocumento?: string;
   };
@@ -215,7 +221,11 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
     doc.text(`Número: ${safeStr(data.receptor.dui || data.receptor.numDocumento)}`, rx, yOffset + 4);
     yOffset += 8;
   }
-  const recDirLines = doc.splitTextToSize(`Dirección: ${safeStr(data.receptor.direccion) || "—"}`, colW - 6);
+  // Extraer dirección: puede ser string u objeto con complemento
+  const direccionStr = typeof data.receptor.direccion === 'object'
+    ? safeStr(data.receptor.direccion.complemento)
+    : safeStr(data.receptor.direccion);
+  const recDirLines = doc.splitTextToSize(`Dirección: ${direccionStr || "—"}`, colW - 6);
   doc.text(recDirLines, rx, yOffset);
   doc.text(`Correo electrónico: ${safeStr(data.receptor.correo) || "—"}`, rx, yOffset + recDirLines.length * 3.5);
   doc.text(`Teléfono: ${safeStr(data.receptor.telefono) || "—"}`, rx, yOffset + recDirLines.length * 3.5 + 4);
