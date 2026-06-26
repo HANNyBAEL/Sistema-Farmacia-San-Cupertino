@@ -71,6 +71,13 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const { nombre, apellido, telefono, correo, direccion, dui, id_empleado, nombre_empleado } = req.body;
   try {
+    const clienteId = Number(req.params.id);
+    
+    // Proteger cliente anónimo (ID 1) de cualquier edición
+    if (clienteId === 1) {
+      return res.status(403).json({ error: 'No se puede editar el cliente anónimo.' });
+    }
+
     const correoNormalizado = validateEmailOrThrow(correo, { required: false });
     if (correoNormalizado) {
       await ensureEmailIsUnique(sequelize, 'clientes', correoNormalizado, 'id_cliente', req.params.id);
@@ -78,13 +85,13 @@ router.put('/:id', async (req, res) => {
 
     const [anterior] = await sequelize.query(
       'SELECT nombre, apellido, telefono, correo, direccion, dui FROM clientes WHERE id_cliente = :id',
-      { replacements: { id: req.params.id }, type: sequelize.QueryTypes.SELECT }
+      { replacements: { id: clienteId }, type: sequelize.QueryTypes.SELECT }
     );
 
     await sequelize.query(
       `UPDATE clientes SET nombre=:nombre, apellido=:apellido, telefono=:telefono,
        correo=:correo, direccion=:direccion, dui=:dui WHERE id_cliente=:id`,
-      { replacements: { nombre, apellido, telefono, correo: correoNormalizado, direccion: direccion || null, dui: dui || null, id: req.params.id } }
+      { replacements: { nombre, apellido, telefono, correo: correoNormalizado, direccion: direccion || null, dui: dui || null, id: clienteId } }
     );
 
     const campos = [
@@ -103,7 +110,7 @@ router.put('/:id', async (req, res) => {
         await registrarAuditoria({
           tabla: 'clientes', accion: 'EDITAR',
           descripcion: `Cliente editado: ${nombre} ${apellido}`,
-          id_registro: Number(req.params.id), id_empleado, nombre_empleado,
+          id_registro: clienteId, id_empleado, nombre_empleado,
           campo_modificado: c.campo,
           valor_anterior: String(c.ant ?? ''),
           valor_nuevo: String(c.nuevo ?? '')
@@ -115,7 +122,7 @@ router.put('/:id', async (req, res) => {
       await registrarAuditoria({
         tabla: 'clientes', accion: 'EDITAR',
         descripcion: `Cliente editado sin cambios: ${nombre} ${apellido}`,
-        id_registro: Number(req.params.id), id_empleado, nombre_empleado
+        id_registro: clienteId, id_empleado, nombre_empleado
       });
     }
 
@@ -129,19 +136,26 @@ router.put('/:id', async (req, res) => {
 router.patch('/:id/toggle', async (req, res) => {
   const { id_empleado, nombre_empleado } = req.body;
   try {
+    const clienteId = Number(req.params.id);
+    
+    // Proteger cliente anónimo (ID 1) de cualquier desactivación/activación
+    if (clienteId === 1) {
+      return res.status(403).json({ error: 'No se puede desactivar el cliente anónimo.' });
+    }
+
     const [cliente] = await sequelize.query(
       'SELECT nombre, apellido, deleted FROM clientes WHERE id_cliente = :id',
-      { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }
+      { replacements: { id: clienteId }, type: sequelize.QueryTypes.SELECT }
     );
     await sequelize.query(
       'UPDATE clientes SET deleted = NOT deleted WHERE id_cliente = :id',
-      { replacements: { id: Number(req.params.id) } }
+      { replacements: { id: clienteId } }
     );
     const accion = cliente.deleted ? 'ACTIVAR' : 'DESACTIVAR';
     await registrarAuditoria({
       tabla: 'clientes', accion,
       descripcion: `Cliente ${accion.toLowerCase()}do: ${cliente.nombre} ${cliente.apellido}`,
-      id_registro: Number(req.params.id), id_empleado, nombre_empleado
+      id_registro: clienteId, id_empleado, nombre_empleado
     });
     res.json({ message: 'Estado del cliente actualizado' });
   } catch (error) {

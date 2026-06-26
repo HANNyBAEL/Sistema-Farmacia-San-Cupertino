@@ -2412,6 +2412,12 @@ function Clientes({ user }: { user: User }) {
   }
 
   function openEdit(c: Client) {
+    // Proteger cliente anónimo (ID 1) de cualquier edición
+    if (c.id_cliente === 1) {
+      setToast({ message: 'No se puede editar el cliente anónimo.', type: 'error' });
+      return;
+    }
+    
     setEditClient(c);
     const initial = {
       nombre: c.nombre, apellido: c.apellido,
@@ -2613,14 +2619,16 @@ function Clientes({ user }: { user: User }) {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => openEdit(c)}
-                          className="text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors"
+                          disabled={c.id_cliente === 1}
+                          className={`text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors ${c.id_cliente === 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
                           title="Editar"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleToggle(c.id_cliente, c.deleted ?? 0)}
-                          className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${
+                          disabled={c.id_cliente === 1}
+                          className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${c.id_cliente === 1 ? 'opacity-30 cursor-not-allowed' : ''} ${
                             c.deleted
                               ? 'text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30'
                               : 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/30'
