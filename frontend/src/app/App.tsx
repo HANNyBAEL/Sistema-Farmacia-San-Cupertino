@@ -4161,7 +4161,6 @@ function Alertas() {
               <col className="w-[20%]" />
               <col className="w-[15%]" />
               <col className="w-[15%]" />
-              <col className="w-[15%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-border bg-muted">
@@ -4171,7 +4170,6 @@ function Alertas() {
                     <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Código de barras</th>
                     <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Estado</th>
                     <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Stock</th>
-                    <th className="text-left py-2.5 px-4 font-semibold text-muted-foreground text-xs whitespace-nowrap">Categoría</th>
                   </>
                 ) : (
                   <>
@@ -4217,7 +4215,6 @@ function Alertas() {
                     {(tab === "agotado" || tab === "critico" || tab === "bajo") ? (
                       <>
                         <td className="py-2.5 px-4 font-mono font-semibold whitespace-nowrap">{p.stock}</td>
-                        <td className="py-2.5 px-4 text-xs text-muted-foreground whitespace-nowrap">{p.categorias_nombres || "—"}</td>
                       </>
                     ) : (
                       <>
@@ -4609,7 +4606,7 @@ function Historial() {
 }
 
 // ── Desactivados ──────────────────────────────────────────────────────────────
-function Eliminados() {
+function Eliminados({ user }: { user: User }) {
   const [records, setRecords]       = useState<EliminadoRecord[]>([]);
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState("");
@@ -4786,14 +4783,18 @@ function Eliminados() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <Btn
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRestore(r.tipo, r.id)}
-                          className="text-green-700 hover:text-green-800 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
-                        >
-                          <RotateCcw size={12} /> Activar
-                        </Btn>
+                        {user.role === 'administrador' && (r.tipo === 'producto' || r.tipo === 'proveedor') ? (
+                          <span className="text-muted-foreground text-xs">Solo lectura</span>
+                        ) : (
+                          <Btn
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRestore(r.tipo, r.id)}
+                            className="text-green-700 hover:text-green-800 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
+                          >
+                            <RotateCcw size={12} /> Activar
+                          </Btn>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -5136,7 +5137,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
           {screen === "proveedores" && <Proveedores user={user} />}
           {screen === "alertas" && <Alertas />}
           {screen === "historial" && <Historial />}
-          {screen === "eliminados" && <Eliminados />}
+          {screen === "eliminados" && <Eliminados user={user} />}
           {screen === "auditoria" && <Auditoria user={user} />}
         </main>
       </div>
