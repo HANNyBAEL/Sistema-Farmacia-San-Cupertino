@@ -749,7 +749,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: Role[] }[] = [
   { screen: "dashboard",    label: "Dashboard",             icon: <LayoutDashboard size={18}/>, roles: ["administrador"] },
-  { screen: "ventas",       label: "Ventas (POS)",          icon: <ShoppingCart size={18}/>,    roles: ["cajero"] },
+  { screen: "ventas",       label: "Ventas (POS)",          icon: <ShoppingCart size={18}/>,    roles: ["administrador","cajero"] },
   { screen: "productos",    label: "Productos",             icon: <Package size={18}/>,          roles: ["administrador","farmaceutico"] },
   { screen: "clientes",     label: "Clientes",              icon: <Users size={18}/>,            roles: ["administrador","cajero"] },
   { screen: "empleados",    label: "Empleados",             icon: <UserCog size={18}/>,          roles: ["administrador"] },
@@ -1283,6 +1283,21 @@ function Productos({ user }: { user: User }) {
     if (!form.nombre_producto || !form.precio || !form.stock || !form.lote || !form.fecha_vencimiento || !form.id_proveedor || form.id_proveedor === "") {
       setFormError("Complete todos los campos obligatorios."); return;
     }
+
+    // Validaciones adicionales
+    if (form.nombre_producto.length > 30) {
+      setFormError("El nombre del producto no puede exceder 30 caracteres."); return;
+    }
+    if (form.lote.length > 30) {
+      setFormError("El lote no puede exceder 30 caracteres."); return;
+    }
+    if (parseFloat(form.precio) < 0) {
+      setFormError("El precio no puede ser negativo."); return;
+    }
+    if (parseInt(form.stock) < 0) {
+      setFormError("El stock no puede ser negativo."); return;
+    }
+
     const payload = {
       nombre_producto: form.nombre_producto,
       descripcion: form.descripcion || null,
@@ -1300,7 +1315,14 @@ function Productos({ user }: { user: User }) {
       if (editProduct) await updateProducto(editProduct.id_producto, payload);
       else             await createProducto(payload);
       setShowForm(false); load();
-    } catch (e: any) { setFormError(e?.response?.data?.error ?? "Error al guardar."); }
+    } catch (e: any) {
+      const errorMsg = e?.response?.data?.error ?? "Error al guardar.";
+      if (errorMsg.includes('lote') || errorMsg.includes('duplicate')) {
+        setFormError("El lote ya existe en la base de datos. Use un lote diferente.");
+      } else {
+        setFormError(errorMsg);
+      }
+    }
   }
 
   function handleDelete(id: number) {
@@ -1359,7 +1381,7 @@ function Productos({ user }: { user: User }) {
       title="Gestión de Productos"
       subtitle={`${filtered.length} de ${products.length} productos`}
       actions={
-        <Btn onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
+        user.role !== 'administrador' && <Btn onClick={openNew}><Plus size={14}/> Nuevo producto</Btn>
       }
     >
       {/* ── Filtros ── */}
@@ -1528,26 +1550,30 @@ function Productos({ user }: { user: User }) {
                       </span>
                     </td>
                     <td className="py-2.5 px-3 whitespace-nowrap">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => openEdit(p)}
-                          className="text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors"
-                          title="Editar"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleToggle(p.id_producto, p.deleted)}
-                          className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${
-                            p.deleted
-                              ? 'text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30'
-                              : 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/30'
-                          }`}
-                          title={p.deleted ? "Activar producto" : "Desactivar producto"}
-                        >
-                          {p.deleted ? "Activar" : "Desactivar"}
-                        </button>
-                      </div>
+                      {user.role !== 'administrador' ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => openEdit(p)}
+                            className="text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors"
+                            title="Editar"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleToggle(p.id_producto, p.deleted)}
+                            className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${
+                              p.deleted
+                                ? 'text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30'
+                                : 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/30'
+                            }`}
+                            title={p.deleted ? "Activar producto" : "Desactivar producto"}
+                          >
+                            {p.deleted ? "Activar" : "Desactivar"}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">Solo lectura</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -2621,8 +2647,16 @@ function Ventas({ user }: { user: User }) {
           )}
         </div>
         <div className="p-3 md:p-4 border-t border-border space-y-2">
-          <Btn variant="primary" className="w-full justify-center text-sm" onClick={finalizarVenta} disabled={cart.length === 0}><Check size={15} /> Finalizar venta</Btn>
-          <Btn variant="danger" className="w-full justify-center text-sm" onClick={() => { setCart([]); setSaleError(""); }} disabled={cart.length === 0}><X size={15} /> Cancelar</Btn>
+          {user.role === 'administrador' ? (
+            <div className="text-center text-xs text-muted-foreground py-2">
+              Solo lectura - Los administradores no pueden realizar ventas
+            </div>
+          ) : (
+            <>
+              <Btn variant="primary" className="w-full justify-center text-sm" onClick={finalizarVenta} disabled={cart.length === 0}><Check size={15} /> Finalizar venta</Btn>
+              <Btn variant="danger" className="w-full justify-center text-sm" onClick={() => { setCart([]); setSaleError(""); }} disabled={cart.length === 0}><X size={15} /> Cancelar</Btn>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -3232,7 +3266,7 @@ function Proveedores({ user }: { user: User }) {
       title="Gestión de Proveedores"
       subtitle={`${filtered.length} de ${suppliers.length} proveedores`}
       actions={
-        <Btn onClick={openNew}><Plus size={14} /> Nuevo proveedor</Btn>
+        user.role !== 'administrador' && <Btn onClick={openNew}><Plus size={14} /> Nuevo proveedor</Btn>
       }
     >
       {/* ── Filtros ── */}
@@ -3308,26 +3342,30 @@ function Proveedores({ user }: { user: User }) {
                     </span>
                   </td>
                   <td className="py-2.5 px-3 whitespace-nowrap">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openEdit(s)}
-                        className="text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors"
-                        title="Editar"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleToggle(s.id_proveedor, s.deleted ?? 0)}
-                        className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${
-                          s.deleted
-                            ? 'text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30'
-                            : 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/30'
-                        }`}
-                        title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
-                      >
-                        {s.deleted ? "Activar" : "Desactivar"}
-                      </button>
-                    </div>
+                    {user.role !== 'administrador' ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEdit(s)}
+                          className="text-primary hover:text-primary/80 p-1 rounded hover:bg-primary/10 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleToggle(s.id_proveedor, s.deleted ?? 0)}
+                          className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${
+                            s.deleted
+                              ? 'text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30'
+                              : 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/30'
+                          }`}
+                          title={s.deleted ? "Activar proveedor" : "Desactivar proveedor"}
+                        >
+                          {s.deleted ? "Activar" : "Desactivar"}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">Solo lectura</span>
+                    )}
                   </td>
                 </tr>
               ))}
