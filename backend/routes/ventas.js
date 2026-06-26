@@ -84,7 +84,12 @@ router.post('/', async (req, res) => {
       );
     }
 
-    // 3. Actualizar total de la venta
+    // 3. Validar cliente anónimo con monto máximo de $25,000
+    if (clienteId === 1 && total > 25000) {
+      throw new Error('No se puede realizar una venta mayor a $25,000.00 para cliente anónimo. Por favor, seleccione un cliente registrado.');
+    }
+
+    // 4. Actualizar total de la venta
     await sequelize.query(
       `UPDATE ventas SET total = :total WHERE id_venta = :id_venta`,
       {

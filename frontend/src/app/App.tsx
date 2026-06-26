@@ -2065,12 +2065,25 @@ function Ventas({ user }: { user: User }) {
               <h2 className="text-lg font-bold text-foreground">Cliente no seleccionado</h2>
             </div>
             <p className="text-foreground mb-4">¿Desea realizar la venta para cliente anónimo?</p>
+            {total > 25000 && (
+              <p className="text-destructive text-sm mb-4">⚠️ El total de la venta (${total.toFixed(2)}) excede el límite de $25,000.00 para cliente anónimo. Por favor, seleccione un cliente registrado.</p>
+            )}
             <div className="flex justify-end gap-3">
               <Btn variant="secondary" onClick={() => setNoClientModal(false)}>Cancelar</Btn>
-              <Btn variant="primary" onClick={() => {
-                setNoClientModal(false);
-                procesarVenta(1, true); // ID 1 = cliente anónimo, true = generar factura automáticamente
-              }}>Aceptar</Btn>
+              <Btn 
+                variant="primary" 
+                onClick={() => {
+                  if (total > 25000) {
+                    setToast({ message: 'No se puede realizar una venta mayor a $25,000.00 para cliente anónimo. Por favor, seleccione un cliente registrado.', type: 'error' });
+                    return;
+                  }
+                  setNoClientModal(false);
+                  procesarVenta(1, true); // ID 1 = cliente anónimo, true = generar factura automáticamente
+                }}
+                disabled={total > 25000}
+              >
+                Aceptar
+              </Btn>
             </div>
           </Card>
         </div>
