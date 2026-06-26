@@ -61,6 +61,13 @@ router.post('/', async (req, res) => {
       descripcion: `Cliente creado: ${nombre} ${apellido}`,
       id_registro: result, id_empleado, nombre_empleado
     });
+
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('cliente:creado', { id_cliente: result, nombre: `${nombre} ${apellido}` });
+    }
+
     res.status(201).json({ id_cliente: result, message: 'Cliente creado' });
   } catch (error) {
     console.error('❌ POST /clientes:', error);
@@ -126,6 +133,12 @@ router.put('/:id', async (req, res) => {
       });
     }
 
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('cliente:actualizado', { id: clienteId, nombre: `${nombre} ${apellido}` });
+    }
+
     res.json({ message: 'Cliente actualizado' });
   } catch (error) {
     console.error('❌ PUT /clientes/:id:', error);
@@ -157,6 +170,12 @@ router.patch('/:id/toggle', async (req, res) => {
       descripcion: `Cliente ${accion.toLowerCase()}do: ${cliente.nombre} ${cliente.apellido}`,
       id_registro: clienteId, id_empleado, nombre_empleado
     });
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('cliente:estado_cambiado', { id: clienteId, nombre: `${cliente.nombre} ${cliente.apellido}`, deleted: !cliente.deleted });
+    }
+
     res.json({ message: 'Estado del cliente actualizado' });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -105,6 +105,12 @@ router.post('/', async (req, res) => {
       nombre_empleado
     });
 
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('producto:creado', { id_producto, nombre_producto });
+    }
+
     res.status(201).json({ id_producto, message: 'Producto creado' });
   } catch (error) {
     await transaction.rollback();
@@ -193,6 +199,12 @@ router.put('/:id', async (req, res) => {
       });
     }
 
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('producto:actualizado', { id: Number(req.params.id), nombre_producto });
+    }
+
     res.json({ message: 'Producto actualizado' });
   } catch (error) {
     await transaction.rollback();
@@ -219,6 +231,13 @@ router.patch('/:id/toggle', async (req, res) => {
       descripcion: `Producto ${prod.deleted ? 'activado' : 'desactivado'}: ${prod.nombre_producto}`,
       id_registro: Number(req.params.id), id_empleado, nombre_empleado
     });
+
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('producto:estado_cambiado', { id: Number(req.params.id), nombre_producto: prod.nombre_producto, deleted: !prod.deleted });
+    }
+
     res.json({ message: 'Estado del producto actualizado' });
   } catch (error) {
     console.error('❌ PATCH /productos/:id/toggle:', error);

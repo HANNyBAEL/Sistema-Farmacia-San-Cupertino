@@ -43,6 +43,12 @@ router.post('/', async (req, res) => {
       descripcion: `Proveedor creado: ${nombre} ${apellido}`,
       id_registro: result, id_empleado, nombre_empleado
     });
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('proveedor:creado', { id_proveedor: result, nombre: `${nombre} ${apellido}` });
+    }
+
     res.status(201).json({ id_proveedor: result, message: 'Proveedor creado' });
   } catch (error) {
     console.error('❌ POST /proveedores:', error);
@@ -69,6 +75,12 @@ router.put('/:id', async (req, res) => {
       descripcion: `Proveedor editado: ${nombre} ${apellido}`,
       id_registro: Number(req.params.id), id_empleado, nombre_empleado
     });
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('proveedor:actualizado', { id: Number(req.params.id), nombre: `${nombre} ${apellido}` });
+    }
+
     res.json({ message: 'Proveedor actualizado' });
   } catch (error) {
     console.error('❌ PUT /proveedores/:id:', error);
@@ -93,6 +105,12 @@ router.patch('/:id/toggle', async (req, res) => {
       descripcion: `Proveedor ${accion.toLowerCase()}do: ${prov.nombre} ${prov.apellido}`,
       id_registro: Number(req.params.id), id_empleado, nombre_empleado
     });
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('proveedor:estado_cambiado', { id: Number(req.params.id), nombre: `${prov.nombre} ${prov.apellido}`, deleted: !prov.deleted });
+    }
+
     res.json({ message: 'Estado del proveedor actualizado' });
   } catch (error) {
     res.status(500).json({ error: error.message });

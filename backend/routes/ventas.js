@@ -100,6 +100,13 @@ router.post('/', async (req, res) => {
     );
 
     await transaction.commit();
+
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('venta:creada', { id_venta, total, fecha: fechaVenta });
+    }
+
     res.status(201).json({ message: 'Venta registrada', id_venta, total, fecha: fechaVenta });
 
   } catch (error) {

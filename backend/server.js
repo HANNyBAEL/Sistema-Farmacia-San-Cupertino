@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 dotenv.config();
 
 // Importa el pool de conexiones (desde db.js)
@@ -89,6 +91,27 @@ app.use('/api/facturas',    facturasRoutes);
 
 const PORT = process.env.PORT || 8000;
 
+// Crear servidor HTTP y Socket.io
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true
+  }
+});
+
+// Hacer io disponible globalmente para las rutas
+app.set('io', io);
+
+// Conexión de clientes Socket.io
+io.on('connection', (socket) => {
+  console.log('🔌 Cliente conectado:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('🔌 Cliente desconectado:', socket.id);
+  });
+});
+
 async function ensureSchema() {
   const [columns] = await sequelize.query("SHOW COLUMNS FROM empleados LIKE 'papelera'");
   if (columns.length === 0) {
@@ -108,7 +131,7 @@ async function startServer() {
     await ensureSchema();
     console.log('✅ Conexión a MySQL (Sequelize) exitosa');
 
-    app.listen(PORT, '0.0.0.0', () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Servidor corriendo en http://0.0.0.0:${PORT}`);
     });
   } catch (error) {

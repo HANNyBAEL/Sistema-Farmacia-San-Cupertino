@@ -108,6 +108,12 @@ router.post('/', async (req, res) => {
       id_registro: result, id_empleado: id_empleado_sesion, nombre_empleado: nombre_empleado_sesion
     });
 
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('empleado:creado', { id_empleado: result, nombre: `${nombre} ${apellido}` });
+    }
+
     res.status(201).json({ id_empleado: result, message: 'Empleado creado. Se ha enviado una invitación al correo.' });
   } catch (error) {
     console.error('❌ POST /empleados:', error);
@@ -185,6 +191,12 @@ router.put('/:id', async (req, res) => {
           valor_nuevo: c.campo === 'activo' ? (c.nuevo === 1 ? 'activo' : 'desactivado') : String(c.nuevo ?? '')
         });
       }
+    }
+
+    // Emitir evento Socket.io para sincronización en tiempo real
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('empleado:actualizado', { id: Number(req.params.id), nombre: `${nombre} ${apellido}` });
     }
 
     res.json({ message: 'Empleado actualizado' });

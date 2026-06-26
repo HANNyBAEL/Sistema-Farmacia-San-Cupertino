@@ -30,6 +30,7 @@ import { generarFacturaPDF, generarFacturaPDFBase64, type FacturaData } from './
 import auditoriaApi from '../services/auditoria';
 import logoImg from "../imports/logo.png";
 import { useTheme } from '../context/ThemeContext';
+import { SocketProvider, useSocket } from '../context/SocketContext';
 import { Mail, Loader2 } from 'lucide-react';
 
 const RECAPTCHA_SITE_KEY = "6Lc-5S0tAAAAANGcokPZobPlAHatfcoNRBqQeMYb";
@@ -856,6 +857,7 @@ function Dashboard() {
   const [avgDailySales, setAvgDailySales] = useState(0);
   const [loading, setLoading] = useState(true);
   const { theme } = useTheme();
+  const { socket } = useSocket();
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -885,6 +887,79 @@ function Dashboard() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  // Escuchar eventos de Socket.io para sincronización en tiempo real
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleVentaCreada = () => {
+      console.log('🔄 Venta creada por otro usuario, recargando dashboard...');
+      setLoading(true);
+      Promise.all([fetchKPIs(), fetchVentasUltimos7Dias(), getProductos()])
+        .then(([k, s, productos]) => {
+          const processed = s.map((item: { dia: string; ventas: number }) => {
+            const date = new Date(item.dia + 'T12:00:00');
+            const dayName = date.toLocaleDateString('es-ES', {
+              weekday: 'short',
+              timeZone: 'America/El_Salvador'
+            });
+            return { day: dayName.replace('.', ''), ventas: item.ventas };
+          });
+          setSalesData(processed);
+
+          const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+          const vencidos = productos.filter((p: any) => {
+            if (!p.fecha_vencimiento) return false;
+            return new Date(p.fecha_vencimiento + 'T00:00:00') < hoy;
+          }).length;
+          setExpiredCount(vencidos);
+
+          const totalVentas = processed.reduce((sum: number, day: { ventas: number }) => sum + day.ventas, 0);
+          setAvgDailySales(processed.length ? totalVentas / processed.length : 0);
+          setKpis(k);
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    };
+
+    const handleProductoActualizado = () => {
+      console.log('🔄 Producto actualizado por otro usuario, recargando dashboard...');
+      setLoading(true);
+      Promise.all([fetchKPIs(), fetchVentasUltimos7Dias(), getProductos()])
+        .then(([k, s, productos]) => {
+          const processed = s.map((item: { dia: string; ventas: number }) => {
+            const date = new Date(item.dia + 'T12:00:00');
+            const dayName = date.toLocaleDateString('es-ES', {
+              weekday: 'short',
+              timeZone: 'America/El_Salvador'
+            });
+            return { day: dayName.replace('.', ''), ventas: item.ventas };
+          });
+          setSalesData(processed);
+
+          const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+          const vencidos = productos.filter((p: any) => {
+            if (!p.fecha_vencimiento) return false;
+            return new Date(p.fecha_vencimiento + 'T00:00:00') < hoy;
+          }).length;
+          setExpiredCount(vencidos);
+
+          const totalVentas = processed.reduce((sum: number, day: { ventas: number }) => sum + day.ventas, 0);
+          setAvgDailySales(processed.length ? totalVentas / processed.length : 0);
+          setKpis(k);
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    };
+
+    socket.on('venta:creada', handleVentaCreada);
+    socket.on('producto:actualizado', handleProductoActualizado);
+
+    return () => {
+      socket.off('venta:creada', handleVentaCreada);
+      socket.off('producto:actualizado', handleProductoActualizado);
+    };
+  }, [socket]);
 
   if (loading) return <LoadingSpinner />;
 
@@ -1064,6 +1139,7 @@ function Productos({ user }: { user: User }) {
   }>({ isOpen: false, productId: null, deleted: 0 });
 
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+  const { socket } = useSocket();
 
   const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -1077,6 +1153,36 @@ function Productos({ user }: { user: User }) {
   }
 
   useEffect(() => { load(); }, []);
+
+  // Escuchar eventos de Socket.io para sincronización en tiempo real
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleProductoCreado = () => {
+      console.log('🔄 Producto creado por otro usuario, recargando...');
+      load();
+    };
+
+    const handleProductoActualizado = () => {
+      console.log('🔄 Producto actualizado por otro usuario, recargando...');
+      load();
+    };
+
+    const handleProductoEstadoCambiado = () => {
+      console.log('🔄 Estado de producto cambiado por otro usuario, recargando...');
+      load();
+    };
+
+    socket.on('producto:creado', handleProductoCreado);
+    socket.on('producto:actualizado', handleProductoActualizado);
+    socket.on('producto:estado_cambiado', handleProductoEstadoCambiado);
+
+    return () => {
+      socket.off('producto:creado', handleProductoCreado);
+      socket.off('producto:actualizado', handleProductoActualizado);
+      socket.off('producto:estado_cambiado', handleProductoEstadoCambiado);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (toast) {
@@ -1574,6 +1680,7 @@ function Ventas({ user }: { user: User }) {
   const [highValueNoClientModal, setHighValueNoClientModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [productModal, setProductModal] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
+  const { socket } = useSocket();
 
   const cartContainerRef = useRef<HTMLDivElement>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -1650,6 +1757,42 @@ function Ventas({ user }: { user: User }) {
       })
       .catch(console.error);
   }, []);
+
+  // Escuchar eventos de Socket.io para sincronización en tiempo real
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleVentaCreada = () => {
+      console.log('🔄 Venta creada por otro usuario, recargando productos...');
+      getProductos().then(prods => {
+        setProducts(prods.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+      }).catch(console.error);
+    };
+
+    const handleProductoActualizado = () => {
+      console.log('🔄 Producto actualizado por otro usuario, recargando...');
+      getProductos().then(prods => {
+        setProducts(prods.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+      }).catch(console.error);
+    };
+
+    const handleProductoEstadoCambiado = () => {
+      console.log('🔄 Estado de producto cambiado por otro usuario, recargando...');
+      getProductos().then(prods => {
+        setProducts(prods.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+      }).catch(console.error);
+    };
+
+    socket.on('venta:creada', handleVentaCreada);
+    socket.on('producto:actualizado', handleProductoActualizado);
+    socket.on('producto:estado_cambiado', handleProductoEstadoCambiado);
+
+    return () => {
+      socket.off('venta:creada', handleVentaCreada);
+      socket.off('producto:actualizado', handleProductoActualizado);
+      socket.off('producto:estado_cambiado', handleProductoEstadoCambiado);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (cartContainerRef.current) {
@@ -5056,7 +5199,11 @@ export default function App() {
 
   // App normal
   if (user) {
-    return <AppShell user={user} onLogout={handleLogout} />;
+    return (
+      <SocketProvider>
+        <AppShell user={user} onLogout={handleLogout} />
+      </SocketProvider>
+    );
   }
 
   // Fallback
