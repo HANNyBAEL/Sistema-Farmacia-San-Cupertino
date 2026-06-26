@@ -4,27 +4,61 @@ import autoTable from "jspdf-autotable";
 import type { CellInput } from "jspdf-autotable";
 
 export interface FacturaData {
-  numero_control: string;
-  codigo_generacion: string;
+  identificacion?: {
+    numeroControl?: string;
+    codigoGeneracion?: string;
+    fecEmi?: string;
+    horEmi?: string;
+  };
+  numero_control?: string;
+  codigo_generacion?: string;
   sello_recepcion?: string;
-  ambiente_destino?: string; // CAT-001: '00' = Ambiente de Pruebas
-  fecha_emision: string;
+  ambiente_destino?: string;
+  fecha_emision?: string;
+  emisor?: {
+    nombre?: string;
+    nit?: string;
+    nrc?: string;
+    direccion?: {
+      complemento?: string;
+    };
+    telefono?: string;
+    correo?: string;
+  };
   receptor: {
     nombre: string;
     dui?: string;
     correo?: string;
     telefono?: string;
     direccion?: string;
+    tipoDocumento?: string;
+    numDocumento?: string;
   };
-  items: {
+  cuerpoDocumento?: {
+    cantidad: number;
+    descripcion: string;
+    precioUni: number;
+    ventaGravada: number;
+  }[];
+  items?: {
     codigo: string | number;
     descripcion: string;
     cantidad: number;
     precio_unitario: number;
     subtotal: number;
   }[];
-  total: number;
+  resumen?: {
+    totalPagar: number;
+    totalLetras?: string;
+    totalIva?: number;
+  };
+  total?: number;
   empleado?: string;
+  apendice?: Array<{
+    campo: string;
+    etiqueta: string;
+    valor: string;
+  }>;
 }
 
 function dibujarLogoSVG(doc: jsPDF, x: number, y: number, w: number, h: number) {
@@ -72,6 +106,32 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
   const negro = [30, 30, 30] as const;
   const blanco: [number, number, number] = [255, 255, 255];
 
+  // Helper para asegurar que los valores sean strings válidos para jsPDF
+  const safeStr = (val: any): string => {
+    if (val === null || val === undefined) return '';
+    return String(val);
+  };
+
+  // Extraer datos de la nueva estructura o usar los antiguos para compatibilidad
+  const numeroControl = safeStr(data.identificacion?.numeroControl || data.numero_control || '');
+  const codigoGeneracion = safeStr(data.identificacion?.codigoGeneracion || data.codigo_generacion || '');
+  const fechaEmision = safeStr(data.identificacion?.fecEmi || data.fecha_emision || '');
+  const horaEmision = safeStr(data.identificacion?.horEmi || '');
+  const selloRecepcion = safeStr(data.sello_recepcion || '');
+  const total = data.resumen?.totalPagar || data.total || 0;
+  const totalLetras = safeStr(data.resumen?.totalLetras || '');
+  const totalIva = data.resumen?.totalIva || 0;
+  const empleado = safeStr(data.apendice?.find(a => a.etiqueta === 'Nombre')?.valor || data.empleado || '');
+  const selloApendice = safeStr(data.apendice?.find(a => a.etiqueta === 'Sello')?.valor || selloRecepcion);
+
+  // Usar items del cuerpoDocumento o items antiguo
+  const items = data.cuerpoDocumento?.map(item => ({
+    cantidad: item.cantidad,
+    descripcion: item.descripcion,
+    precio_unitario: item.precioUni,
+    subtotal: item.ventaGravada
+  })) || data.items || [];
+
   doc.setFillColor(...azul);
   doc.rect(0, 0, W, 18, "F");
   dibujarLogoSVG(doc, 8, 3, 12, 12);
@@ -90,11 +150,11 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
   doc.setFont("helvetica", "bold");
   doc.text("Código de Generación:", 8, y);
   doc.setFont("helvetica", "normal");
-  doc.text(data.codigo_generacion, 8, y + 4);
+  doc.text(codigoGeneracion, 8, y + 4);
   doc.setFont("helvetica", "bold");
   doc.text("Número de Control:", 8, y + 9);
   doc.setFont("helvetica", "normal");
-  doc.text(data.numero_control, 8, y + 13);
+  doc.text(numeroControl, 8, y + 13);
   doc.setFont("helvetica", "bold");
   doc.text("Modelo de Facturación:", W / 2 + 10, y);
   doc.setFont("helvetica", "normal");
@@ -106,7 +166,7 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
   doc.setFont("helvetica", "bold");
   doc.text("Fecha y Hora de Generación:", W / 2 + 10, y + 18);
   doc.setFont("helvetica", "normal");
-  doc.text(data.fecha_emision, W / 2 + 10, y + 22);
+  doc.text(`${fechaEmision} ${horaEmision}`, W / 2 + 10, y + 22);
 
   y = 54;
   doc.setDrawColor(220, 220, 220);
@@ -145,42 +205,43 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
   const rx = 8 + colW + 8 + 3;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  doc.text(data.receptor.nombre.toUpperCase(), rx, y + 10);
+  doc.text(safeStr(data.receptor.nombre).toUpperCase(), rx, y + 10);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   let yOffset = y + 15;
-  if (data.receptor.dui) {
-    doc.text("Tipo de Documento de Identificación: DUI", rx, yOffset);
-    doc.text(`Número de Documento de Identificación: ${data.receptor.dui}`, rx, yOffset + 4);
+  const tipoDoc = data.receptor.tipoDocumento === '13' ? 'Consumidor Final' : (data.receptor.tipoDocumento === '36' ? 'DUI' : '');
+  if (data.receptor.dui || data.receptor.numDocumento) {
+    doc.text(`Tipo de Documento: ${tipoDoc}`, rx, yOffset);
+    doc.text(`Número: ${safeStr(data.receptor.dui || data.receptor.numDocumento)}`, rx, yOffset + 4);
     yOffset += 8;
   }
-  const recDirLines = doc.splitTextToSize(`Dirección: ${data.receptor.direccion ?? "—"}`, colW - 6);
+  const recDirLines = doc.splitTextToSize(`Dirección: ${safeStr(data.receptor.direccion) || "—"}`, colW - 6);
   doc.text(recDirLines, rx, yOffset);
-  doc.text(`Correo electrónico: ${data.receptor.correo ?? "—"}`, rx, yOffset + recDirLines.length * 3.5);
-  doc.text(`Teléfono: ${data.receptor.telefono ?? "—"}`, rx, yOffset + recDirLines.length * 3.5 + 4);
+  doc.text(`Correo electrónico: ${safeStr(data.receptor.correo) || "—"}`, rx, yOffset + recDirLines.length * 3.5);
+  doc.text(`Teléfono: ${safeStr(data.receptor.telefono) || "—"}`, rx, yOffset + recDirLines.length * 3.5 + 4);
 
   const startY = 112;
   // Apply strict 2-decimal rounding with commercial rounding
   const roundToTwoDecimals = (value: number): number => {
     return Math.round((value + Number.EPSILON) * 100) / 100;
   };
-  const total = roundToTwoDecimals(data.total);
-  const totalGravado = roundToTwoDecimals(total);
+  const totalRounded = roundToTwoDecimals(total);
+  const totalGravado = roundToTwoDecimals(totalRounded);
   const sumaVentasGravadas = roundToTwoDecimals(totalGravado);
   
   // Validate arithmetic consistency with $0.01 tolerance
-  const calculatedSum = data.items.reduce((sum, item) => roundToTwoDecimals(sum + roundToTwoDecimals(item.subtotal)), 0);
-  const discrepancy = Math.abs(calculatedSum - total);
+  const calculatedSum = items.reduce((sum, item) => roundToTwoDecimals(sum + roundToTwoDecimals(item.subtotal)), 0);
+  const discrepancy = Math.abs(calculatedSum - totalRounded);
   if (discrepancy > 0.01) {
-    console.error(`Descuadre aritmético detectado: suma calculada ${calculatedSum.toFixed(2)} vs total ${total.toFixed(2)} (diferencia: ${discrepancy.toFixed(2)})`);
+    console.error(`Descuadre aritmético detectado: suma calculada ${calculatedSum.toFixed(2)} vs total ${totalRounded.toFixed(2)} (diferencia: ${discrepancy.toFixed(2)})`);
     throw new Error(`Descuadre aritmético: la diferencia de ${discrepancy.toFixed(2)} excede la tolerancia permitida de $0.01`);
   }
 
-  const productRows: CellInput[][] = data.items.map((item, idx) => [
+  const productRows: CellInput[][] = items.map((item, idx) => [
     { content: String(idx + 1), styles: { halign: "center" } },
     { content: String(item.cantidad), styles: { halign: "center" } },
     { content: "UNIDAD", styles: { halign: "center" } },
-    { content: item.descripcion },
+    { content: safeStr(item.descripcion) },
     { content: `$${item.precio_unitario.toFixed(4)}`, styles: { halign: "right" } },
     { content: "$0.0000", styles: { halign: "right" } },
     { content: "$0.00", styles: { halign: "right" } },
@@ -224,15 +285,15 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
   }
 
   const rows = [
-    ["Suma Total de Operaciones:", `$${total.toFixed(2)}`],
+    ["Suma Total de Operaciones:", `$${totalRounded.toFixed(2)}`],
     ["Monto global Desc., Rebajas y otros a ventas no sujetas:", "$0.00"],
     ["Monto global Desc., Rebajas y otros a ventas Exentas:", "$0.00"],
     ["Monto global Desc., Rebajas y otros a ventas Gravadas:", "$0.00"],
     ["Sub-Total:", `$${totalGravado.toFixed(2)}`],
     ["IVA Retenido:", "$0.00"],
     ["Retención de Renta:", "$0.00"],
-    ["Monto Total de la Operación:", `$${total.toFixed(2)}`],
-    ["Total a pagar:", `$${total.toFixed(2)}`],
+    ["Monto Total de la Operación:", `$${totalRounded.toFixed(2)}`],
+    ["Total a pagar:", `$${totalRounded.toFixed(2)}`],
   ];
 
   doc.setFontSize(7.5);
@@ -250,7 +311,7 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
   doc.setTextColor(...blanco);
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
-  doc.text(`Valor en letras: ${numeroALetras(total)}`, 11, pieY + 5);
+  doc.text(`Valor en letras: ${totalLetras || safeStr(numeroALetras(totalRounded))}`, 11, pieY + 5);
   doc.text("Condición de la operación: Contado", W / 2 + 20, pieY + 5);
 
   const apY = pieY + 14;
@@ -264,20 +325,21 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
   doc.setFontSize(7);
   doc.text("Datos del vendedor", 11, apY + 9);
   doc.text("Datos del documento", W / 2 + 10, apY + 9);
-  if (data.empleado) {
+  if (empleado) {
     doc.setFont("helvetica", "bold");
-    doc.text(`Nombre: ${data.empleado.toUpperCase()}`, 11, apY + 14);
+    doc.text(`Nombre: ${empleado.toUpperCase()}`, 11, apY + 14);
   }
   doc.setFont("helvetica", "normal");
-  doc.text(`Sello: ${data.sello_recepcion || data.codigo_generacion}`, 11, apY + 19);
+  doc.text(`Sello: ${selloApendice || codigoGeneracion}`, 11, apY + 19);
 }
 
 // Versión original: descarga el PDF
 export function generarFacturaPDF(data: FacturaData): void {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
   construirPDF(doc, data);
-  const fecha = data.fecha_emision.split(" ")[0].replace(/-/g, "");
-  doc.save(`Factura_${data.numero_control.split("-").pop()}_${fecha}.pdf`);
+  const fecha = (data.identificacion?.fecEmi || data.fecha_emision || '').split(" ")[0].replace(/-/g, "");
+  const numControl = (data.identificacion?.numeroControl || data.numero_control || '').split("-").pop();
+  doc.save(`Factura_${numControl}_${fecha}.pdf`);
 }
 
 // Versión nueva: retorna el PDF en base64

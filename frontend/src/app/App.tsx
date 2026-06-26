@@ -2035,7 +2035,11 @@ function Ventas({ user }: { user: User }) {
 
           if (!esClienteAnonimo && clienteCorreo && !clienteCorreo.includes('object') && clienteCorreo.includes('@')) {
             try {
+              console.log('Generando PDF para factura...');
               const pdfBase64 = generarFacturaPDFBase64(datosFactura);
+              console.log('PDF generado, tamaño:', pdfBase64.length);
+              
+              console.log('Enviando correo a:', clienteCorreo);
               await api.post('/facturas/enviar', {
                 email: clienteCorreo,
                 pdfBase64: pdfBase64,
@@ -2045,9 +2049,11 @@ function Ventas({ user }: { user: User }) {
                 cliente: `${extraerString(selectedClient?.nombre)} ${extraerString(selectedClient?.apellido)}`,
               });
               setToast({ message: "Factura enviada al correo del cliente.", type: 'success' });
-            } catch (emailErr) {
+            } catch (emailErr: any) {
               console.error("Error enviando correo:", emailErr);
-              setToast({ message: "Factura generada pero error al enviar por correo.", type: 'error' });
+              console.error("Error response:", emailErr?.response?.data);
+              console.error("Error message:", emailErr?.message);
+              setToast({ message: `Error: ${emailErr?.response?.data?.error || emailErr?.message || 'Error al enviar correo'}`, type: 'error' });
             }
           } else if (esClienteAnonimo) {
             setToast({ message: "Factura generada para cliente anónimo.", type: 'success' });
