@@ -1594,6 +1594,50 @@ function Ventas({ user }: { user: User }) {
     return String(valor);
   }
 
+  // Helper: convertir número a letras para factura electrónica
+  function convertirNumeroALetras(numero: number): string {
+    const unidades = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
+    const decenas = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+    const centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+    
+    if (numero === 0) return 'CERO';
+    
+    const entero = Math.floor(numero);
+    const decimal = Math.round((numero - entero) * 100);
+    
+    function convertirEntero(n: number): string {
+      if (n === 0) return '';
+      if (n < 10) return unidades[n];
+      if (n < 100) {
+        if (n >= 10 && n <= 15) {
+          const especiales = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE'];
+          return especiales[n - 10];
+        }
+        const d = Math.floor(n / 10);
+        const u = n % 10;
+        return decenas[d] + (u > 0 ? ' Y ' + unidades[u] : '');
+      }
+      if (n < 1000) {
+        if (n === 100) return 'CIEN';
+        const c = Math.floor(n / 100);
+        const resto = n % 100;
+        return centenas[c] + (resto > 0 ? ' ' + convertirEntero(resto) : '');
+      }
+      if (n < 1000000) {
+        const miles = Math.floor(n / 1000);
+        const resto = n % 1000;
+        if (miles === 1) return 'MIL' + (resto > 0 ? ' ' + convertirEntero(resto) : '');
+        return convertirEntero(miles) + ' MIL' + (resto > 0 ? ' ' + convertirEntero(resto) : '');
+      }
+      return '';
+    }
+    
+    const letrasEntero = convertirEntero(entero);
+    const letrasDecimal = decimal > 0 ? String(decimal).padStart(2, '0') : '00';
+    
+    return `${letrasEntero} ${letrasDecimal}/100`;
+  }
+
   function formatDUI(value: string): string {
     const digits = value.replace(/\D/g, '').slice(0, 9);
     if (digits.length <= 8) return digits;
@@ -1867,28 +1911,134 @@ function Ventas({ user }: { user: User }) {
           const clienteCorreo = extraerString(selectedClient?.correo);
           const esClienteAnonimo = id_cliente === 1;
 
+          // Parsear fecha y hora
+          const fechaParts = fechaHoraLocal.split(' ');
+          const fecha = fechaParts[0]; // YYYY-MM-DD
+          const hora = fechaParts[1] || '00:00:00'; // HH:MM:SS
+
           const datosFactura = {
-            numero_control,
-            codigo_generacion,
-            sello_recepcion,
-            ambiente_destino: '00', // CAT-001: Ambiente de Pruebas
-            fecha_emision: fechaHoraLocal,
-            receptor: {
-              nombre: esClienteAnonimo ? "CLIENTE ANÓNIMO" : `${extraerString(selectedClient?.nombre)} ${extraerString(selectedClient?.apellido)}`,
-              dui: esClienteAnonimo ? "" : extraerString(selectedClient?.dui),
-              correo: esClienteAnonimo ? "" : clienteCorreo,
-              telefono: esClienteAnonimo ? "" : extraerString(selectedClient?.telefono),
-              direccion: esClienteAnonimo ? "" : extraerString(selectedClient?.direccion),
+            identificacion: {
+              version: 1,
+              ambiente: '01',
+              tipoDte: '01',
+              numeroControl: numero_control,
+              codigoGeneracion: codigo_generacion,
+              tipoModelo: 1,
+              tipoOperacion: 1,
+              tipoContingencia: null,
+              motivoContin: null,
+              fecEmi: fecha,
+              horEmi: hora,
+              tipoMoneda: 'USD'
             },
-            items: cart.map(i => ({
-              codigo: i.product.id_producto,
-              descripcion: i.product.nombre_producto,
+            documentoRelacionado: null,
+            emisor: {
+              nit: '0614-123456-789-0',
+              nrc: '384470',
+              nombre: 'PROYECTOS E INVERSIONES, S.A. DE C.V.',
+              codActividad: '46484',
+              descActividad: 'Venta de productos farmaceuticos y medicinales',
+              nombreComercial: 'FARMACIAS SAN CUPERTINO',
+              tipoEstablecimiento: '01',
+              direccion: {
+                departamento: '03',
+                municipio: '15',
+                complemento: 'Sonsonate, El Salvador'
+              },
+              telefono: '24504373',
+              codEstableMH: 'S003',
+              codEstable: 'SANR',
+              codPuntoVentaMH: 'P001',
+              codPuntoVenta: 'P001',
+              correo: 'factura@srfarmacias.com'
+            },
+            receptor: {
+              tipoDocumento: esClienteAnonimo ? '13' : '36',
+              numDocumento: esClienteAnonimo ? '' : (extraerString(selectedClient?.dui) || ''),
+              nrc: null,
+              nombre: esClienteAnonimo ? "CLIENTE ANÓNIMO" : `${extraerString(selectedClient?.nombre)} ${extraerString(selectedClient?.apellido)}`,
+              codActividad: null,
+              descActividad: null,
+              direccion: {
+                departamento: '03',
+                municipio: '15',
+                complemento: esClienteAnonimo ? '' : (extraerString(selectedClient?.direccion) || '')
+              },
+              telefono: esClienteAnonimo ? '' : (extraerString(selectedClient?.telefono) || ''),
+              correo: esClienteAnonimo ? '' : clienteCorreo
+            },
+            otrosDocumentos: null,
+            ventaTercero: null,
+            cuerpoDocumento: cart.map((i, index) => ({
+              numItem: index + 1,
+              tipoItem: 1,
+              numeroDocumento: null,
               cantidad: i.qty,
-              precio_unitario: Number(i.product.precio),
-              subtotal: Number(i.product.precio) * i.qty,
+              codigo: String(i.product.id_producto),
+              codTributo: null,
+              uniMedida: 26,
+              descripcion: i.product.nombre_producto,
+              precioUni: Number(i.product.precio),
+              montoDescu: 0,
+              ventaNoSuj: 0,
+              ventaExenta: 0,
+              ventaGravada: Number(i.product.precio) * i.qty,
+              tributos: null,
+              psv: 0,
+              noGravado: 0,
+              ivaItem: (Number(i.product.precio) * i.qty) * 0.13
             })),
-            total: ventaResp.total,
-            empleado: user.name,
+            resumen: {
+              totalNoSuj: 0,
+              totalExenta: 0,
+              totalGravada: ventaResp.total,
+              subTotalVentas: ventaResp.total,
+              descuNoSuj: 0,
+              descuExenta: 0,
+              descuGravada: 0,
+              porcentajeDescuento: 0,
+              totalDescu: 0,
+              tributos: [],
+              subTotal: ventaResp.total,
+              ivaRete1: 0,
+              reteRenta: 0,
+              montoTotalOperacion: ventaResp.total,
+              totalNoGravado: 0,
+              totalPagar: ventaResp.total,
+              totalLetras: convertirNumeroALetras(ventaResp.total),
+              totalIva: ventaResp.total * 0.13,
+              saldoFavor: 0,
+              condicionOperacion: 1,
+              pagos: [
+                {
+                  codigo: metodoPago === 'efectivo' ? '01' : '02',
+                  montoPago: ventaResp.total,
+                  referencia: null,
+                  plazo: null,
+                  periodo: null
+                }
+              ],
+              numPagoElectronico: ''
+            },
+            extension: null,
+            apendice: [
+              {
+                campo: 'Datos del vendedor',
+                etiqueta: 'Nombre',
+                valor: user.name
+              },
+              {
+                campo: 'Datos del documento',
+                etiqueta: 'N° Documento',
+                valor: numero_control.split('-').pop()
+              },
+              {
+                campo: 'Datos del documento',
+                etiqueta: 'Sello',
+                valor: sello_recepcion
+              }
+            ],
+            firmaElectronica: 'eyJhbGciOiJSUzUxMiJ9.estafirmaelectronicasoloesunaprueba'
           };
 
           if (!esClienteAnonimo && clienteCorreo && !clienteCorreo.includes('object') && clienteCorreo.includes('@')) {
