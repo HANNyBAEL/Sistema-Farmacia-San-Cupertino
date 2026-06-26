@@ -9,9 +9,9 @@ router.get('/kpis', async (req, res) => {
     const hoyLocal = getHoyLocal();
 
     const [[{ totalProductos }]] = await sequelize.query(`SELECT COUNT(*) as totalProductos FROM productos WHERE papelera = 0 AND deleted = 0`);
-    const [[{ stockBajo }]] = await sequelize.query(`SELECT COUNT(*) as stockBajo FROM productos WHERE papelera = 0 AND deleted = 0 AND stock BETWEEN 1 AND 20`);
-    const [[{ agotados }]] = await sequelize.query(`SELECT COUNT(*) as agotados FROM productos WHERE papelera = 0 AND deleted = 0 AND stock = 0`);
-    const [[{ stockCritico }]] = await sequelize.query(`SELECT COUNT(*) as stockCritico FROM productos WHERE papelera = 0 AND deleted = 0 AND stock BETWEEN 1 AND 10`);
+    const [[{ agotados }]] = await sequelize.query(`SELECT COUNT(*) as agotados FROM productos WHERE papelera = 0 AND deleted = 0 AND stock = 0 AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURDATE())`);
+    const [[{ stockCritico }]] = await sequelize.query(`SELECT COUNT(*) as stockCritico FROM productos WHERE papelera = 0 AND deleted = 0 AND stock > 0 AND stock <= 10 AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURDATE())`);
+    const [[{ stockBajo }]] = await sequelize.query(`SELECT COUNT(*) as stockBajo FROM productos WHERE papelera = 0 AND deleted = 0 AND stock > 10 AND stock <= 20 AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURDATE())`);
     const [[{ proveedoresActivos }]] = await sequelize.query(`SELECT COUNT(*) as proveedoresActivos FROM proveedores WHERE papelera = 0`);
     const [[{ empleadosActivos }]] = await sequelize.query(`SELECT COUNT(*) as empleadosActivos FROM empleados WHERE papelera = 0`);
 
