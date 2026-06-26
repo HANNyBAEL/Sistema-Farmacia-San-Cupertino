@@ -1801,7 +1801,7 @@ function Ventas({ user }: { user: User }) {
     await procesarVenta(selectedClient.id_cliente);
   }
 
-  async function procesarVenta(id_cliente: number) {
+  async function procesarVenta(id_cliente: number, generarFacturaAutomaticamente = false) {
     try {
       const ventaResp = await createVenta({
         id_cliente: id_cliente,
@@ -1824,105 +1824,131 @@ function Ventas({ user }: { user: User }) {
         setTimeout(() => setSaleDone(false), 3000);
       };
 
-      setFacturaModal({
-        show: true,
-        onConfirm: async () => {
-          setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
-          try {
-            const { numero_control } = await getSiguienteCorrelativo();
-            // Generate UUIDv4 format (36 characters with hyphens)
-            const generateUUIDv4 = (): string => {
-              return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-                const r = Math.random() * 16 | 0;
-                const v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-              });
-            };
-            const codigo_generacion = generateUUIDv4();
-            // Generate mock Sello de Recepción (unique alphanumeric string)
-            const generateSelloRecepcion = (numeroControl: string): string => {
-              const year = new Date().getFullYear();
-              const tipoDoc = '01'; // Factura
-              const correlativo = numeroControl.split('-').pop() || '00000000';
-              const randomPart = Math.random().toString(36).substring(2, 14).toUpperCase();
-              return `${year}DTE${tipoDoc}${correlativo}${randomPart}`;
-            };
-            const sello_recepcion = generateSelloRecepcion(numero_control);
-            await guardarFactura({
-              numero_control,
-              codigo_generacion,
-              id_venta: ventaResp.id_venta,
-              id_cliente: id_cliente,
-              fecha_emision: fechaHoraLocal,
-              total: ventaResp.total,
-              sello_recepcion,
-              ambiente_destino: '00',
+      const generarFactura = async () => {
+        try {
+          const { numero_control } = await getSiguienteCorrelativo();
+          // Generate UUIDv4 format (36 characters with hyphens)
+          const generateUUIDv4 = (): string => {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+              const r = Math.random() * 16 | 0;
+              const v = c === 'x' ? r : (r & 0x3 | 0x8);
+              return v.toString(16);
             });
+          };
+          const codigo_generacion = generateUUIDv4();
+          // Generate mock Sello de Recepción (unique alphanumeric string)
+          const generateSelloRecepcion = (numeroControl: string): string => {
+            const year = new Date().getFullYear();
+            const tipoDoc = '01'; // Factura
+            const correlativo = numeroControl.split('-').pop() || '00000000';
+            const randomPart = Math.random().toString(36).substring(2, 14).toUpperCase();
+            return `${year}DTE${tipoDoc}${correlativo}${randomPart}`;
+          };
+          const sello_recepcion = generateSelloRecepcion(numero_control);
+          await guardarFactura({
+            numero_control,
+            codigo_generacion,
+            id_venta: ventaResp.id_venta,
+            id_cliente: id_cliente,
+            fecha_emision: fechaHoraLocal,
+            total: ventaResp.total,
+            sello_recepcion,
+            ambiente_destino: '00',
+          });
 
-            // =====================================================================
-            // GENERAR PDF EN BASE64 Y ENVIAR POR CORREO
-            // =====================================================================
-            const clienteCorreo = extraerString(selectedClient?.correo);
+          // =====================================================================
+          // GENERAR PDF EN BASE64 Y ENVIAR POR CORREO
+          // =====================================================================
+          const clienteCorreo = extraerString(selectedClient?.correo);
+          const esClienteAnonimo = id_cliente === 1;
 
-            const datosFactura = {
-              numero_control,
-              codigo_generacion,
-              sello_recepcion,
-              ambiente_destino: '00', // CAT-001: Ambiente de Pruebas
-              fecha_emision: fechaHoraLocal,
-              receptor: {
-                nombre: `${extraerString(selectedClient?.nombre)} ${extraerString(selectedClient?.apellido)}`,
-                dui: extraerString(selectedClient?.dui),
-                correo: clienteCorreo,
-                telefono: extraerString(selectedClient?.telefono),
-                direccion: extraerString(selectedClient?.direccion),
-              },
-              items: cart.map(i => ({
-                codigo: i.product.id_producto,
-                descripcion: i.product.nombre_producto,
-                cantidad: i.qty,
-                precio_unitario: Number(i.product.precio),
-                subtotal: Number(i.product.precio) * i.qty,
-              })),
-              total: ventaResp.total,
-              empleado: user.name,
-            };
+          const datosFactura = {
+            numero_control,
+            codigo_generacion,
+            sello_recepcion,
+            ambiente_destino: '00', // CAT-001: Ambiente de Pruebas
+            fecha_emision: fechaHoraLocal,
+            receptor: {
+              nombre: esClienteAnonimo ? "CLIENTE ANÓNIMO" : `${extraerString(selectedClient?.nombre)} ${extraerString(selectedClient?.apellido)}`,
+              dui: esClienteAnonimo ? "" : extraerString(selectedClient?.dui),
+              correo: esClienteAnonimo ? "" : clienteCorreo,
+              telefono: esClienteAnonimo ? "" : extraerString(selectedClient?.telefono),
+              direccion: esClienteAnonimo ? "" : extraerString(selectedClient?.direccion),
+            },
+            items: cart.map(i => ({
+              codigo: i.product.id_producto,
+              descripcion: i.product.nombre_producto,
+              cantidad: i.qty,
+              precio_unitario: Number(i.product.precio),
+              subtotal: Number(i.product.precio) * i.qty,
+            })),
+            total: ventaResp.total,
+            empleado: user.name,
+          };
 
-            if (clienteCorreo && !clienteCorreo.includes('object') && clienteCorreo.includes('@')) {
-              try {
-                const pdfBase64 = generarFacturaPDFBase64(datosFactura);
-                await api.post('/facturas/enviar', {
-                  email: clienteCorreo,
-                  pdfBase64: pdfBase64,
-                  numero_control: numero_control,
-                  codigo_generacion: codigo_generacion,
-                  total: ventaResp.total,
-                  cliente: `${extraerString(selectedClient?.nombre)} ${extraerString(selectedClient?.apellido)}`,
-                });
-                setToast({ message: "Factura enviada al correo del cliente.", type: 'success' });
-              } catch (emailErr) {
-                console.error("Error enviando correo:", emailErr);
-                setToast({ message: "Factura generada pero error al enviar por correo.", type: 'error' });
-              }
-            } else {
-              setToast({ message: "El cliente no tiene correo electrónico válido.", type: 'error' });
+          if (!esClienteAnonimo && clienteCorreo && !clienteCorreo.includes('object') && clienteCorreo.includes('@')) {
+            try {
+              const pdfBase64 = generarFacturaPDFBase64(datosFactura);
+              await api.post('/facturas/enviar', {
+                email: clienteCorreo,
+                pdfBase64: pdfBase64,
+                numero_control: numero_control,
+                codigo_generacion: codigo_generacion,
+                total: ventaResp.total,
+                cliente: `${extraerString(selectedClient?.nombre)} ${extraerString(selectedClient?.apellido)}`,
+              });
+              setToast({ message: "Factura enviada al correo del cliente.", type: 'success' });
+            } catch (emailErr) {
+              console.error("Error enviando correo:", emailErr);
+              setToast({ message: "Factura generada pero error al enviar por correo.", type: 'error' });
             }
-            // =====================================================================
-
-            // Generar el PDF visual para descarga local
-            generarFacturaPDF(datosFactura);
-
-          } catch (fe) {
-            console.error("Error generando factura:", fe);
-            setToast({ message: "Venta registrada, pero hubo un error al enviar la factura por correo.", type: 'error' });
+          } else if (esClienteAnonimo) {
+            setToast({ message: "Factura generada para cliente anónimo.", type: 'success' });
+          } else {
+            setToast({ message: "El cliente no tiene correo electrónico válido.", type: 'error' });
           }
-          await finalizarVentaExitosa();
-        },
-        onCancel: () => {
-          setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
-          finalizarVentaExitosa();
-        },
-      });
+          // =====================================================================
+
+          // Generar el PDF visual para descarga local
+          generarFacturaPDF(datosFactura);
+
+          // Descargar JSON para cliente anónimo
+          if (esClienteAnonimo) {
+            const jsonData = JSON.stringify(datosFactura, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Factura_${numero_control.split("-").pop()}_${fechaHoraLocal.split(" ")[0].replace(/-/g, "")}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
+
+        } catch (fe) {
+          console.error("Error generando factura:", fe);
+          setToast({ message: "Venta registrada, pero hubo un error al generar la factura.", type: 'error' });
+        }
+      };
+
+      if (generarFacturaAutomaticamente) {
+        await generarFactura();
+        await finalizarVentaExitosa();
+      } else {
+        setFacturaModal({
+          show: true,
+          onConfirm: async () => {
+            setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
+            await generarFactura();
+            await finalizarVentaExitosa();
+          },
+          onCancel: () => {
+            setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
+            finalizarVentaExitosa();
+          },
+        });
+      }
 
     } catch (e: any) {
       setToast({ message: e?.response?.data?.error ?? "Error al registrar la venta.", type: 'error' });
@@ -2038,9 +2064,13 @@ function Ventas({ user }: { user: User }) {
               </div>
               <h2 className="text-lg font-bold text-foreground">Cliente no seleccionado</h2>
             </div>
-            <p className="text-foreground mb-4">Debes seleccionar un cliente antes de finalizar la venta.</p>
-            <div className="flex justify-end">
-              <Btn variant="primary" onClick={() => setNoClientModal(false)}>Aceptar</Btn>
+            <p className="text-foreground mb-4">¿Desea realizar la venta para cliente anónimo?</p>
+            <div className="flex justify-end gap-3">
+              <Btn variant="secondary" onClick={() => setNoClientModal(false)}>Cancelar</Btn>
+              <Btn variant="primary" onClick={() => {
+                setNoClientModal(false);
+                procesarVenta(1, true); // ID 1 = cliente anónimo, true = generar factura automáticamente
+              }}>Aceptar</Btn>
             </div>
           </Card>
         </div>

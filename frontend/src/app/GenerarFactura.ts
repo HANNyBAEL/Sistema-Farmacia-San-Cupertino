@@ -148,12 +148,16 @@ function construirPDF(doc: jsPDF, data: FacturaData): void {
   doc.text(data.receptor.nombre.toUpperCase(), rx, y + 10);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  doc.text("Tipo de Documento de Identificación: DUI", rx, y + 15);
-  doc.text(`Número de Documento de Identificación: ${data.receptor.dui ?? "—"}`, rx, y + 19);
+  let yOffset = y + 15;
+  if (data.receptor.dui) {
+    doc.text("Tipo de Documento de Identificación: DUI", rx, yOffset);
+    doc.text(`Número de Documento de Identificación: ${data.receptor.dui}`, rx, yOffset + 4);
+    yOffset += 8;
+  }
   const recDirLines = doc.splitTextToSize(`Dirección: ${data.receptor.direccion ?? "—"}`, colW - 6);
-  doc.text(recDirLines, rx, y + 23);
-  doc.text(`Correo electrónico: ${data.receptor.correo ?? "—"}`, rx, y + 23 + recDirLines.length * 3.5);
-  doc.text(`Teléfono: ${data.receptor.telefono ?? "—"}`, rx, y + 23 + recDirLines.length * 3.5 + 4);
+  doc.text(recDirLines, rx, yOffset);
+  doc.text(`Correo electrónico: ${data.receptor.correo ?? "—"}`, rx, yOffset + recDirLines.length * 3.5);
+  doc.text(`Teléfono: ${data.receptor.telefono ?? "—"}`, rx, yOffset + recDirLines.length * 3.5 + 4);
 
   const startY = 112;
   // Apply strict 2-decimal rounding with commercial rounding
