@@ -1926,23 +1926,23 @@ function Ventas({ user }: { user: User }) {
             documentoRelacionado: null,
             emisor: {
               nit: '0614-123456-789-0',
-              nrc: '384470',
-              nombre: 'PROYECTOS E INVERSIONES, S.A. DE C.V.',
+              nrc: '123456-7',
+              nombre: 'FARMACÉUTICOS DE SAN JOSE CUPERTINO , S.A. DE C.V.',
               codActividad: '46484',
-              descActividad: 'Venta de productos farmaceuticos y medicinales',
+              descActividad: 'Venta de productos farmacéuticos y medicinales',
               nombreComercial: 'FARMACIAS SAN CUPERTINO',
               tipoEstablecimiento: '01',
               direccion: {
                 departamento: '03',
                 municipio: '15',
-                complemento: 'Sonsonate, El Salvador'
+                complemento: '5ª Avenida Norte #23, Col. Metalio ,  Acajutla, Sonsonate, El Salvador'
               },
-              telefono: '24504373',
+              telefono: '2222-3333',
               codEstableMH: 'S003',
               codEstable: 'SANR',
               codPuntoVentaMH: 'P001',
               codPuntoVenta: 'P001',
-              correo: 'factura@srfarmacias.com'
+              correo: 'farmaciassanjosecupertino@gmail.com'
             },
             receptor: {
               tipoDocumento: esClienteAnonimo ? '13' : '36',
