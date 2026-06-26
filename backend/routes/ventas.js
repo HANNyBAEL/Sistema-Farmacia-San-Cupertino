@@ -1,10 +1,11 @@
 import express from 'express';
 import sequelize from '../config/database.js';
 import { getFechaHoraLocal } from '../utils/fechaLocal.js';
+import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-router.post('/', async (req, res) => {
+router.post('/', authenticate, authorize(['cajero']), async (req, res) => {
   const { id_cliente, id_empleado, productos } = req.body;
   const transaction = await sequelize.transaction();
 

@@ -749,7 +749,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 const NAV_ITEMS: { screen: Screen; label: string; icon: React.ReactNode; roles: Role[] }[] = [
   { screen: "dashboard",    label: "Dashboard",             icon: <LayoutDashboard size={18}/>, roles: ["administrador"] },
-  { screen: "ventas",       label: "Ventas (POS)",          icon: <ShoppingCart size={18}/>,    roles: ["administrador","cajero"] },
+  { screen: "ventas",       label: "Ventas (POS)",          icon: <ShoppingCart size={18}/>,    roles: ["cajero"] },
   { screen: "productos",    label: "Productos",             icon: <Package size={18}/>,          roles: ["administrador","farmaceutico"] },
   { screen: "clientes",     label: "Clientes",              icon: <Users size={18}/>,            roles: ["administrador","cajero"] },
   { screen: "empleados",    label: "Empleados",             icon: <UserCog size={18}/>,          roles: ["administrador"] },
@@ -1367,7 +1367,7 @@ function Productos({ user }: { user: User }) {
         <div className="flex items-end gap-3">
           <div className="flex-1 min-w-0">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div>
+              <div className="min-w-[140px]">
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre o código</label>
                 <div className="relative">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -1380,7 +1380,7 @@ function Productos({ user }: { user: User }) {
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-[120px]">
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Stock</label>
                 <Select value={filterStock} onChange={setFilterStock} className="w-full">
                   <option value="">Todos</option>
@@ -1391,7 +1391,7 @@ function Productos({ user }: { user: User }) {
                 </Select>
               </div>
 
-              <div>
+              <div className="min-w-[140px]">
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Categoría</label>
                 <Select value={filterCat} onChange={setFilterCat} className="w-full">
                   <option value="">Todas</option>
@@ -1399,7 +1399,7 @@ function Productos({ user }: { user: User }) {
                 </Select>
               </div>
 
-              <div>
+              <div className="min-w-[140px]">
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor</label>
                 <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
                   <option value="">Todos</option>
@@ -1411,7 +1411,7 @@ function Productos({ user }: { user: User }) {
                 </Select>
               </div>
 
-              <div>
+              <div className="min-w-[140px]">
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Vencimiento</label>
                 <Select value={filterVenc} onChange={setFilterVenc} className="w-full">
                   <option value="">Todos</option>
@@ -1421,7 +1421,7 @@ function Productos({ user }: { user: User }) {
                 </Select>
               </div>
 
-              <div>
+              <div className="min-w-[120px]">
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
                 <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
                   <option value="">Todos</option>
@@ -3719,21 +3719,21 @@ function Empleados({ user }: { user: User }) {
       <SectionCard title="Filtros">
         <div className="flex flex-col lg:flex-row lg:items-end gap-3">
           <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
+            <div className="min-w-[180px]">
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Buscar por nombre</label>
               <div className="relative">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input value={search} onChange={setSearch} placeholder="Nombre completo..." className="pl-8" />
               </div>
             </div>
-            <div>
+            <div className="min-w-[140px]">
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Cargo</label>
               <Select value={filterCargo} onChange={setFilterCargo} className="w-full">
                 <option value="">Todos</option>
                 {CARGOS.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
               </Select>
             </div>
-            <div>
+            <div className="min-w-[120px]">
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Estado</label>
               <Select value={filterEstado} onChange={setFilterEstado} className="w-full">
                 <option value="">Todos</option>
