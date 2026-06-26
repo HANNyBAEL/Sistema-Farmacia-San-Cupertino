@@ -20,11 +20,11 @@ const formatNumber = (num) => {
 // ═══════════════════════════════════════════════════════════
 // 1️⃣  FACTURA CON PDF Y JSON ADJUNTOS
 // ═══════════════════════════════════════════════════════════
-export const enviarFacturaPorCorreo = async ({ email, pdfBase64, numero_control, codigo_generacion, total, cliente }) => {
+export const enviarFacturaPorCorreo = async ({ email, pdfBase64, jsonBase64, numero_control, codigo_generacion, total, cliente }) => {
   if (!apiKey) throw new Error('SENDGRID_API_KEY no configurada');
 
-  // Construir el JSON de la factura con los datos disponibles
-  const facturaJson = {
+  // Usar el JSON proporcionado por el frontend, o construir uno simplificado si no se proporciona
+  const jsonAttachmentContent = jsonBase64 || Buffer.from(JSON.stringify({
     numero_control: numero_control || 'N/A',
     codigo_generacion: codigo_generacion || 'N/A',
     cliente: cliente || 'Cliente General',
@@ -35,7 +35,7 @@ export const enviarFacturaPorCorreo = async ({ email, pdfBase64, numero_control,
       nit: '0614-123456-789-0',
       correo: 'farmaciassanjosecupertino@gmail.com'
     }
-  };
+  }, null, 2)).toString('base64');
 
   const msg = {
     to: email,
@@ -88,7 +88,7 @@ export const enviarFacturaPorCorreo = async ({ email, pdfBase64, numero_control,
       },
       {
         filename: `factura_${(numero_control || 'N/A').replace(/[^a-zA-Z0-9]/g, '_')}.json`,
-        content: Buffer.from(JSON.stringify(facturaJson, null, 2)).toString('base64'),
+        content: jsonAttachmentContent,
         type: 'application/json',
         disposition: 'attachment'
       }

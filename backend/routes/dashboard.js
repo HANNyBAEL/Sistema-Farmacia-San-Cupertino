@@ -8,12 +8,12 @@ router.get('/kpis', async (req, res) => {
   try {
     const hoyLocal = getHoyLocal();
 
-    const [[{ totalProductos }]] = await sequelize.query(`SELECT COUNT(*) as totalProductos FROM productos`);
-    const [[{ stockBajo }]] = await sequelize.query(`SELECT COUNT(*) as stockBajo FROM productos WHERE stock BETWEEN 1 AND 20`);
-    const [[{ agotados }]] = await sequelize.query(`SELECT COUNT(*) as agotados FROM productos WHERE stock = 0`);
-    const [[{ stockCritico }]] = await sequelize.query(`SELECT COUNT(*) as stockCritico FROM productos WHERE stock BETWEEN 1 AND 10`);
-    const [[{ proveedoresActivos }]] = await sequelize.query(`SELECT COUNT(*) as proveedoresActivos FROM proveedores`);
-    const [[{ empleadosActivos }]] = await sequelize.query(`SELECT COUNT(*) as empleadosActivos FROM empleados`);
+    const [[{ totalProductos }]] = await sequelize.query(`SELECT COUNT(*) as totalProductos FROM productos WHERE papelera = 0 AND deleted = 0`);
+    const [[{ stockBajo }]] = await sequelize.query(`SELECT COUNT(*) as stockBajo FROM productos WHERE papelera = 0 AND deleted = 0 AND stock BETWEEN 1 AND 20`);
+    const [[{ agotados }]] = await sequelize.query(`SELECT COUNT(*) as agotados FROM productos WHERE papelera = 0 AND deleted = 0 AND stock = 0`);
+    const [[{ stockCritico }]] = await sequelize.query(`SELECT COUNT(*) as stockCritico FROM productos WHERE papelera = 0 AND deleted = 0 AND stock BETWEEN 1 AND 10`);
+    const [[{ proveedoresActivos }]] = await sequelize.query(`SELECT COUNT(*) as proveedoresActivos FROM proveedores WHERE papelera = 0`);
+    const [[{ empleadosActivos }]] = await sequelize.query(`SELECT COUNT(*) as empleadosActivos FROM empleados WHERE papelera = 0`);
 
     // Ventas e ingresos del día local
     const [[{ ventasHoy }]] = await sequelize.query(
@@ -27,8 +27,8 @@ router.get('/kpis', async (req, res) => {
 
     // Productos por vencer en los próximos 30 días (desde hoy local)
     const [[{ porVencer }]] = await sequelize.query(
-      `SELECT COUNT(*) as porVencer FROM productos 
-       WHERE fecha_vencimiento BETWEEN :hoy AND DATE_ADD(:hoy, INTERVAL 30 DAY)`,
+      `SELECT COUNT(*) as porVencer FROM productos
+       WHERE papelera = 0 AND deleted = 0 AND fecha_vencimiento BETWEEN :hoy AND DATE_ADD(:hoy, INTERVAL 30 DAY)`,
       { replacements: { hoy: hoyLocal } }
     );
 

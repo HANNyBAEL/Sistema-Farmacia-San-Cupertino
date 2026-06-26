@@ -181,8 +181,8 @@ router.put('/:id', async (req, res) => {
           id_registro: Number(req.params.id),
           id_empleado: id_empleado_sesion, nombre_empleado: nombre_empleado_sesion,
           campo_modificado: c.campo,
-          valor_anterior: String(c.ant ?? ''),
-          valor_nuevo: String(c.nuevo ?? '')
+          valor_anterior: c.campo === 'activo' ? (c.ant === 1 ? 'activo' : 'desactivado') : String(c.ant ?? ''),
+          valor_nuevo: c.campo === 'activo' ? (c.nuevo === 1 ? 'activo' : 'desactivado') : String(c.nuevo ?? '')
         });
       }
     }
@@ -225,3 +225,4 @@ router.patch('/:id/forzar-restablecimiento', async (req, res) => {
 });
 
 export default router;
+

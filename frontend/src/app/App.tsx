@@ -2038,11 +2038,17 @@ function Ventas({ user }: { user: User }) {
               console.log('Generando PDF para factura...');
               const pdfBase64 = generarFacturaPDFBase64(datosFactura);
               console.log('PDF generado, tamaño:', pdfBase64.length);
-              
+
+              console.log('Generando JSON para factura...');
+              const jsonData = JSON.stringify(datosFactura, null, 2);
+              const jsonBase64 = btoa(jsonData);
+              console.log('JSON generado, tamaño:', jsonBase64.length);
+
               console.log('Enviando correo a:', clienteCorreo);
               await api.post('/facturas/enviar', {
                 email: clienteCorreo,
                 pdfBase64: pdfBase64,
+                jsonBase64: jsonBase64,
                 numero_control: numero_control,
                 codigo_generacion: codigo_generacion,
                 total: ventaResp.total,
