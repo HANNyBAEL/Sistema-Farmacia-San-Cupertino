@@ -3683,15 +3683,14 @@ function Empleados({ user }: { user: User }) {
                         </button>
                         <button
                           onClick={() => handleToggle(emp)}
-                          className={`p-1.5 rounded-md transition-colors ${
+                          className={`p-1 rounded text-xs font-semibold px-1.5 py-0.5 transition-colors ${
                             emp.activo
-                              ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                              : "text-muted-foreground hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                              ? 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/30'
+                              : 'text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30'
                           }`}
                           title={emp.activo ? "Desactivar empleado" : "Activar empleado"}
-                          aria-label={`${emp.activo ? "Desactivar" : "Activar"} ${fullName}`}
                         >
-                          {emp.activo ? <PowerOff size={14} /> : <Power size={14} />}
+                          {emp.activo ? "Desactivar" : "Activar"}
                         </button>
                       </div>
                     </td>
