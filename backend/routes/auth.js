@@ -8,75 +8,12 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-const recaptchaDebug = () => process.env.RECAPTCHA_DEBUG === 'true';
-
-function getRecaptchaToken(req) {
-  return req.body.recaptchaToken || req.body.captchaToken || '';
-}
-
-async function verifyRecaptchaToken(recaptchaToken, expectedAction, remoteIp) {
-  if (!process.env.RECAPTCHA_SECRET_KEY) {
-    throw new Error('RECAPTCHA_SECRET_KEY no configurada');
-  }
-
-  if (recaptchaDebug()) {
-    console.log('[reCAPTCHA] token recibido', {
-      expectedAction,
-      tokenLength: recaptchaToken?.length ?? 0,
-      tokenPreview: recaptchaToken ? `${recaptchaToken.slice(0, 12)}...` : '',
-    });
-  }
-
-  const params = new URLSearchParams({
-    secret: process.env.RECAPTCHA_SECRET_KEY,
-    response: recaptchaToken,
-  });
-
-  if (remoteIp) {
-    params.append('remoteip', remoteIp);
-  }
-
-  const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params,
-  });
-
-  if (!response.ok) {
-    throw new Error('No se pudo verificar reCAPTCHA');
-  }
-
-  const data = await response.json();
-  const minScore = Number(process.env.RECAPTCHA_MIN_SCORE ?? 0.5);
-  const valid = data.success === true && data.action === expectedAction && data.score >= minScore;
-
-  if (recaptchaDebug()) {
-    console.log('[reCAPTCHA] respuesta de Google', {
-      ...data,
-      expectedAction,
-      minScore,
-      valid,
-    });
-  }
-
-  return valid;
-}
 
 // ─── LOGIN ────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   const { correo, contraseña } = req.body;
 
   try {
-    const recaptchaToken = getRecaptchaToken(req);
-    if (!recaptchaToken) {
-      return res.status(400).json({ error: 'Confirma que no eres un robot' });
-    }
-
-    const recaptchaValid = await verifyRecaptchaToken(recaptchaToken, 'login', req.ip);
-    if (!recaptchaValid) {
-      return res.status(400).json({ error: 'Verificacion de reCAPTCHA fallida' });
-    }
-
     const [user] = await sequelize.query(
       `SELECT id_empleado, nombre, apellido, correo, password_hash, cargo, activo, papelera, token_version
        FROM empleados 
@@ -143,18 +80,10 @@ router.post('/registrar-empleado', authenticate, authorize(['administrador']), a
 // ─── ESTABLECER CONTRASEÑA (invitación) ──────────────────
 router.post('/establecer-contrasena', async (req, res) => {
   const { token, password } = req.body;
-  const recaptchaToken = getRecaptchaToken(req);
   if (!token || !password) {
     return res.status(400).json({ error: 'Token y contraseña son requeridos' });
   }
   try {
-    if (!recaptchaToken) return res.status(400).json({ error: 'Confirma que no eres un robot' });
-
-    const recaptchaValid = await verifyRecaptchaToken(recaptchaToken, 'employee_invitation_password', req.ip);
-    if (!recaptchaValid) {
-      return res.status(400).json({ error: 'Verificacion de reCAPTCHA fallida' });
-    }
-
     const [empleado] = await sequelize.query(
       `SELECT id_empleado FROM empleados 
        WHERE invitation_token = :token AND invitation_expires > NOW()`,
@@ -212,16 +141,9 @@ router.post('/cambiar-contrasena', authenticate, async (req, res) => {
 // ─── SOLICITAR RECUPERACIÓN ──────
 router.post('/solicitar-recuperacion', async (req, res) => {
   const { email } = req.body;
-  const recaptchaToken = getRecaptchaToken(req);
   if (!email) return res.status(400).json({ error: 'Correo requerido' });
-  if (!recaptchaToken) return res.status(400).json({ error: 'Confirma que no eres un robot' });
 
   try {
-    const recaptchaValid = await verifyRecaptchaToken(recaptchaToken, 'password_recovery_request', req.ip);
-    if (!recaptchaValid) {
-      return res.status(400).json({ error: 'Verificacion de reCAPTCHA fallida' });
-    }
-
     const [user] = await sequelize.query(
       `SELECT id_empleado, nombre FROM empleados WHERE correo = ?`,
       { replacements: [email], type: sequelize.QueryTypes.SELECT }
@@ -259,19 +181,11 @@ router.post('/solicitar-recuperacion', async (req, res) => {
 // ─── VERIFICAR CÓDIGO Y CAMBIAR CONTRASEÑA ──────────────
 router.post('/recuperar-contrasena', async (req, res) => {
   const { email, codigo, password } = req.body;
-  const recaptchaToken = getRecaptchaToken(req);
   if (!email || !codigo || !password) {
     return res.status(400).json({ error: 'Correo, código y contraseña son requeridos' });
   }
 
-  if (!recaptchaToken) return res.status(400).json({ error: 'Confirma que no eres un robot' });
-
   try {
-    const recaptchaValid = await verifyRecaptchaToken(recaptchaToken, 'password_recovery_reset', req.ip);
-    if (!recaptchaValid) {
-      return res.status(400).json({ error: 'Verificacion de reCAPTCHA fallida' });
-    }
-
     const [user] = await sequelize.query(
       `SELECT id_empleado FROM empleados WHERE correo = ?`,
       { replacements: [email], type: sequelize.QueryTypes.SELECT }
