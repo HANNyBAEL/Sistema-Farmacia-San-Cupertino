@@ -730,7 +730,10 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
       }
     } catch (err: any) {
       loginRecaptchaRef.current?.reset();
-      setError(err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.");
+      // Si el login falla, no intentar verificar turno
+      const errorMessage = err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.";
+      setError(errorMessage);
+      console.error('Error en login:', errorMessage);
     } finally { setLoading(false); }
   }
 
@@ -754,7 +757,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
       <h2 className="text-xl font-bold text-foreground mb-1">Iniciar sesión</h2>
       <p className="text-sm text-muted-foreground mb-6">Ingrese sus credenciales para continuar</p>
 
-      <div className="space-y-4">
+      <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-foreground mb-1.5">Correo</label>
           <Input placeholder="correo@farmacia.com" value={email} onChange={setEmail} type="email" />
@@ -768,7 +771,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
             </button>
           </div>
         </div>
-      </div>
+      </form>
 
       <RecaptchaBox ref={loginRecaptchaRef} action="login" />
 
