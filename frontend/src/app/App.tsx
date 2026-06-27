@@ -4048,16 +4048,22 @@ function Alertas() {
   const agotados = products.filter(p => {
     if (!p.fecha_vencimiento) return p.stock === 0;
     const vencido = new Date(p.fecha_vencimiento + 'T00:00:00') < today;
+    // Si está vencido, no mostrar en agotados (va a vencidos)
+    // Si no está vencido y stock es 0, mostrar en agotados
     return !vencido && p.stock === 0;
   });
   const criticos = products.filter(p => {
     if (!p.fecha_vencimiento) return p.stock > 0 && p.stock <= 10;
     const vencido = new Date(p.fecha_vencimiento + 'T00:00:00') < today;
+    // Si está vencido, no mostrar en críticos (va a vencidos)
+    // Si no está vencido y stock es 1-10, mostrar en críticos
     return !vencido && p.stock > 0 && p.stock <= 10;
   });
   const bajos = products.filter(p => {
     if (!p.fecha_vencimiento) return p.stock > 10 && p.stock <= 20;
     const vencido = new Date(p.fecha_vencimiento + 'T00:00:00') < today;
+    // Si está vencido, no mostrar en bajos (va a vencidos)
+    // Si no está vencido y stock es 11-20, mostrar en bajos
     return !vencido && p.stock > 10 && p.stock <= 20;
   });
   const vencer = products.filter(p => {
