@@ -9,8 +9,6 @@ import {
 } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Textarea } from './ui/textarea';
 import {
   AlertDialog,
@@ -91,13 +89,13 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
 
   const cargarRecaudacion = async () => {
     if (!turnoData?.id_turno) return;
-    
+
     setIsLoadingRecaudacion(true);
     try {
       const data = await turnosService.obtenerRecaudacion(turnoData.id_turno);
       setRecaudacion(data);
     } catch (error) {
-      console.error('Error al cargar recaudación:', error);
+      console.error('Error al cargar recaudacion:', error);
     } finally {
       setIsLoadingRecaudacion(false);
     }
@@ -109,12 +107,10 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
     nuevasDenominaciones[index] = {
       ...nuevasDenominaciones[index],
       cantidad,
-      monto: cantidad * nuevasDenominaciones[index].valor,
+      monto: Math.round(cantidad * nuevasDenominaciones[index].valor * 100) / 100,
     };
     setDenominaciones(nuevasDenominaciones);
-
-    const total = nuevasDenominaciones.reduce((sum, d) => sum + d.monto, 0);
-    setTotalFinal(total);
+    setTotalFinal(nuevasDenominaciones.reduce((sum, d) => sum + d.monto, 0));
   };
 
   const cerrarTurno = async (observacionesFinales: string) => {
@@ -126,14 +122,8 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
         cantidad: d.cantidad,
       }));
 
-      const response = await turnosService.cerrarTurno(
-        turnoData.id_turno,
-        denominacionesData,
-        observacionesFinales
-      );
-
+      await turnosService.cerrarTurno(turnoData.id_turno, denominacionesData, observacionesFinales);
       const detallesTurno = await turnosService.obtenerDetallesTurno(turnoData.id_turno);
-      console.log('Turno cerrado:', response);
       setTurnoCerradoData(detallesTurno);
       setShowReport(true);
     } catch (error) {
@@ -187,21 +177,21 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
   };
 
   const calcularDiferencia = () => {
-    const efectivoEsperado = (turnoData?.caja_inicial || 0) + recaudacion.total_efectivo;
+    const efectivoEsperado = (Number(turnoData?.caja_inicial) || 0) + recaudacion.total_efectivo;
     return Math.round((totalFinal - efectivoEsperado) * 100) / 100;
   };
 
+  const efectivoEsperado = (Number(turnoData?.caja_inicial) || 0) + recaudacion.total_efectivo;
   const diferencia = calcularDiferencia();
+  const diferenciaClass =
+    diferencia > 0 ? 'text-emerald-700' : diferencia < 0 ? 'text-red-700' : 'text-slate-700';
 
-  // Si ya se cerró el turno, mostrar el reporte
   if (showReport && turnoCerradoData) {
     return (
       <Dialog open={isOpen} onOpenChange={handleReportClose}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">
-              Reporte de Caja
-            </DialogTitle>
+            <DialogTitle className="text-2xl font-bold">Reporte de Caja</DialogTitle>
             <DialogDescription>
               El turno ha sido cerrado exitosamente. Puede imprimir el reporte.
             </DialogDescription>
@@ -214,300 +204,171 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
 
   return (
     <>
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
-            Registro Final de Caja
-          </DialogTitle>
-          <DialogDescription>
-            Registre la cantidad de monedas y billetes al finalizar el turno.
-          </DialogDescription>
-        </DialogHeader>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden p-0">
+          <DialogHeader className="border-b bg-slate-50 px-6 py-5">
+            <DialogTitle className="text-xl font-semibold text-slate-950">
+              Cierre de caja
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-600">
+              Ingrese el conteo fisico final y revise la diferencia antes de cerrar.
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-            {/* Columna Izquierda: Conteo de Efectivo */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Conteo de Efectivo Final</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {denominaciones.map((denominacion, index) => (
-                    <div key={denominacion.valor} className="space-y-2">
-                      <Label htmlFor={`denom-${index}`}>
-                        {denominacion.etiqueta}
-                      </Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id={`denom-${index}`}
-                          type="number"
-                          min="0"
-                          value={denominacion.cantidad || ''}
-                          onChange={(e) =>
-                            handleCantidadChange(index, e.target.value)
-                          }
-                          placeholder="Cantidad"
-                          className="flex-1"
-                        />
-                        <div className="flex items-center justify-center w-24 bg-gray-100 rounded px-2">
-                          <span className="text-sm font-medium">
+          <form onSubmit={handleSubmit} className="flex max-h-[calc(92vh-96px)] flex-col">
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-y-auto lg:grid-cols-[minmax(0,1.1fr)_360px]">
+              <div className="px-6 py-5">
+                <div className="overflow-hidden rounded-md border border-slate-200">
+                  <table className="w-full border-collapse text-sm">
+                    <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-semibold">Denominacion</th>
+                        <th className="px-4 py-3 text-center font-semibold">Cantidad</th>
+                        <th className="px-4 py-3 text-right font-semibold">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {denominaciones.map((denominacion, index) => (
+                        <tr key={denominacion.valor} className="border-t border-slate-200">
+                          <td className="px-4 py-2.5 font-medium text-slate-900">
+                            {denominacion.etiqueta}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <Input
+                              id={`denom-cierre-${index}`}
+                              type="number"
+                              min="0"
+                              step="1"
+                              inputMode="numeric"
+                              value={denominacion.cantidad || ''}
+                              onChange={(e) => handleCantidadChange(index, e.target.value)}
+                              placeholder="0"
+                              className="mx-auto h-9 w-28 text-center"
+                            />
+                          </td>
+                          <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-slate-900">
                             {formatCurrency(denominacion.monto)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
+              </div>
 
-                <div className="mt-6 p-4 bg-green-50 rounded-lg border-2 border-green-200">
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold">
-                      Total Efectivo Final:
-                    </span>
-                    <span className="text-2xl font-bold text-green-700">
+              <aside className="border-t bg-white px-6 py-5 lg:border-l lg:border-t-0">
+                <div className="space-y-4">
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900">
+                      Total efectivo contado
+                    </div>
+                    <div className="mt-1 text-3xl font-bold tabular-nums text-emerald-900">
                       {formatCurrency(totalFinal)}
-                    </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border border-slate-200">
+                    <div className="border-b bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900">
+                      Resumen del turno
+                    </div>
+                    <div className="divide-y text-sm">
+                      <SummaryRow label="Caja inicial" value={formatCurrency(turnoData?.caja_inicial || 0)} />
+                      <SummaryRow label="Ventas efectivo" value={formatCurrency(recaudacion.total_efectivo)} />
+                      <SummaryRow label="Transferencia" value={formatCurrency(recaudacion.total_transferencia)} />
+                      <SummaryRow label="Apple Pay" value={formatCurrency(recaudacion.total_apple_pay)} />
+                      <SummaryRow label="PayPal" value={formatCurrency(recaudacion.total_paypal)} />
+                      <SummaryRow label="Western Union" value={formatCurrency(recaudacion.total_western_union)} />
+                      <SummaryRow label="Recaudacion total" value={isLoadingRecaudacion ? 'Cargando...' : formatCurrency(recaudacion.recaudacion_total)} strong />
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border border-slate-200">
+                    <div className="border-b bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900">
+                      Diferencia de caja
+                    </div>
+                    <div className="space-y-2 px-4 py-3 text-sm">
+                      <SummaryRow label="Caja esperada" value={formatCurrency(efectivoEsperado)} />
+                      <SummaryRow label="Caja contada" value={formatCurrency(totalFinal)} />
+                      <div className={`flex items-center justify-between border-t pt-2 text-base font-bold ${diferenciaClass}`}>
+                        <span>{diferencia > 0 ? 'Sobrante' : diferencia < 0 ? 'Faltante' : 'Sin diferencias'}</span>
+                        <span className="tabular-nums">{formatCurrency(Math.abs(diferencia))}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-900" htmlFor="observaciones-cierre">
+                      Observaciones
+                    </label>
+                    <Textarea
+                      id="observaciones-cierre"
+                      value={observaciones}
+                      onChange={(e) => setObservaciones(e.target.value)}
+                      placeholder="Detalle cualquier incidente o aclaracion del cierre."
+                      rows={4}
+                      className="resize-none"
+                    />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Columna Derecha: Resumen */}
-            <div className="space-y-4">
-              {/* Resumen de Recaudación */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resumen de Recaudación</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isLoadingRecaudacion ? (
-                    <p className="text-gray-500">Cargando recaudación...</p>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Total en Efectivo:</span>
-                        <span className="font-semibold">
-                          {formatCurrency(recaudacion.total_efectivo)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Total en Transferencia:</span>
-                        <span className="font-semibold">
-                          {formatCurrency(recaudacion.total_transferencia)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Total Apple Pay:</span>
-                        <span className="font-semibold">
-                          {formatCurrency(recaudacion.total_apple_pay)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Total PayPal:</span>
-                        <span className="font-semibold">
-                          {formatCurrency(recaudacion.total_paypal)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Total Western Union:</span>
-                        <span className="font-semibold">
-                          {formatCurrency(recaudacion.total_western_union)}
-                        </span>
-                      </div>
-                      <div className="border-t pt-2 mt-2">
-                        <div className="flex justify-between text-lg font-bold">
-                          <span>Recaudación Total:</span>
-                          <span className="text-blue-700">
-                            {formatCurrency(recaudacion.recaudacion_total)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Detalles del Turno */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Detalles del Turno</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Caja Inicial:</span>
-                      <span className="font-semibold">
-                        {formatCurrency(turnoData?.caja_inicial || 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Hora de Inicio:</span>
-                      <span className="font-semibold">
-                        {turnoData?.hora_inicio
-                          ? new Date(
-                              turnoData.hora_inicio
-                            ).toLocaleTimeString('es-SV')
-                          : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Hora de Finalización:</span>
-                      <span className="font-semibold">
-                        {new Date().toLocaleTimeString('es-SV')}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Diferencia de Caja */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Diferencia de Caja</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Efectivo Esperado:</span>
-                      <span className="font-semibold">
-                        {formatCurrency(
-                          (turnoData?.caja_inicial || 0) +
-                            recaudacion.total_efectivo
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Efectivo Contado:</span>
-                      <span className="font-semibold">
-                        {formatCurrency(totalFinal)}
-                      </span>
-                    </div>
-                    <div className="border-t pt-2 mt-2">
-                      <div
-                        className={`flex justify-between text-lg font-bold ${
-                          diferencia > 0
-                            ? 'text-green-700'
-                            : diferencia < 0
-                            ? 'text-red-700'
-                            : 'text-gray-700'
-                        }`}
-                      >
-                        <span>
-                          {diferencia > 0
-                            ? 'Sobrante de Caja'
-                            : diferencia < 0
-                            ? 'Faltante de Caja'
-                            : 'Sin Diferencias'}
-                          :
-                        </span>
-                        <span>{formatCurrency(Math.abs(diferencia))}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              </aside>
             </div>
-          </div>
 
-          {/* Observaciones */}
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Observaciones</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={observaciones}
-                onChange={(e) => setObservaciones(e.target.value)}
-                placeholder="Escriba cualquier observación relevante (ej: Error al entregar cambio, Cliente devolvió dinero, Billete deteriorado, etc.)"
-                rows={3}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Firmas */}
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Firmas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Empleado:</Label>
-                  <p className="font-semibold mt-1">
-                    {turnoData?.nombre_empleado || 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <Label>Supervisor:</Label>
-                  <p className="font-semibold mt-1">
-                    Iliana Daniela Pineda Orellana
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <DialogFooter className="mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isLoading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading || isLoadingRecaudacion}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isLoading ? 'Procesando...' : 'Cerrar Caja e Imprimir'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-    <AlertDialog open={showDiferenciaDialog} onOpenChange={setShowDiferenciaDialog}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Se detecto una diferencia de caja.</AlertDialogTitle>
-          <AlertDialogDescription asChild>
-            <div className="space-y-3 text-sm">
-              <p>Revise el conteo antes de cerrar el turno.</p>
-              <div className="rounded-md border bg-muted/40 p-3 space-y-1">
-                <div className="flex justify-between">
-                  <span>Caja esperada:</span>
-                  <strong>{formatCurrency((turnoData?.caja_inicial || 0) + recaudacion.total_efectivo)}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span>Caja contada:</span>
-                  <strong>{formatCurrency(totalFinal)}</strong>
-                </div>
-                <div className="flex justify-between border-t pt-2">
-                  <span>Diferencia:</span>
-                  <strong className={diferencia < 0 ? 'text-red-700' : 'text-green-700'}>
-                    {diferencia > 0 ? '+' : ''}{formatCurrency(diferencia)}
-                  </strong>
-                </div>
-              </div>
-              <p>Desea volver a contar el dinero o cerrar la caja con esta diferencia?</p>
+            <div className="border-t bg-white px-6 py-4">
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading || isLoadingRecaudacion}>
+                  {isLoading ? 'Procesando...' : 'Cerrar caja e imprimir'}
+                </Button>
+              </DialogFooter>
             </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setShowDiferenciaDialog(false)}>
-            Volver a contar
-          </AlertDialogCancel>
-          <AlertDialogAction onClick={handleImprimirAsi} className="bg-green-600 hover:bg-green-700">
-            Imprimir asi
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDiferenciaDialog} onOpenChange={setShowDiferenciaDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Se detecto una diferencia de caja.</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>Revise el conteo antes de cerrar el turno.</p>
+                <div className="rounded-md border bg-muted/40 p-3 space-y-1">
+                  <SummaryRow label="Caja esperada" value={formatCurrency(efectivoEsperado)} />
+                  <SummaryRow label="Caja contada" value={formatCurrency(totalFinal)} />
+                  <div className="flex justify-between border-t pt-2">
+                    <span>Diferencia:</span>
+                    <strong className={diferenciaClass}>
+                      {diferencia > 0 ? '+' : ''}{formatCurrency(diferencia)}
+                    </strong>
+                  </div>
+                </div>
+                <p>Desea volver a contar el dinero o cerrar la caja con esta diferencia?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDiferenciaDialog(false)}>
+              Volver a contar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleImprimirAsi}>
+              Imprimir asi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
+
+function SummaryRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between gap-4 px-4 py-2 ${strong ? 'font-bold text-slate-950' : 'text-slate-700'}`}>
+      <span>{label}</span>
+      <span className="text-right tabular-nums text-slate-950">{value}</span>
+    </div>
+  );
+}
 
 export default CierreCajaModal;

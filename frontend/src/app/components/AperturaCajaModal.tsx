@@ -9,8 +9,6 @@ import {
 } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { turnosService } from '../../services/turnos';
 
 interface Denominacion {
@@ -56,12 +54,10 @@ export const AperturaCajaModal: React.FC<AperturaCajaModalProps> = ({
     nuevasDenominaciones[index] = {
       ...nuevasDenominaciones[index],
       cantidad,
-      monto: cantidad * nuevasDenominaciones[index].valor,
+      monto: Math.round(cantidad * nuevasDenominaciones[index].valor * 100) / 100,
     };
     setDenominaciones(nuevasDenominaciones);
-
-    const total = nuevasDenominaciones.reduce((sum, d) => sum + d.monto, 0);
-    setTotalInicial(total);
+    setTotalInicial(nuevasDenominaciones.reduce((sum, d) => sum + d.monto, 0));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,85 +94,80 @@ export const AperturaCajaModal: React.FC<AperturaCajaModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
-            Registro de Caja Inicial
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden p-0">
+        <DialogHeader className="border-b bg-slate-50 px-6 py-5">
+          <DialogTitle className="text-xl font-semibold text-slate-950">
+            Apertura de caja
           </DialogTitle>
-          <DialogDescription>
-            Registre la cantidad de monedas y billetes recibidos como caja chica.
+          <DialogDescription className="text-sm text-slate-600">
+            Ingrese el conteo fisico recibido para iniciar el turno.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Conteo de Efectivo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {denominaciones.map((denominacion, index) => (
-                  <div key={denominacion.valor} className="space-y-2">
-                    <Label htmlFor={`denom-${index}`}>
-                      {denominacion.etiqueta}
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id={`denom-${index}`}
-                        type="number"
-                        min="0"
-                        value={denominacion.cantidad || ''}
-                        onChange={(e) =>
-                          handleCantidadChange(index, e.target.value)
-                        }
-                        placeholder="Cantidad"
-                        className="flex-1"
-                      />
-                      <div className="flex items-center justify-center w-24 bg-gray-100 rounded px-2">
-                        <span className="text-sm font-medium">
-                          {formatCurrency(denominacion.monto)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <form onSubmit={handleSubmit} className="flex max-h-[calc(92vh-96px)] flex-col">
+          <div className="overflow-y-auto px-6 py-5">
+            <div className="overflow-hidden rounded-md border border-slate-200">
+              <table className="w-full border-collapse text-sm">
+                <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+                  <tr>
+                    <th className="w-1/3 px-4 py-3 text-left font-semibold">Denominacion</th>
+                    <th className="w-1/3 px-4 py-3 text-center font-semibold">Cantidad</th>
+                    <th className="w-1/3 px-4 py-3 text-right font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {denominaciones.map((denominacion, index) => (
+                    <tr key={denominacion.valor} className="border-t border-slate-200">
+                      <td className="px-4 py-2.5 font-medium text-slate-900">
+                        {denominacion.etiqueta}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Input
+                          id={`denom-apertura-${index}`}
+                          type="number"
+                          min="0"
+                          step="1"
+                          inputMode="numeric"
+                          value={denominacion.cantidad || ''}
+                          onChange={(e) => handleCantidadChange(index, e.target.value)}
+                          placeholder="0"
+                          className="mx-auto h-9 w-28 text-center"
+                        />
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-slate-900">
+                        {formatCurrency(denominacion.monto)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">
-                    Total Efectivo Inicial:
-                  </span>
-                  <span className="text-2xl font-bold text-blue-700">
-                    {formatCurrency(totalInicial)}
-                  </span>
-                </div>
+            {error && (
+              <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
               </div>
-              {error && (
-                <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            )}
+          </div>
 
-          <DialogFooter className="mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isLoading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading || totalInicial === 0}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isLoading ? 'Procesando...' : 'Abrir Caja'}
-            </Button>
-          </DialogFooter>
+          <div className="border-t bg-white px-6 py-4">
+            <div className="mb-4 flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
+              <span className="text-sm font-semibold uppercase tracking-wide text-blue-900">
+                Total efectivo recibido
+              </span>
+              <span className="text-2xl font-bold tabular-nums text-blue-900">
+                {formatCurrency(totalInicial)}
+              </span>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading || totalInicial === 0}>
+                {isLoading ? 'Procesando...' : 'Abrir caja'}
+              </Button>
+            </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

@@ -210,7 +210,12 @@ router.get('/recaudacion/:idTurno', authenticate, async (req, res) => {
     const { idTurno } = req.params;
 
     const [turno] = await sequelize.query(
-      `SELECT * FROM turnos WHERE id_turno = :idTurno`,
+      `SELECT
+         t.*,
+         COALESCE(NULLIF(TRIM(CONCAT(e.nombre, ' ', e.apellido)), ''), t.nombre_empleado) AS nombre_empleado
+       FROM turnos t
+       LEFT JOIN empleados e ON e.id_empleado = t.id_empleado
+       WHERE t.id_turno = :idTurno`,
       {
         replacements: { idTurno },
         type: sequelize.QueryTypes.SELECT
