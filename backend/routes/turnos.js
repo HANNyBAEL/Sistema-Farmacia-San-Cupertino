@@ -78,6 +78,22 @@ const obtenerRecaudacionTurno = async (turno, transaction) => {
   };
 };
 
+const obtenerSupervisoraActiva = async (transaction) => {
+  const [supervisora] = await sequelize.query(
+    `SELECT COALESCE(NULLIF(TRIM(CONCAT(nombre, ' ', apellido)), ''), nombre) AS nombre
+     FROM empleados
+     WHERE cargo = 'administrador' AND activo = 1 AND papelera = 0
+     ORDER BY id_empleado ASC
+     LIMIT 1`,
+    {
+      type: sequelize.QueryTypes.SELECT,
+      transaction
+    }
+  );
+
+  return supervisora?.nombre || '';
+};
+
 router.get('/activo', authenticate, async (req, res) => {
   try {
     const userId = req.user.id || req.user.id_empleado;
@@ -415,6 +431,7 @@ router.get('/:idTurno', authenticate, async (req, res) => {
     res.json({
       ...turno,
       turno,
+      supervisor: await obtenerSupervisoraActiva(),
       denominaciones_apertura: denominacionesApertura,
       denominaciones_cierre: denominacionesCierre
     });

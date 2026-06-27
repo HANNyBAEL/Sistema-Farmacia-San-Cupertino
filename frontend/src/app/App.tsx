@@ -5141,7 +5141,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
 
   const handleCierreCajaSuccess = () => {
     setShowCierreCajaModal(false);
-    setShowLogoutModal(true);
+    onLogout();
   };
 
   return (

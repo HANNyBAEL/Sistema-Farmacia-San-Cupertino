@@ -25,7 +25,7 @@ interface TurnoData {
   recaudacion_total: number;
   diferencia_caja: number;
   observaciones: string;
-  supervisor: string;
+  supervisor?: string;
   denominaciones_apertura: Denominacion[];
   denominaciones_cierre: Denominacion[];
 }
@@ -42,7 +42,7 @@ const GRAY = [214, 212, 212] as const;
 const LIGHT_BLUE = [220, 228, 245] as const;
 const LIGHT_GRAY = [242, 242, 242] as const;
 
-export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose, autoDownload = false }) => {
+export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, autoDownload = false }) => {
   const downloadedRef = useRef(false);
 
   const money = (amount: number | string) =>
@@ -76,9 +76,12 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose, au
     return '';
   };
 
+  const firmaNombre = (value?: string) => value?.trim() || 'N/A';
+
   const generarPDF = () => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const tableW = 160;
     const left = (pageWidth - tableW) / 2;
     const col = [left, left + 46, left + 75, left + 104, left + 131, left + tableW];
@@ -112,6 +115,11 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose, au
       doc.setFontSize(11);
       center(title, left, y, tableW, h, true);
       y += h;
+    };
+    const ensureSpace = (height: number) => {
+      if (y + height <= pageHeight - 10) return;
+      doc.addPage();
+      y = 12;
     };
     const summaryRow = (label: string, value: number, highlight = false) => {
       rect(left, y, 104, 5.8, highlight ? BLUE : undefined);
@@ -219,26 +227,35 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose, au
     doc.setTextColor(20);
     y += 18;
 
+    ensureSpace(58);
     section('OBSERVACIONES/INCIDENTES', 6.5);
     rect(left, y, tableW, 15);
     doc.setFont('times', 'normal');
     doc.setFontSize(8.5);
     doc.text(doc.splitTextToSize(observaciones(), tableW - 4), left + 2, y + 4.5);
-    y += 27;
+    y += 24;
 
-    line(left, y, left + tableW, y);
-    y += 5;
-    rect(left, y, tableW / 2, 6);
-    rect(left + tableW / 2, y, tableW / 2, 6);
+    ensureSpace(34);
+    section('NOMBRES Y FIRMAS', 6.5);
+    const half = tableW / 2;
+    rect(left, y, half, 22);
+    rect(left + half, y, half, 22);
     doc.setFont('times', 'bold');
-    doc.setFontSize(10);
-    center('EMPLEADO', left, y, tableW / 2, 6);
-    center('SUPERVISOR', left + tableW / 2, y, tableW / 2, 6);
-    y += 6;
-    rect(left, y, tableW / 2, 6);
-    rect(left + tableW / 2, y, tableW / 2, 6);
-    center(turnoData.nombre_empleado || 'NOMBRES', left, y, tableW / 2, 6);
-    center(turnoData.supervisor || 'ILIANA DANIELA PINEDA ORELLANA', left + tableW / 2, y, tableW / 2, 6);
+    doc.setFontSize(9.5);
+    center('EMPLEADO', left, y, half, 5);
+    center('SUPERVISORA', left + half, y, half, 5);
+    doc.setFont('times', 'normal');
+    doc.setFontSize(8.5);
+    text('Nombre:', left + 4, y + 10);
+    text(firmaNombre(turnoData.nombre_empleado), left + 20, y + 10);
+    text('Nombre:', left + half + 4, y + 10);
+    text(firmaNombre(turnoData.supervisor), left + half + 20, y + 10);
+    line(left + 20, y + 18, left + half - 6, y + 18);
+    line(left + half + 20, y + 18, left + tableW - 6, y + 18);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(8.5);
+    text('Firma', left + half / 2, y + 21, { align: 'center' });
+    text('Firma', left + half + half / 2, y + 21, { align: 'center' });
 
     doc.save(`Registro_Caja_${turnoData.id_turno}_${dateOnly(turnoData.fecha).replace(/\//g, '-')}.pdf`);
   };
@@ -250,31 +267,9 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose, au
     }
   }, [autoDownload]);
 
-  const handlePrint = () => {
-    generarPDF();
-  };
-
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={handlePrint}
-          className="px-4 py-2 bg-blue-700 text-white rounded-md hover:bg-blue-800 transition-colors"
-        >
-          Descargar reporte
-        </button>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
-          >
-            Cerrar
-          </button>
-        )}
-      </div>
-      <div className="rounded-md border bg-blue-50 px-4 py-3 text-sm text-blue-900">
-        El documento de cierre se descargo automaticamente. Puede descargarlo nuevamente desde aqui.
-      </div>
+    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+      El documento de cierre se descargo automaticamente.
     </div>
   );
 };

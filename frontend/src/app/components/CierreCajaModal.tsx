@@ -166,7 +166,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
     return [observaciones.trim(), textoAutomatico].filter(Boolean).join('\n');
   };
 
-  const handleImprimirAsi = async () => {
+  const handleCerrarConDiferencia = async () => {
     setAceptarDiferencia(true);
     setShowDiferenciaDialog(false);
     await cerrarTurno(prepararObservaciones());
@@ -174,8 +174,8 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
 
   const handleReportClose = () => {
     setShowReport(false);
-    onSuccess(turnoCerradoData);
     onClose();
+    onSuccess(turnoCerradoData);
   };
 
   const formatCurrency = (amount: number) => {
@@ -196,16 +196,64 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
     diferencia > 0 ? 'text-emerald-700' : diferencia < 0 ? 'text-red-700' : 'text-slate-700';
 
   if (showReport && turnoCerradoData) {
+    const cajaInicialCerrada = Number(turnoCerradoData?.caja_inicial) || 0;
+    const efectivoVendidoCerrado = Number(turnoCerradoData?.total_efectivo) || 0;
+    const efectivoEsperadoCerrado = Math.round((cajaInicialCerrada + efectivoVendidoCerrado) * 100) / 100;
+    const efectivoContadoCerrado = Number(turnoCerradoData?.caja_final) || 0;
+    const diferenciaCerrada = Number(turnoCerradoData?.diferencia_caja) || 0;
+    const diferenciaCerradaClass =
+      diferenciaCerrada > 0 ? 'text-emerald-700' : diferenciaCerrada < 0 ? 'text-red-700' : 'text-slate-700';
+
     return (
-      <Dialog open={isOpen} onOpenChange={handleReportClose}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={isOpen} onOpenChange={(open) => !open && handleReportClose()}>
+        <DialogContent className="max-w-2xl overflow-hidden p-0">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Reporte de Caja</DialogTitle>
-            <DialogDescription>
-              El turno ha sido cerrado exitosamente. Puede imprimir el reporte.
-            </DialogDescription>
+            <div className="border-b bg-slate-50 px-6 py-5">
+              <DialogTitle className="text-xl font-semibold text-slate-950">
+                Cierre de caja completado
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-sm text-slate-600">
+                El PDF se descargo automaticamente. Revise el resultado final antes de salir.
+              </DialogDescription>
+            </div>
           </DialogHeader>
-          <ReporteCaja turnoData={turnoCerradoData} onClose={handleReportClose} autoDownload />
+
+          <div className="px-6 py-5">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ResultMetric label="Efectivo esperado" value={formatCurrency(efectivoEsperadoCerrado)} />
+              <ResultMetric label="Efectivo contado" value={formatCurrency(efectivoContadoCerrado)} />
+            </div>
+
+            <div className="mt-4 rounded-md border border-slate-200 px-4 py-3">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Resultado
+                  </div>
+                  <div className={`mt-1 text-lg font-bold ${diferenciaCerradaClass}`}>
+                    {diferenciaCerrada > 0
+                      ? 'Sobrante'
+                      : diferenciaCerrada < 0
+                        ? 'Faltante'
+                        : 'Sin diferencias'}
+                  </div>
+                </div>
+                <div className={`text-right text-2xl font-bold tabular-nums ${diferenciaCerradaClass}`}>
+                  {formatCurrency(Math.abs(diferenciaCerrada))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <ReporteCaja turnoData={turnoCerradoData} autoDownload />
+            </div>
+          </div>
+
+          <DialogFooter className="border-t bg-white px-6 py-4">
+            <Button type="button" onClick={handleReportClose}>
+              Salir del sistema
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     );
@@ -375,8 +423,8 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
             <AlertDialogCancel onClick={() => setShowDiferenciaDialog(false)}>
               Volver a contar
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleImprimirAsi}>
-              Imprimir asi
+            <AlertDialogAction onClick={handleCerrarConDiferencia}>
+              Cerrar con diferencia
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -390,6 +438,15 @@ function SummaryRow({ label, value, strong = false }: { label: string; value: st
     <div className={`flex items-center justify-between gap-4 px-4 py-2 ${strong ? 'font-bold text-slate-950' : 'text-slate-700'}`}>
       <span>{label}</span>
       <span className="text-right tabular-nums text-slate-950">{value}</span>
+    </div>
+  );
+}
+
+function ResultMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 text-2xl font-bold tabular-nums text-slate-950">{value}</div>
     </div>
   );
 }
