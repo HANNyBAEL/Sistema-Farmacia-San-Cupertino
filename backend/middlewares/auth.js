@@ -40,13 +40,15 @@ export const authorize = (rolesPermitidos = []) => {
       return res.status(401).json({ error: 'No autenticado' });
     }
 
-    const userRole = req.user.cargo;
+    const normalizeRole = (role) => String(role || '').trim().toLowerCase();
+    const userRole = normalizeRole(req.user.cargo);
+    const allowedRoles = rolesPermitidos.map(normalizeRole);
 
     if (rolesPermitidos.length === 0) {
       return next();
     }
 
-    if (!rolesPermitidos.includes(userRole)) {
+    if (!allowedRoles.includes(userRole)) {
       return res.status(403).json({
         error: `Acceso denegado. Se requiere uno de estos roles: ${rolesPermitidos.join(', ')}`
       });

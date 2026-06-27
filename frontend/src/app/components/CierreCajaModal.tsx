@@ -12,6 +12,16 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Textarea } from './ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { turnosService } from '../../services/turnos';
 import { ReporteCaja } from './ReporteCaja';
 
@@ -58,6 +68,8 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingRecaudacion, setIsLoadingRecaudacion] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showDiferenciaDialog, setShowDiferenciaDialog] = useState(false);
+  const [aceptarDiferencia, setAceptarDiferencia] = useState(false);
   const [turnoCerradoData, setTurnoCerradoData] = useState<any>(null);
 
   useEffect(() => {
@@ -71,6 +83,8 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
       setDenominaciones(denoms);
       setTotalFinal(0);
       setObservaciones('');
+      setAceptarDiferencia(false);
+      setShowDiferenciaDialog(false);
       cargarRecaudacion();
     }
   }, [isOpen, turnoData]);
@@ -90,7 +104,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
   };
 
   const handleCantidadChange = (index: number, value: string) => {
-    const cantidad = parseInt(value) || 0;
+    const cantidad = Math.max(0, parseInt(value, 10) || 0);
     const nuevasDenominaciones = [...denominaciones];
     nuevasDenominaciones[index] = {
       ...nuevasDenominaciones[index],
@@ -103,8 +117,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
     setTotalFinal(total);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const cerrarTurno = async (observacionesFinales: string) => {
     setIsLoading(true);
 
     try {
@@ -116,19 +129,48 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
       const response = await turnosService.cerrarTurno(
         turnoData.id_turno,
         denominacionesData,
-        observaciones
+        observacionesFinales
       );
 
-      // Obtener detalles completos del turno para el reporte
       const detallesTurno = await turnosService.obtenerDetallesTurno(turnoData.id_turno);
+      console.log('Turno cerrado:', response);
       setTurnoCerradoData(detallesTurno);
       setShowReport(true);
     } catch (error) {
       console.error('Error al cerrar turno:', error);
-      alert('Error al cerrar el turno. Por favor, intente nuevamente.');
+      const mensaje =
+        (error as any)?.response?.data?.error ||
+        'Error al cerrar el turno. Por favor, intente nuevamente.';
+      alert(mensaje);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (Math.abs(diferencia) >= 0.01 && !aceptarDiferencia) {
+      setShowDiferenciaDialog(true);
+      return;
+    }
+
+    await cerrarTurno(prepararObservaciones());
+  };
+
+  const prepararObservaciones = () => {
+    const diferenciaActual = calcularDiferencia();
+    if (Math.abs(diferenciaActual) < 0.01) return observaciones;
+
+    const tipo = diferenciaActual < 0 ? 'faltante' : 'sobrante';
+    const textoAutomatico = `El cajero decidio cerrar la caja con un ${tipo} de ${formatCurrency(Math.abs(diferenciaActual))}.`;
+    return [observaciones.trim(), textoAutomatico].filter(Boolean).join('\n');
+  };
+
+  const handleImprimirAsi = async () => {
+    setAceptarDiferencia(true);
+    setShowDiferenciaDialog(false);
+    await cerrarTurno(prepararObservaciones());
   };
 
   const handleReportClose = () => {
@@ -146,7 +188,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
 
   const calcularDiferencia = () => {
     const efectivoEsperado = (turnoData?.caja_inicial || 0) + recaudacion.total_efectivo;
-    return totalFinal - efectivoEsperado;
+    return Math.round((totalFinal - efectivoEsperado) * 100) / 100;
   };
 
   const diferencia = calcularDiferencia();
@@ -171,6 +213,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
   }
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -426,6 +469,44 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
         </form>
       </DialogContent>
     </Dialog>
+    <AlertDialog open={showDiferenciaDialog} onOpenChange={setShowDiferenciaDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Se detecto una diferencia de caja.</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3 text-sm">
+              <p>Revise el conteo antes de cerrar el turno.</p>
+              <div className="rounded-md border bg-muted/40 p-3 space-y-1">
+                <div className="flex justify-between">
+                  <span>Caja esperada:</span>
+                  <strong>{formatCurrency((turnoData?.caja_inicial || 0) + recaudacion.total_efectivo)}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span>Caja contada:</span>
+                  <strong>{formatCurrency(totalFinal)}</strong>
+                </div>
+                <div className="flex justify-between border-t pt-2">
+                  <span>Diferencia:</span>
+                  <strong className={diferencia < 0 ? 'text-red-700' : 'text-green-700'}>
+                    {diferencia > 0 ? '+' : ''}{formatCurrency(diferencia)}
+                  </strong>
+                </div>
+              </div>
+              <p>Desea volver a contar el dinero o cerrar la caja con esta diferencia?</p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setShowDiferenciaDialog(false)}>
+            Volver a contar
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={handleImprimirAsi} className="bg-green-600 hover:bg-green-700">
+            Imprimir asi
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 };
 

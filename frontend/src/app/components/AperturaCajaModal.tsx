@@ -34,6 +34,7 @@ export const AperturaCajaModal: React.FC<AperturaCajaModalProps> = ({
   const [denominaciones, setDenominaciones] = useState<Denominacion[]>([]);
   const [totalInicial, setTotalInicial] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -45,11 +46,12 @@ export const AperturaCajaModal: React.FC<AperturaCajaModalProps> = ({
       }));
       setDenominaciones(denoms);
       setTotalInicial(0);
+      setError('');
     }
   }, [isOpen]);
 
   const handleCantidadChange = (index: number, value: string) => {
-    const cantidad = parseInt(value) || 0;
+    const cantidad = Math.max(0, parseInt(value, 10) || 0);
     const nuevasDenominaciones = [...denominaciones];
     nuevasDenominaciones[index] = {
       ...nuevasDenominaciones[index],
@@ -64,6 +66,7 @@ export const AperturaCajaModal: React.FC<AperturaCajaModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
 
     try {
@@ -77,7 +80,10 @@ export const AperturaCajaModal: React.FC<AperturaCajaModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error al abrir turno:', error);
-      alert('Error al abrir el turno. Por favor, intente nuevamente.');
+      const mensaje =
+        (error as any)?.response?.data?.error ||
+        'Error al abrir el turno. Por favor, intente nuevamente.';
+      setError(mensaje);
     } finally {
       setIsLoading(false);
     }
@@ -146,6 +152,11 @@ export const AperturaCajaModal: React.FC<AperturaCajaModalProps> = ({
                   </span>
                 </div>
               </div>
+              {error && (
+                <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
             </CardContent>
           </Card>
 
