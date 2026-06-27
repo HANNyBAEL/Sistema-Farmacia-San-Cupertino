@@ -12,7 +12,7 @@ const DENOMINACIONES = [
 // ─── VERIFICAR SI EL USUARIO TIENE TURNO ABIERTO ────────────────────────
 router.get('/activo', authenticate, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user.id_empleado;
     
     const [turno] = await sequelize.query(
       `SELECT * FROM turnos 

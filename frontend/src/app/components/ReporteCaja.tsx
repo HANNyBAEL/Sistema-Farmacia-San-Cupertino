@@ -118,7 +118,7 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose }) 
     
     // Total efectivo inicial
     doc.setFont('helvetica', 'bold');
-    doc.text(`TOTAL EFECTIVO INICIAL: ${formatCurrency(turnoData.caja_inicial)}`, 14, yPos);
+    doc.text(`TOTAL EFECTIVO INICIAL: ${formatCurrency(turnoData?.caja_inicial || 0)}`, 14, yPos);
     yPos += 15;
 
     // Tabla de Final de Turno
@@ -190,7 +190,7 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose }) 
     yPos += 8;
 
     const detallesData = [
-      ['Caja Inicial', formatCurrency(turnoData.caja_inicial)],
+      ['Caja Inicial', formatCurrency(turnoData?.caja_inicial || 0)],
       ['Hora de Inicio', formatDateTime(turnoData.hora_inicio)],
       ['Hora de Finalización', formatDateTime(turnoData.hora_cierre)],
     ];
@@ -214,7 +214,7 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose }) 
     doc.text('DIFERENCIA DE CAJA', 14, yPos);
     yPos += 8;
 
-    const efectivoEsperado = turnoData.caja_inicial + turnoData.total_efectivo;
+    const efectivoEsperado = (turnoData?.caja_inicial || 0) + turnoData.total_efectivo;
     const diferenciaTexto =
       turnoData.diferencia_caja > 0
         ? 'SOBRANTE DE CAJA'
@@ -350,7 +350,7 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose }) 
           </table>
           <div className="mt-3 text-right">
             <span className="text-lg font-bold text-blue-700">
-              TOTAL EFECTIVO INICIAL: {formatCurrency(turnoData.caja_inicial)}
+              TOTAL EFECTIVO INICIAL: {formatCurrency(turnoData?.caja_inicial || 0)}
             </span>
           </div>
         </div>
@@ -428,7 +428,7 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose }) 
           <div className="space-y-2">
             <div className="flex justify-between">
               <span>Caja Inicial:</span>
-              <span className="font-semibold">{formatCurrency(turnoData.caja_inicial)}</span>
+              <span className="font-semibold">{formatCurrency(turnoData?.caja_inicial || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span>Hora de Inicio:</span>
@@ -450,7 +450,7 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose }) 
             <div className="flex justify-between">
               <span>Efectivo Esperado:</span>
               <span className="font-semibold">
-                {formatCurrency(turnoData.caja_inicial + turnoData.total_efectivo)}
+                {formatCurrency((turnoData?.caja_inicial || 0) + turnoData.total_efectivo)}
               </span>
             </div>
             <div className="flex justify-between">

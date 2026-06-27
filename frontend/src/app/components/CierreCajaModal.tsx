@@ -145,7 +145,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
   };
 
   const calcularDiferencia = () => {
-    const efectivoEsperado = turnoData.caja_inicial + recaudacion.total_efectivo;
+    const efectivoEsperado = (turnoData?.caja_inicial || 0) + recaudacion.total_efectivo;
     return totalFinal - efectivoEsperado;
   };
 
