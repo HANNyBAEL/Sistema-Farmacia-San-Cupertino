@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS turnos (
   caja_inicial DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
   caja_final DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
   total_efectivo DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+  total_tarjeta DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
   total_transferencia DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
   total_apple_pay DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
   total_paypal DECIMAL(15, 2) NOT NULL DEFAULT 0.00,

@@ -32,6 +32,7 @@ interface Denominacion {
 
 interface Recaudacion {
   total_efectivo: number;
+  total_tarjeta: number;
   total_transferencia: number;
   total_apple_pay: number;
   total_paypal: number;
@@ -56,6 +57,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
   const [totalFinal, setTotalFinal] = useState(0);
   const [recaudacion, setRecaudacion] = useState<Recaudacion>({
     total_efectivo: 0,
+    total_tarjeta: 0,
     total_transferencia: 0,
     total_apple_pay: 0,
     total_paypal: 0,
@@ -69,6 +71,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
   const [showDiferenciaDialog, setShowDiferenciaDialog] = useState(false);
   const [aceptarDiferencia, setAceptarDiferencia] = useState(false);
   const [turnoCerradoData, setTurnoCerradoData] = useState<any>(null);
+  const [paso, setPaso] = useState<'conteo' | 'revision'>('conteo');
 
   useEffect(() => {
     if (isOpen && turnoData) {
@@ -83,6 +86,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
       setObservaciones('');
       setAceptarDiferencia(false);
       setShowDiferenciaDialog(false);
+      setPaso('conteo');
       cargarRecaudacion();
     }
   }, [isOpen, turnoData]);
@@ -140,6 +144,11 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (paso === 'conteo') {
+      setPaso('revision');
+      return;
+    }
+
     if (Math.abs(diferencia) >= 0.01 && !aceptarDiferencia) {
       setShowDiferenciaDialog(true);
       return;
@@ -196,7 +205,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
               El turno ha sido cerrado exitosamente. Puede imprimir el reporte.
             </DialogDescription>
           </DialogHeader>
-          <ReporteCaja turnoData={turnoCerradoData} onClose={handleReportClose} />
+          <ReporteCaja turnoData={turnoCerradoData} onClose={handleReportClose} autoDownload />
         </DialogContent>
       </Dialog>
     );
@@ -208,15 +217,17 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
         <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden p-0">
           <DialogHeader className="border-b bg-slate-50 px-6 py-5">
             <DialogTitle className="text-xl font-semibold text-slate-950">
-              Cierre de caja
+              {paso === 'conteo' ? 'Conteo final de caja' : 'Revision de cierre'}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-600">
-              Ingrese el conteo fisico final y revise la diferencia antes de cerrar.
+              {paso === 'conteo'
+                ? 'Primero ingrese las cantidades fisicas de monedas y billetes.'
+                : 'Revise la recaudacion y confirme para cerrar y descargar el documento.'}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="flex max-h-[calc(92vh-96px)] flex-col">
-            <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-y-auto lg:grid-cols-[minmax(0,1.1fr)_360px]">
+            <div className={`grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-y-auto ${paso === 'revision' ? 'lg:grid-cols-[minmax(0,1.1fr)_360px]' : ''}`}>
               <div className="px-6 py-5">
                 <div className="overflow-hidden rounded-md border border-slate-200">
                   <table className="w-full border-collapse text-sm">
@@ -256,6 +267,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
                 </div>
               </div>
 
+              {paso === 'revision' && (
               <aside className="border-t bg-white px-6 py-5 lg:border-l lg:border-t-0">
                 <div className="space-y-4">
                   <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3">
@@ -274,6 +286,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
                     <div className="divide-y text-sm">
                       <SummaryRow label="Caja inicial" value={formatCurrency(turnoData?.caja_inicial || 0)} />
                       <SummaryRow label="Ventas efectivo" value={formatCurrency(recaudacion.total_efectivo)} />
+                      <SummaryRow label="Tarjeta" value={formatCurrency(recaudacion.total_tarjeta)} />
                       <SummaryRow label="Transferencia" value={formatCurrency(recaudacion.total_transferencia)} />
                       <SummaryRow label="Apple Pay" value={formatCurrency(recaudacion.total_apple_pay)} />
                       <SummaryRow label="PayPal" value={formatCurrency(recaudacion.total_paypal)} />
@@ -311,6 +324,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
                   </div>
                 </div>
               </aside>
+              )}
             </div>
 
             <div className="border-t bg-white px-6 py-4">
@@ -318,8 +332,17 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
                 <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                   Cancelar
                 </Button>
+                {paso === 'revision' && (
+                  <Button type="button" variant="outline" onClick={() => setPaso('conteo')} disabled={isLoading}>
+                    Volver al conteo
+                  </Button>
+                )}
                 <Button type="submit" disabled={isLoading || isLoadingRecaudacion}>
-                  {isLoading ? 'Procesando...' : 'Cerrar caja e imprimir'}
+                  {isLoading
+                    ? 'Procesando...'
+                    : paso === 'conteo'
+                      ? 'Continuar'
+                      : 'Cerrar caja y descargar'}
                 </Button>
               </DialogFooter>
             </div>

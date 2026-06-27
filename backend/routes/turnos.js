@@ -43,12 +43,12 @@ const validarDenominaciones = (denominaciones) => {
 const obtenerRecaudacionTurno = async (turno, transaction) => {
   const rows = await sequelize.query(
     `SELECT
-      COALESCE(SUM(CASE WHEN metodo_pago = 'efectivo' THEN total ELSE 0 END), 0) as total_efectivo,
-      COALESCE(SUM(CASE WHEN metodo_pago = 'tarjeta' THEN total ELSE 0 END), 0) as total_tarjeta,
-      COALESCE(SUM(CASE WHEN metodo_pago = 'transferencia' THEN total ELSE 0 END), 0) as total_transferencia,
-      COALESCE(SUM(CASE WHEN metodo_pago = 'apple_pay' THEN total ELSE 0 END), 0) as total_apple_pay,
-      COALESCE(SUM(CASE WHEN metodo_pago = 'paypal' THEN total ELSE 0 END), 0) as total_paypal,
-      COALESCE(SUM(CASE WHEN metodo_pago = 'western_union' THEN total ELSE 0 END), 0) as total_western_union,
+      COALESCE(SUM(CASE WHEN metodo_pago = 'efectivo' THEN COALESCE(NULLIF(monto_recibido, 0), total) - COALESCE(cambio, 0) ELSE 0 END), 0) as total_efectivo,
+      COALESCE(SUM(CASE WHEN metodo_pago = 'tarjeta' THEN COALESCE(NULLIF(monto_recibido, 0), total) ELSE 0 END), 0) as total_tarjeta,
+      COALESCE(SUM(CASE WHEN metodo_pago = 'transferencia' THEN COALESCE(NULLIF(monto_recibido, 0), total) ELSE 0 END), 0) as total_transferencia,
+      COALESCE(SUM(CASE WHEN metodo_pago = 'apple_pay' THEN COALESCE(NULLIF(monto_recibido, 0), total) ELSE 0 END), 0) as total_apple_pay,
+      COALESCE(SUM(CASE WHEN metodo_pago = 'paypal' THEN COALESCE(NULLIF(monto_recibido, 0), total) ELSE 0 END), 0) as total_paypal,
+      COALESCE(SUM(CASE WHEN metodo_pago = 'western_union' THEN COALESCE(NULLIF(monto_recibido, 0), total) ELSE 0 END), 0) as total_western_union,
       COALESCE(SUM(total), 0) as recaudacion_total
      FROM ventas
      WHERE id_empleado = :idEmpleado
@@ -276,6 +276,7 @@ router.post('/cerrar', authenticate, authorize(['cajero', 'administrador']), asy
        hora_cierre = :horaCierre,
        caja_final = :cajaFinal,
        total_efectivo = :totalEfectivo,
+       total_tarjeta = :totalTarjeta,
        total_transferencia = :totalTransferencia,
        total_apple_pay = :totalApplePay,
        total_paypal = :totalPaypal,
@@ -290,6 +291,7 @@ router.post('/cerrar', authenticate, authorize(['cajero', 'administrador']), asy
           horaCierre,
           cajaFinal: validacion.total,
           totalEfectivo: rec.total_efectivo,
+          totalTarjeta: rec.total_tarjeta,
           totalTransferencia: rec.total_transferencia,
           totalApplePay: rec.total_apple_pay,
           totalPaypal: rec.total_paypal,
@@ -373,7 +375,12 @@ router.get('/:idTurno', authenticate, async (req, res) => {
     const { idTurno } = req.params;
 
     const [turno] = await sequelize.query(
-      `SELECT * FROM turnos WHERE id_turno = :idTurno`,
+      `SELECT
+         t.*,
+         COALESCE(NULLIF(TRIM(CONCAT(e.nombre, ' ', e.apellido)), ''), t.nombre_empleado) AS nombre_empleado
+       FROM turnos t
+       LEFT JOIN empleados e ON e.id_empleado = t.id_empleado
+       WHERE t.id_turno = :idTurno`,
       {
         replacements: { idTurno },
         type: sequelize.QueryTypes.SELECT

@@ -2093,6 +2093,7 @@ function Ventas({ user }: { user: User }) {
         id_cliente: id_cliente,
         id_empleado: user.id,
         metodo_pago: metodoPago,
+        monto_recibido: soloEfectivo ? Number(efectivo || 0) : total,
         productos: cart.map(i => ({ id_producto: i.product.id_producto, cantidad: i.qty })),
       });
 

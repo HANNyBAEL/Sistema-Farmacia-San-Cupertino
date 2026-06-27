@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 
 interface Denominacion {
@@ -17,6 +17,7 @@ interface TurnoData {
   caja_inicial: number;
   caja_final: number;
   total_efectivo: number;
+  total_tarjeta?: number;
   total_transferencia: number;
   total_apple_pay: number;
   total_paypal: number;
@@ -32,16 +33,20 @@ interface TurnoData {
 interface ReporteCajaProps {
   turnoData: TurnoData;
   onClose?: () => void;
+  autoDownload?: boolean;
 }
 
 const DENOMINACIONES = [0.01, 0.05, 0.10, 0.25, 0.50, 1, 2, 5, 10, 20, 50, 100];
-const BLUE = [8, 43, 112] as const;
-const GRAY = [221, 221, 221] as const;
-const LIGHT_BLUE = [218, 229, 246] as const;
+const BLUE = [7, 42, 111] as const;
+const GRAY = [214, 212, 212] as const;
+const LIGHT_BLUE = [220, 228, 245] as const;
+const LIGHT_GRAY = [242, 242, 242] as const;
 
-export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose }) => {
+export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose, autoDownload = false }) => {
+  const downloadedRef = useRef(false);
+
   const money = (amount: number | string) =>
-    new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD' }).format(Number(amount) || 0);
+    new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(amount) || 0);
 
   const dateOnly = (value: string) => {
     if (!value) return 'N/A';
@@ -56,32 +61,28 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose }) 
   const byDenominacion = (items: Denominacion[] = []) =>
     new Map(items.map((item) => [Number(item.denominacion).toFixed(2), item]));
 
-  const diferenciaLabel = () => {
+  const diferenciaTexto = () => {
     const diferencia = Number(turnoData.diferencia_caja) || 0;
-    if (diferencia > 0) return `SOBRANTE: +${money(diferencia)}`;
-    if (diferencia < 0) return `FALTANTE: -${money(Math.abs(diferencia))}`;
-    return money(0);
+    if (diferencia > 0) return `SOBRANTE $ ${money(diferencia)}`;
+    if (diferencia < 0) return `FALTANTE $ ${money(Math.abs(diferencia))}`;
+    return `$ ${money(0)}`;
   };
 
   const observaciones = () => {
     if (turnoData.observaciones?.trim()) return turnoData.observaciones;
     const diferencia = Number(turnoData.diferencia_caja) || 0;
-    if (diferencia > 0) {
-      return `El cajero decidio cerrar la caja con un sobrante de ${money(diferencia)}.`;
-    }
-    if (diferencia < 0) {
-      return `El cajero decidio cerrar la caja con un faltante de ${money(Math.abs(diferencia))}.`;
-    }
+    if (diferencia > 0) return `El cajero decidio cerrar la caja con un sobrante de $ ${money(diferencia)}.`;
+    if (diferencia < 0) return `El cajero decidio cerrar la caja con un faltante de $ ${money(Math.abs(diferencia))}.`;
     return '';
   };
 
   const generarPDF = () => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-    const left = 8;
-    const top = 10;
-    const tableW = 126;
-    const col = [left, left + 40, left + 62, left + 84, left + 106, left + tableW];
-    let y = top;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const tableW = 160;
+    const left = (pageWidth - tableW) / 2;
+    const col = [left, left + 46, left + 75, left + 104, left + 131, left + tableW];
+    let y = 6;
 
     const rect = (x: number, yy: number, w: number, h: number, fill?: readonly number[]) => {
       if (fill) {
@@ -91,140 +92,167 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose }) 
         doc.rect(x, yy, w, h);
       }
     };
+    const line = (x1: number, y1: number, x2: number, y2: number) => doc.line(x1, y1, x2, y2);
     const text = (value: string, x: number, yy: number, options?: any) => doc.text(value, x, yy, options);
-    const center = (value: string, x: number, yy: number, w: number, h: number, color: 'dark' | 'light' = 'dark') => {
-      doc.setTextColor(color === 'light' ? 255 : 20);
-      text(value, x + w / 2, yy + h / 2 + 1.4, { align: 'center', baseline: 'middle' });
+    const center = (value: string, x: number, yy: number, w: number, h: number, light = false) => {
+      doc.setTextColor(light ? 255 : 20);
+      text(value, x + w / 2, yy + h / 2 + 1.2, { align: 'center', baseline: 'middle' });
       doc.setTextColor(20);
     };
-    const section = (title: string, height = 10) => {
-      rect(left, y, tableW, height, BLUE);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      center(title, left, y, tableW, height, 'light');
-      y += height;
+    const amount = (value: number | string, x: number, yy: number, w: number, h: number, fill?: readonly number[], light = false) => {
+      rect(x, yy, w, h, fill);
+      doc.setTextColor(light ? 255 : 20);
+      text('$', x + 3, yy + h / 2 + 1.2, { baseline: 'middle' });
+      text(money(value), x + w - 5, yy + h / 2 + 1.2, { align: 'right', baseline: 'middle' });
+      doc.setTextColor(20);
     };
-    const row = (label: string, value: string, highlight = false) => {
-      rect(left, y, 84, 5.4);
-      rect(left + 84, y, 42, 5.4, highlight ? BLUE : undefined);
-      doc.setFont('helvetica', highlight ? 'bold' : 'normal');
-      doc.setFontSize(8);
+    const section = (title: string, h = 9) => {
+      rect(left, y, tableW, h, BLUE);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(11);
+      center(title, left, y, tableW, h, true);
+      y += h;
+    };
+    const summaryRow = (label: string, value: number, highlight = false) => {
+      rect(left, y, 104, 5.8, highlight ? BLUE : undefined);
+      amount(value, left + 104, y, 56, 5.8, highlight ? BLUE : LIGHT_GRAY, highlight);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9.5);
       doc.setTextColor(highlight ? 255 : 20);
-      text(label, left + 82, y + 3.9, { align: 'right' });
-      text(value, left + 105, y + 3.9, { align: 'center' });
+      text(label, left + 102, y + 4.2, { align: 'right' });
       doc.setTextColor(20);
-      y += 5.4;
+      y += 5.8;
     };
 
     doc.setDrawColor(0);
-    doc.setLineWidth(0.25);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setLineWidth(0.35);
+    doc.setFont('times', 'bold');
 
-    rect(left, y, tableW, 11, BLUE);
-    doc.setFontSize(15);
-    center('FARMACIAS SAN CUPERTINO', left, y, tableW, 11, 'light');
-    y += 16;
+    rect(left, y, tableW, 12, BLUE);
+    doc.setFontSize(18);
+    center('FARMACIAS SAN CUPERTINO', left, y, tableW, 12, true);
+    y += 18;
 
-    rect(left, y, 77, 10, GRAY);
-    rect(left + 77, y, 22, 10, GRAY);
-    rect(left + 99, y, 27, 10, GRAY);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    center('REGISTRO DE CAJA', left, y, 77, 10);
-    center('FECHA', left + 77, y, 22, 10);
-    center(dateOnly(turnoData.fecha), left + 99, y, 27, 10);
-    y += 16;
+    rect(left, y, 94, 12, GRAY);
+    rect(left + 94, y, 29, 12, GRAY);
+    rect(left + 123, y, 37, 12, GRAY);
+    doc.setFontSize(11);
+    center('REGISTRO DE CAJA', left, y, 94, 12);
+    center('FECHA', left + 94, y, 29, 12);
+    center(dateOnly(turnoData.fecha), left + 123, y, 37, 12);
+    y += 18;
 
-    rect(col[1], y, 44, 10, GRAY);
-    rect(col[3], y, 42, 10, GRAY);
-    doc.setFontSize(8);
-    center('INICIO DE TURNO', col[1], y, 44, 10);
-    center('FINAL DE TURNO', col[3], y, 42, 10);
-    y += 10;
+    rect(col[1], y, col[3] - col[1], 12, GRAY);
+    rect(col[3], y, col[5] - col[3], 12, GRAY);
+    doc.setFontSize(10.5);
+    center('INICIO DE TURNO', col[1], y, col[3] - col[1], 12);
+    center('FINAL DE TURNO', col[3], y, col[5] - col[3], 12);
+    y += 12;
 
-    const headerY = y;
     ['MONEDAS/BILLETES', 'CANTIDAD', 'DINERO', 'CANTIDAD', 'DINERO'].forEach((label, i) => {
-      rect(col[i], headerY, col[i + 1] - col[i], 5.2, i === 0 ? undefined : GRAY);
-      center(label, col[i], headerY, col[i + 1] - col[i], 5.2);
+      rect(col[i], y, col[i + 1] - col[i], 6, i === 1 || i === 3 ? LIGHT_BLUE : undefined);
+      doc.setFontSize(9.5);
+      center(label, col[i], y, col[i + 1] - col[i], 6);
     });
-    y += 5.2;
+    y += 6;
 
     const apertura = byDenominacion(turnoData.denominaciones_apertura);
     const cierre = byDenominacion(turnoData.denominaciones_cierre);
-    doc.setFontSize(8);
 
     DENOMINACIONES.forEach((valor) => {
       const key = valor.toFixed(2);
       const ini = apertura.get(key);
       const fin = cierre.get(key);
-      const values = [
-        money(valor),
-        String(ini?.cantidad ?? 0),
-        money(ini?.monto ?? 0),
-        String(fin?.cantidad ?? 0),
-        money(fin?.monto ?? 0),
-      ];
-      values.forEach((value, i) => {
-        rect(col[i], y, col[i + 1] - col[i], 5.2, i === 1 || i === 3 ? LIGHT_BLUE : undefined);
-        const align = i === 0 ? 'left' : 'center';
-        text(value, i === 0 ? col[i] + 1.5 : col[i] + (col[i + 1] - col[i]) / 2, y + 3.8, { align });
-      });
-      y += 5.2;
+      rect(col[0], y, col[1] - col[0], 6);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9.5);
+      text('$', col[0] + 3, y + 4.3);
+      text(money(valor), col[1] - 2, y + 4.3, { align: 'right' });
+      rect(col[1], y, col[2] - col[1], 6, LIGHT_BLUE);
+      center(String(ini?.cantidad || ''), col[1], y, col[2] - col[1], 6);
+      amount(ini?.monto || 0, col[2], y, col[3] - col[2], 6, LIGHT_GRAY);
+      rect(col[3], y, col[4] - col[3], 6, LIGHT_BLUE);
+      center(String(fin?.cantidad || ''), col[3], y, col[4] - col[3], 6);
+      amount(fin?.monto || 0, col[4], y, col[5] - col[4], 6, LIGHT_GRAY);
+      y += 6;
     });
 
-    rect(left, y, 40, 5.6, BLUE);
-    rect(left + 40, y, 44, 5.6, BLUE);
-    rect(left + 84, y, 42, 5.6, BLUE);
-    doc.setFont('helvetica', 'bold');
-    center('TOTAL EFECTIVO', left, y, 40, 5.6, 'light');
-    center(money(turnoData.caja_inicial), left + 40, y, 44, 5.6, 'light');
-    center(money(turnoData.caja_final), left + 84, y, 42, 5.6, 'light');
-    y += 11;
+    rect(left, y, 46, 6.5, BLUE);
+    amount(turnoData.caja_inicial, left + 46, y, 58, 6.5, BLUE, true);
+    amount(turnoData.caja_final, left + 104, y, 56, 6.5, BLUE, true);
+    doc.setTextColor(255);
+    doc.setFontSize(10.5);
+    text('TOTAL EFECTIVO', left + 4, y + 4.7);
+    doc.setTextColor(20);
+    y += 12;
 
     section('RESUMEN DE RECAUDACION');
-    row('TOTAL EN EFECTIVO', money(turnoData.total_efectivo));
-    row('TOTAL EN TRANSFERENCIA', money(turnoData.total_transferencia));
-    row('TOTAL APPLE PAY', money(turnoData.total_apple_pay));
-    row('TOTAL PAYPAL', money(turnoData.total_paypal));
-    row('TOTAL WESTERN UNION', money(turnoData.total_western_union));
-    row('RECAUDACION TOTAL DEL DIA', money(turnoData.recaudacion_total), true);
-    y += 5;
+    summaryRow('TOTAL EN EFECTIVO', turnoData.total_efectivo);
+    summaryRow('TOTAL EN TARJETA', turnoData.total_tarjeta || 0);
+    summaryRow('TOTAL EN TRANSFERENCIA', turnoData.total_transferencia);
+    summaryRow('TOTAL APPLE PAY', turnoData.total_apple_pay);
+    summaryRow('TOTAL PAYPAL', turnoData.total_paypal);
+    summaryRow('TOTAL WESTERN UNION', turnoData.total_western_union);
+    summaryRow('RECAUDACION TOTAL DEL DIA', turnoData.recaudacion_total, true);
+    y += 6;
 
     section('DETALLES DEL TURNO');
-    row('CAJA INICIAL', money(turnoData.caja_inicial));
-    row('HORARIO DEL TURNO', `${timeOnly(turnoData.hora_inicio)}  ${timeOnly(turnoData.hora_cierre)}`);
-    y += 5;
+    summaryRow('CAJA INICIAL', turnoData.caja_inicial);
+    rect(left, y, 104, 5.8);
+    rect(left + 104, y, 28, 5.8);
+    rect(left + 132, y, 28, 5.8);
+    doc.setFontSize(9.5);
+    text('HORARIO DEL TURNO', left + 102, y + 4.2, { align: 'right' });
+    center(timeOnly(turnoData.hora_inicio), left + 104, y, 28, 5.8);
+    center(timeOnly(turnoData.hora_cierre), left + 132, y, 28, 5.8);
+    y += 5.8;
+    summaryRow('INGRESOS POR VENTAS', turnoData.recaudacion_total);
+    summaryRow('TOTAL', Number(turnoData.caja_inicial || 0) + Number(turnoData.recaudacion_total || 0));
+    y += 6;
 
-    section('DIFERENCIA DE CAJA');
-    row('', diferenciaLabel(), true);
-    y += 5;
+    rect(left, y, 104, 6.5, BLUE);
+    rect(left + 104, y, 56, 6.5, BLUE);
+    doc.setTextColor(255);
+    doc.setFontSize(10.5);
+    text('DIFERENCIA DE CAJA', left + 2, y + 4.8);
+    text(diferenciaTexto(), left + 132, y + 4.8, { align: 'center' });
+    doc.setTextColor(20);
+    y += 18;
 
-    section('OBSERVACIONES/INCIDENTES', 6);
-    rect(left, y, tableW, 20);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(doc.splitTextToSize(observaciones(), tableW - 4), left + 2, y + 5);
-    y += 31;
-
+    section('OBSERVACIONES/INCIDENTES', 6.5);
+    rect(left, y, tableW, 15);
+    doc.setFont('times', 'normal');
     doc.setFontSize(8.5);
-    const sigY = y + 9;
-    doc.line(left + 8, sigY, left + 50, sigY);
-    doc.line(left + 72, sigY, left + 116, sigY);
-    text('FIRMA DEL EMPLEADO', left + 29, sigY + 5, { align: 'center' });
-    text(turnoData.nombre_empleado || 'NOMBRE Y APELLIDO', left + 29, sigY + 10, { align: 'center' });
-    text('FIRMA DEL SUPERVISOR', left + 94, sigY + 5, { align: 'center' });
-    text(turnoData.supervisor || 'NOMBRE Y APELLIDO', left + 94, sigY + 10, { align: 'center' });
+    doc.text(doc.splitTextToSize(observaciones(), tableW - 4), left + 2, y + 4.5);
+    y += 27;
+
+    line(left, y, left + tableW, y);
+    y += 5;
+    rect(left, y, tableW / 2, 6);
+    rect(left + tableW / 2, y, tableW / 2, 6);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(10);
+    center('EMPLEADO', left, y, tableW / 2, 6);
+    center('SUPERVISOR', left + tableW / 2, y, tableW / 2, 6);
+    y += 6;
+    rect(left, y, tableW / 2, 6);
+    rect(left + tableW / 2, y, tableW / 2, 6);
+    center(turnoData.nombre_empleado || 'NOMBRES', left, y, tableW / 2, 6);
+    center(turnoData.supervisor || 'ILIANA DANIELA PINEDA ORELLANA', left + tableW / 2, y, tableW / 2, 6);
 
     doc.save(`Registro_Caja_${turnoData.id_turno}_${dateOnly(turnoData.fecha).replace(/\//g, '-')}.pdf`);
   };
 
+  useEffect(() => {
+    if (autoDownload && !downloadedRef.current) {
+      downloadedRef.current = true;
+      generarPDF();
+    }
+  }, [autoDownload]);
+
   const handlePrint = () => {
     generarPDF();
-    onClose?.();
   };
-
-  const diferencia = Number(turnoData.diferencia_caja) || 0;
 
   return (
     <div className="space-y-4">
@@ -233,79 +261,19 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, onClose }) 
           onClick={handlePrint}
           className="px-4 py-2 bg-blue-700 text-white rounded-md hover:bg-blue-800 transition-colors"
         >
-          Imprimir Reporte
+          Descargar reporte
         </button>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+          >
+            Cerrar
+          </button>
+        )}
       </div>
-
-      <div className="mx-auto w-full max-w-[720px] bg-white p-6 text-black shadow-sm border" style={{ fontFamily: 'Arial, sans-serif' }}>
-        <div className="bg-[#082b70] text-white text-center text-2xl py-2">FARMACIAS SAN CUPERTINO</div>
-        <div className="grid grid-cols-[1fr_110px_140px] mt-5 border border-black text-sm">
-          <div className="bg-gray-200 text-center py-2 border-r border-black">REGISTRO DE CAJA</div>
-          <div className="bg-gray-200 text-center py-2 border-r border-black">FECHA</div>
-          <div className="bg-gray-200 text-center py-2">{dateOnly(turnoData.fecha)}</div>
-        </div>
-
-        <table className="mt-5 w-full border-collapse text-sm">
-          <thead>
-            <tr>
-              <th></th>
-              <th colSpan={2} className="border border-black bg-gray-200 py-2">INICIO DE TURNO</th>
-              <th colSpan={2} className="border border-black bg-gray-200 py-2">FINAL DE TURNO</th>
-            </tr>
-            <tr>
-              <th className="border border-black">MONEDAS/BILLETES</th>
-              <th className="border border-black">CANTIDAD</th>
-              <th className="border border-black">DINERO</th>
-              <th className="border border-black">CANTIDAD</th>
-              <th className="border border-black">DINERO</th>
-            </tr>
-          </thead>
-          <tbody>
-            {DENOMINACIONES.map((valor) => {
-              const apertura = byDenominacion(turnoData.denominaciones_apertura).get(valor.toFixed(2));
-              const cierre = byDenominacion(turnoData.denominaciones_cierre).get(valor.toFixed(2));
-              return (
-                <tr key={valor}>
-                  <td className="border border-black px-2">{money(valor)}</td>
-                  <td className="border border-black bg-blue-50 text-center">{apertura?.cantidad ?? 0}</td>
-                  <td className="border border-black text-center">{money(apertura?.monto ?? 0)}</td>
-                  <td className="border border-black bg-blue-50 text-center">{cierre?.cantidad ?? 0}</td>
-                  <td className="border border-black text-center">{money(cierre?.monto ?? 0)}</td>
-                </tr>
-              );
-            })}
-            <tr className="bg-[#082b70] text-white font-bold">
-              <td className="border border-black px-2">TOTAL EFECTIVO</td>
-              <td colSpan={2} className="border border-black text-center">{money(turnoData.caja_inicial)}</td>
-              <td colSpan={2} className="border border-black text-center">{money(turnoData.caja_final)}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div className="mt-5 bg-[#082b70] text-white text-center font-bold py-2">RESUMEN DE RECAUDACION</div>
-        <div className="border border-black text-sm">
-          {[
-            ['TOTAL EN EFECTIVO', money(turnoData.total_efectivo)],
-            ['TOTAL EN TRANSFERENCIA', money(turnoData.total_transferencia)],
-            ['TOTAL APPLE PAY', money(turnoData.total_apple_pay)],
-            ['TOTAL PAYPAL', money(turnoData.total_paypal)],
-            ['TOTAL WESTERN UNION', money(turnoData.total_western_union)],
-          ].map(([label, value]) => (
-            <div key={label} className="grid grid-cols-[1fr_160px] border-b border-black">
-              <div className="text-right px-2">{label}</div>
-              <div className="text-center border-l border-black">{value}</div>
-            </div>
-          ))}
-          <div className="grid grid-cols-[1fr_160px] bg-[#082b70] text-white font-bold">
-            <div className="text-right px-2">RECAUDACION TOTAL DEL DIA</div>
-            <div className="text-center border-l border-black">{money(turnoData.recaudacion_total)}</div>
-          </div>
-        </div>
-
-        <div className="mt-5 bg-[#082b70] text-white text-center font-bold py-2">DIFERENCIA DE CAJA</div>
-        <div className={`border border-black text-center font-bold py-2 ${diferencia < 0 ? 'text-red-700' : diferencia > 0 ? 'text-green-700' : ''}`}>
-          {diferenciaLabel()}
-        </div>
+      <div className="rounded-md border bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        El documento de cierre se descargo automaticamente. Puede descargarlo nuevamente desde aqui.
       </div>
     </div>
   );

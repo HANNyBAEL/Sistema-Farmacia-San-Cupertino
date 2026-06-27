@@ -6,7 +6,7 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 const router = express.Router();
 
 router.post('/', authenticate, authorize(['cajero']), async (req, res) => {
-  const { id_cliente, id_empleado, productos, metodo_pago } = req.body;
+  const { id_cliente, id_empleado, productos, metodo_pago, monto_recibido } = req.body;
   const transaction = await sequelize.transaction();
 
   try {
@@ -15,15 +15,16 @@ router.post('/', authenticate, authorize(['cajero']), async (req, res) => {
 
     const clienteId = id_cliente ? Number(id_cliente) : null;
     const empleadoId = Number(id_empleado);
-    const metodoPago = metodo_pago || 'efectivo'; // Default to efectivo if not specified
+    const metodoPago = metodo_pago || 'efectivo';
+    const montoRecibidoEntrada = Number(monto_recibido || 0);
 
     const fechaVenta = getFechaHoraLocal();
     console.log('📅 fechaVenta enviada a DB:', fechaVenta);
 
     // 1. Insertar cabecera de la venta
     const [ventaResult] = await sequelize.query(
-      `INSERT INTO ventas (fecha, total, id_cliente, id_empleado, metodo_pago)
-       VALUES (:fecha, 0, :clienteId, :empleadoId, :metodoPago)`,
+      `INSERT INTO ventas (fecha, total, id_cliente, id_empleado, metodo_pago, monto_recibido, cambio)
+       VALUES (:fecha, 0, :clienteId, :empleadoId, :metodoPago, 0, 0)`,
       {
         replacements: { fecha: fechaVenta, clienteId, empleadoId, metodoPago },
         type: sequelize.QueryTypes.INSERT,
@@ -91,11 +92,21 @@ router.post('/', authenticate, authorize(['cajero']), async (req, res) => {
       throw new Error('No se puede realizar una venta mayor a $25,000.00 para cliente anónimo. Por favor, seleccione un cliente registrado.');
     }
 
+    const montoRecibido = metodoPago === 'efectivo' ? montoRecibidoEntrada : total;
+    if (metodoPago === 'efectivo' && montoRecibido < total) {
+      throw new Error('El efectivo recibido debe cubrir el total de la venta.');
+    }
+    const cambio = metodoPago === 'efectivo'
+      ? Math.round((montoRecibido - total) * 100) / 100
+      : 0;
+
     // 4. Actualizar total de la venta
     await sequelize.query(
-      `UPDATE ventas SET total = :total WHERE id_venta = :id_venta`,
+      `UPDATE ventas
+       SET total = :total, monto_recibido = :montoRecibido, cambio = :cambio
+       WHERE id_venta = :id_venta`,
       {
-        replacements: { total, id_venta },
+        replacements: { total, montoRecibido, cambio, id_venta },
         type: sequelize.QueryTypes.UPDATE,
         transaction
       }
@@ -109,7 +120,7 @@ router.post('/', authenticate, authorize(['cajero']), async (req, res) => {
       io.emit('venta:creada', { id_venta, total, fecha: fechaVenta });
     }
 
-    res.status(201).json({ message: 'Venta registrada', id_venta, total, fecha: fechaVenta });
+    res.status(201).json({ message: 'Venta registrada', id_venta, total, monto_recibido: montoRecibido, cambio, fecha: fechaVenta });
 
   } catch (error) {
     await transaction.rollback();
