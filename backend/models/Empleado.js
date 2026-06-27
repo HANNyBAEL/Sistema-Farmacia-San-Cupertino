@@ -66,9 +66,7 @@ const Empleado = sequelize.define('Empleado', {
   },
 }, {
   tableName: 'empleados',
-  timestamps: true,
-  createdAt: 'fecha_creacion',
-  updatedAt: 'fecha_actualizacion',
+  timestamps: false,
 });
 
 export default Empleado;
