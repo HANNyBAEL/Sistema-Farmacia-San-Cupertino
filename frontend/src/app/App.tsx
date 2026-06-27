@@ -694,6 +694,10 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
 
   const checkTurnoActivo = async (user: any) => {
     try {
+      // Verificar que el token existe antes de hacer la llamada
+      const token = localStorage.getItem('token');
+      console.log('Token en localStorage antes de verificar turno:', token ? token.substring(0, 20) + '...' : 'NO EXISTE');
+      
       const response = await turnosService.verificarTurnoActivo();
       if (response.tieneTurnoAbierto) {
         onLogin(user);
