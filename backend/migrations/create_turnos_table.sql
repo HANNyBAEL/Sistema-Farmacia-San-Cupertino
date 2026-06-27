@@ -1,0 +1,28 @@
+-- Create turnos table
+CREATE TABLE IF NOT EXISTS turnos (
+  id_turno INT AUTO_INCREMENT PRIMARY KEY,
+  fecha DATE NOT NULL,
+  hora_inicio DATETIME NOT NULL,
+  hora_cierre DATETIME,
+  id_empleado INT NOT NULL,
+  nombre_empleado VARCHAR(200) NOT NULL,
+  usuario_pos VARCHAR(100) NOT NULL,
+  caja_inicial DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+  caja_final DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+  total_efectivo DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+  total_transferencia DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+  total_apple_pay DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+  total_paypal DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+  total_western_union DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+  recaudacion_total DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+  diferencia_caja DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+  observaciones TEXT,
+  supervisor VARCHAR(200) DEFAULT 'Iliana Daniela Pineda Orellana',
+  estado ENUM('abierto', 'cerrado') NOT NULL DEFAULT 'abierto',
+  fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+  fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado) ON DELETE CASCADE,
+  INDEX idx_fecha (fecha),
+  INDEX idx_empleado (id_empleado),
+  INDEX idx_estado (estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

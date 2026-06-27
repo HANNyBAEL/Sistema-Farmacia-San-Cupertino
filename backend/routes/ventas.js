@@ -6,7 +6,7 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 const router = express.Router();
 
 router.post('/', authenticate, authorize(['cajero']), async (req, res) => {
-  const { id_cliente, id_empleado, productos } = req.body;
+  const { id_cliente, id_empleado, productos, metodo_pago } = req.body;
   const transaction = await sequelize.transaction();
 
   try {
@@ -15,16 +15,17 @@ router.post('/', authenticate, authorize(['cajero']), async (req, res) => {
 
     const clienteId = id_cliente ? Number(id_cliente) : null;
     const empleadoId = Number(id_empleado);
+    const metodoPago = metodo_pago || 'efectivo'; // Default to efectivo if not specified
 
     const fechaVenta = getFechaHoraLocal();
     console.log('📅 fechaVenta enviada a DB:', fechaVenta);
 
     // 1. Insertar cabecera de la venta
     const [ventaResult] = await sequelize.query(
-      `INSERT INTO ventas (fecha, total, id_cliente, id_empleado)
-       VALUES (:fecha, 0, :clienteId, :empleadoId)`,
+      `INSERT INTO ventas (fecha, total, id_cliente, id_empleado, metodo_pago)
+       VALUES (:fecha, 0, :clienteId, :empleadoId, :metodoPago)`,
       {
-        replacements: { fecha: fechaVenta, clienteId, empleadoId },
+        replacements: { fecha: fechaVenta, clienteId, empleadoId, metodoPago },
         type: sequelize.QueryTypes.INSERT,
         transaction
       }

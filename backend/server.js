@@ -24,6 +24,7 @@ import historialRoutes from './routes/historial.js';
 import eliminadosRoutes from './routes/eliminados.js';
 import auditoriaRoutes from './routes/auditoria.js';
 import facturasRoutes from './routes/facturasRoutes.js';
+import turnosRoutes from './routes/turnos.js';
 
 const app = express();
 
@@ -88,6 +89,7 @@ app.use('/api/historial',   historialRoutes);
 app.use('/api/eliminados',  eliminadosRoutes);
 app.use('/api/auditoria',   auditoriaRoutes);
 app.use('/api/facturas',    facturasRoutes);
+app.use('/api/turnos',      turnosRoutes);
 
 const PORT = process.env.PORT || 8000;
 

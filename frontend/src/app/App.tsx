@@ -32,6 +32,8 @@ import logoImg from "../imports/logo.png";
 import { useTheme } from '../context/ThemeContext';
 import { SocketProvider, useSocket } from '../context/SocketContext';
 import { Mail, Loader2 } from 'lucide-react';
+import { CierreCajaModal } from './components/CierreCajaModal';
+import { turnosService } from '../services/turnos';
 
 const RECAPTCHA_SITE_KEY = "6Lc-5S0tAAAAANGcokPZobPlAHatfcoNRBqQeMYb";
 const isRecaptchaDebugEnabled = () =>
@@ -1696,7 +1698,7 @@ function Ventas({ user }: { user: User }) {
   const [saleDone, setSaleDone] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [efectivo, setEfectivo] = useState("");
-  const [metodoPago, setMetodoPago] = useState<"efectivo" | "tarjeta" | "transferencia" | "applepay" | "paypal" | "western">("efectivo");
+  const [metodoPago, setMetodoPago] = useState<"efectivo" | "tarjeta" | "transferencia" | "apple_pay" | "paypal" | "western_union">("efectivo");
   const [showNewClient, setShowNewClient] = useState(false);
   const [newClientForm, setNewClientForm] = useState({ nombre: "", apellido: "", telefono: "", correo: "", direccion: "", dui: "" });
   const [newClientError, setNewClientError] = useState("");
@@ -2617,9 +2619,9 @@ function Ventas({ user }: { user: User }) {
                 { id: "efectivo", label: "💵 Efectivo" },
                 { id: "tarjeta", label: "💳 Tarjeta" },
                 { id: "transferencia", label: "🏦 Transferencia" },
-                { id: "applepay", label: " Apple Pay" },
+                { id: "apple_pay", label: " Apple Pay" },
                 { id: "paypal", label: "🅿️ PayPal" },
-                { id: "western", label: "🌐 Western Union" },
+                { id: "western_union", label: "🌐 Western Union" },
               ] as const).map(m => (
                 <button key={m.id} onClick={() => { setMetodoPago(m.id); setEfectivo(""); }} className={`text-[10px] md:text-xs px-2 py-1.5 rounded-lg border font-medium transition-colors text-left ${metodoPago === m.id ? 'bg-sidebar-accent text-sidebar-accent-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:border-primary hover:text-primary'}`}>{m.label}</button>
               ))}
@@ -2627,9 +2629,9 @@ function Ventas({ user }: { user: User }) {
           </div>
           {metodoPago === "tarjeta" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">💳 El cliente paga con tarjeta en el datáfono.</div>}
           {metodoPago === "transferencia" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🏦 Transferencia bancaria. Confirme comprobante.</div>}
-          {metodoPago === "applepay" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">Apple Pay desde su dispositivo.</div>}
+          {metodoPago === "apple_pay" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">Apple Pay desde su dispositivo.</div>}
           {metodoPago === "paypal" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🅿️ PayPal. Confirme pago recibido.</div>}
-          {metodoPago === "western" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🌐 Western Union. Verifique número de transferencia.</div>}
+          {metodoPago === "western_union" && <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">🌐 Western Union. Verifique número de transferencia.</div>}
           <div className="flex justify-between text-foreground font-bold text-base border-t border-border pt-2"><span>Total</span><span className="text-primary">${total.toFixed(2)}</span></div>
           {soloEfectivo && (
             <div className="space-y-2">
@@ -5068,6 +5070,8 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
     return "dashboard";
   });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showCierreCajaModal, setShowCierreCajaModal] = useState(false);
+  const [turnoData, setTurnoData] = useState<any>(null);
 
   const screenTitle: Record<Screen, string> = {
     dashboard: "Dashboard",
@@ -5094,12 +5098,33 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
     document.documentElement.style.fontSize = `${newSize}px`;
   };
 
-  const handleLogoutClick = () => setShowLogoutModal(true);
+  const handleLogoutClick = async () => {
+    // Verificar si el usuario tiene un turno abierto
+    if (user.role === 'cajero' || user.role === 'administrador') {
+      try {
+        const response = await turnosService.verificarTurnoActivo();
+        if (response.tieneTurnoAbierto) {
+          setTurnoData(response.turno);
+          setShowCierreCajaModal(true);
+          return;
+        }
+      } catch (error) {
+        console.error('Error al verificar turno activo:', error);
+      }
+    }
+    setShowLogoutModal(true);
+  };
+
   const handleLogoutConfirm = () => {
     setShowLogoutModal(false);
     onLogout(); // ejecuta el logout real (limpia localStorage y estado)
   };
   const handleLogoutCancel = () => setShowLogoutModal(false);
+
+  const handleCierreCajaSuccess = () => {
+    setShowCierreCajaModal(false);
+    setShowLogoutModal(true);
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background" style={{ fontFamily: "Inter, sans-serif" }}>
@@ -5155,6 +5180,14 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
         message="¿Estás seguro de que deseas cerrar sesión?"
         onConfirm={handleLogoutConfirm}
         onCancel={handleLogoutCancel}
+      />
+
+      {/* Modal de cierre de caja */}
+      <CierreCajaModal
+        isOpen={showCierreCajaModal}
+        onClose={() => setShowCierreCajaModal(false)}
+        onSuccess={handleCierreCajaSuccess}
+        turnoData={turnoData}
       />
     </div>
   );
