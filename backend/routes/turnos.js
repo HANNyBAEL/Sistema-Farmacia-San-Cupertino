@@ -43,22 +43,23 @@ const validarDenominaciones = (denominaciones) => {
 const obtenerRecaudacionTurno = async (turno, transaction) => {
   const rows = await sequelize.query(
     `SELECT
-      COALESCE(SUM(CASE WHEN metodo_pago = 'efectivo' THEN COALESCE(NULLIF(monto_recibido, 0), total) - COALESCE(cambio, 0) ELSE 0 END), 0) as total_efectivo,
-      COALESCE(SUM(CASE WHEN metodo_pago = 'tarjeta' THEN COALESCE(NULLIF(monto_recibido, 0), total) ELSE 0 END), 0) as total_tarjeta,
-      COALESCE(SUM(CASE WHEN metodo_pago = 'transferencia' THEN COALESCE(NULLIF(monto_recibido, 0), total) ELSE 0 END), 0) as total_transferencia,
-      COALESCE(SUM(CASE WHEN metodo_pago = 'apple_pay' THEN COALESCE(NULLIF(monto_recibido, 0), total) ELSE 0 END), 0) as total_apple_pay,
-      COALESCE(SUM(CASE WHEN metodo_pago = 'paypal' THEN COALESCE(NULLIF(monto_recibido, 0), total) ELSE 0 END), 0) as total_paypal,
-      COALESCE(SUM(CASE WHEN metodo_pago = 'western_union' THEN COALESCE(NULLIF(monto_recibido, 0), total) ELSE 0 END), 0) as total_western_union,
-      COALESCE(SUM(total), 0) as recaudacion_total
-     FROM ventas
-     WHERE id_empleado = :idEmpleado
-       AND fecha >= :horaInicio
-       AND (:horaCierre IS NULL OR fecha <= :horaCierre)`,
+      COALESCE(SUM(CASE WHEN COALESCE(v.metodo_pago, 'efectivo') = 'efectivo' THEN COALESCE(NULLIF(v.monto_recibido, 0), v.total) - COALESCE(v.cambio, 0) ELSE 0 END), 0) as total_efectivo,
+      COALESCE(SUM(CASE WHEN v.metodo_pago = 'tarjeta' THEN COALESCE(NULLIF(v.monto_recibido, 0), v.total) ELSE 0 END), 0) as total_tarjeta,
+      COALESCE(SUM(CASE WHEN v.metodo_pago = 'transferencia' THEN COALESCE(NULLIF(v.monto_recibido, 0), v.total) ELSE 0 END), 0) as total_transferencia,
+      COALESCE(SUM(CASE WHEN v.metodo_pago = 'apple_pay' THEN COALESCE(NULLIF(v.monto_recibido, 0), v.total) ELSE 0 END), 0) as total_apple_pay,
+      COALESCE(SUM(CASE WHEN v.metodo_pago = 'paypal' THEN COALESCE(NULLIF(v.monto_recibido, 0), v.total) ELSE 0 END), 0) as total_paypal,
+      COALESCE(SUM(CASE WHEN v.metodo_pago = 'western_union' THEN COALESCE(NULLIF(v.monto_recibido, 0), v.total) ELSE 0 END), 0) as total_western_union,
+      COALESCE(SUM(v.total), 0) as recaudacion_total
+     FROM turnos t
+     LEFT JOIN ventas v
+       ON v.id_empleado = t.id_empleado
+      AND v.fecha >= t.hora_inicio
+      AND v.fecha <= COALESCE(t.hora_cierre, :horaCierre)
+     WHERE t.id_turno = :idTurno`,
     {
       replacements: {
-        idEmpleado: turno.id_empleado,
-        horaInicio: turno.hora_inicio,
-        horaCierre: turno.hora_cierre || null
+        idTurno: turno.id_turno,
+        horaCierre: turno.hora_cierre || getFechaHoraLocal()
       },
       type: sequelize.QueryTypes.SELECT,
       transaction
