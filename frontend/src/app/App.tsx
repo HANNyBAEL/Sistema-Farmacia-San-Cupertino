@@ -33,6 +33,7 @@ import { useTheme } from '../context/ThemeContext';
 import { SocketProvider, useSocket } from '../context/SocketContext';
 import { Mail, Loader2 } from 'lucide-react';
 import { CierreCajaModal } from './components/CierreCajaModal';
+import { AperturaCajaModal } from './components/AperturaCajaModal';
 import { turnosService } from '../services/turnos';
 
 const RECAPTCHA_SITE_KEY = "6Lc-5S0tAAAAANGcokPZobPlAHatfcoNRBqQeMYb";
@@ -687,7 +688,30 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
+  const [showAperturaModal, setShowAperturaModal] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
   const loginRecaptchaRef = useRef<RecaptchaHandle | null>(null);
+
+  const checkTurnoActivo = async (user: any) => {
+    try {
+      const response = await turnosService.verificarTurnoActivo();
+      if (response.tieneTurnoAbierto) {
+        onLogin(user);
+      } else {
+        setUserData(user);
+        setShowAperturaModal(true);
+      }
+    } catch (err: any) {
+      console.error('Error al verificar turno activo:', err);
+      // Si es error 401, el token no es válido - no continuar
+      if (err?.response?.status === 401) {
+        setError('Error de autenticación. Por favor, inicia sesión nuevamente.');
+        return;
+      }
+      // Para otros errores, permitir continuar (puede ser que el endpoint no exista aún)
+      onLogin(user);
+    }
+  };
 
   async function handleLogin() {
     if (!email || !password) { setError("Complete todos los campos."); return; }
@@ -696,12 +720,26 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
     setLoading(true); setError("");
     try {
       const data = await login(email, password, recaptchaToken);
-      onLogin({ name: data.nombre, role: data.rol, id: data.id });
+      const user = { name: data.nombre, role: data.rol, id: data.id };
+      
+      // Verificar si tiene turno abierto (solo para cajeros y administradores)
+      if (data.rol === 'cajero' || data.rol === 'administrador') {
+        await checkTurnoActivo(user);
+      } else {
+        onLogin(user);
+      }
     } catch (err: any) {
       loginRecaptchaRef.current?.reset();
       setError(err?.response?.data?.error ?? err?.message ?? "Error al conectar con el servidor.");
     } finally { setLoading(false); }
   }
+
+  const handleAperturaSuccess = () => {
+    setShowAperturaModal(false);
+    if (userData) {
+      onLogin(userData);
+    }
+  };
 
   if (showRecovery) return <RecuperarContrasena onSuccess={() => setShowRecovery(false)} />;
 
@@ -743,6 +781,12 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
           ¿Olvidaste tu contraseña?
         </button>
       </div>
+      
+      <AperturaCajaModal
+        isOpen={showAperturaModal}
+        onClose={() => setShowAperturaModal(false)}
+        onSuccess={handleAperturaSuccess}
+      />
     </AuthCard>
   );
 }
@@ -863,6 +907,7 @@ function Dashboard() {
   const isDark = theme === 'dark';
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([fetchKPIs(), fetchVentasUltimos7Dias(), getProductos()])
       .then(([k, s, productos]) => {
         const processed = s.map((item: { dia: string; ventas: number }) => {
@@ -886,7 +931,19 @@ function Dashboard() {
         setAvgDailySales(processed.length ? totalVentas / processed.length : 0);
         setKpis(k);
       })
-      .catch(console.error)
+      .catch((error) => {
+        console.error('Error al cargar dashboard:', error);
+        // Establecer valores por defecto para que la pantalla cargue
+        setKpis({
+          ingresosHoy: 0,
+          ventasHoy: 0,
+          stockBajo: 0,
+          stockCritico: 0,
+          agotados: 0,
+          porVencer: 0
+        });
+        setSalesData([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -1150,7 +1207,12 @@ function Productos({ user }: { user: User }) {
     try {
       const [prods, provs] = await Promise.all([getProductos(), proveedoresApi.getAll()]);
       setProducts(prods); setSuppliers(provs);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error('Error al cargar Productos:', e);
+      // Establecer valores por defecto para que la pantalla cargue
+      setProducts([]);
+      setSuppliers([]);
+    }
     finally { setLoading(false); }
   }
 
@@ -1783,7 +1845,12 @@ function Ventas({ user }: { user: User }) {
         setProducts(prods.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
         setClients(clts);
       })
-      .catch(console.error);
+      .catch((error) => {
+        console.error('Error al cargar datos iniciales de Ventas:', error);
+        // Establecer valores por defecto para que la pantalla cargue
+        setProducts([]);
+        setClients([]);
+      });
   }, []);
 
   // Escuchar eventos de Socket.io para sincronización en tiempo real
@@ -2688,7 +2755,11 @@ function Clientes({ user }: { user: User }) {
 
   async function load() {
     setLoading(true);
-    try { setClients(await clientesApi.getAll()); } catch (e) { console.error(e); } finally { setLoading(false); }
+    try { setClients(await clientesApi.getAll()); } catch (e) {
+      console.error('Error al cargar Clientes:', e);
+      // Establecer valores por defecto para que la pantalla cargue
+      setClients([]);
+    } finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
 
@@ -3109,7 +3180,11 @@ function Proveedores({ user }: { user: User }) {
   async function load() {
     setLoading(true);
     try { setSuppliers(await proveedoresApi.getAll()); }
-    catch (e) { console.error(e); }
+    catch (e) {
+      console.error('Error al cargar Proveedores:', e);
+      // Establecer valores por defecto para que la pantalla cargue
+      setSuppliers([]);
+    }
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
@@ -3501,7 +3576,11 @@ function Empleados({ user }: { user: User }) {
   async function load() {
     setLoading(true);
     try { setEmpleados(await empleadosApi.getAll()); }
-    catch (e) { console.error(e); }
+    catch (e) {
+      console.error('Error al cargar Empleados:', e);
+      // Establecer valores por defecto para que la pantalla cargue
+      setEmpleados([]);
+    }
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
@@ -4040,7 +4119,11 @@ function Alertas() {
 
   async function load() {
     setLoading(true);
-    try { setProducts(await getProductos()); } catch (e) { console.error(e); } finally { setLoading(false); }
+    try { setProducts(await getProductos()); } catch (e) {
+      console.error('Error al cargar Alertas:', e);
+      // Establecer valores por defecto para que la pantalla cargue
+      setProducts([]);
+    } finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
 
@@ -4286,7 +4369,9 @@ function Historial() {
       setData(res);
       setPage(p);
     } catch (e) {
-      console.error(e);
+      console.error('Error al cargar Historial:', e);
+      // Establecer valores por defecto para que la pantalla cargue
+      setData({ ventas: [], total: 0 });
     } finally {
       setLoading(false);
     }
@@ -4634,7 +4719,11 @@ function Eliminados({ user }: { user: User }) {
   async function load() {
     setLoading(true);
     try { setRecords(await eliminadosApi.getAll()); }
-    catch (e) { console.error(e); }
+    catch (e) {
+      console.error('Error al cargar Eliminados:', e);
+      // Establecer valores por defecto para que la pantalla cargue
+      setRecords([]);
+    }
     finally { setLoading(false); }
   }
 
@@ -4885,7 +4974,9 @@ function Auditoria({ user }: { user: User }) {
       setData({ data: sortedData, total: res.total });
       setPage(p);
     } catch (e) {
-      console.error(e);
+      console.error('Error al cargar Auditoria:', e);
+      // Establecer valores por defecto para que la pantalla cargue
+      setData({ data: [], total: 0 });
     } finally {
       setLoading(false);
     }
