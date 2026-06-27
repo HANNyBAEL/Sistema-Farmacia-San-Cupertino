@@ -5162,6 +5162,7 @@ function Auditoria({ user }: { user: User }) {
 
 // ── App Shell ─────────────────────────────────────────────────────────────────
 function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
+  console.log('AppShell renderizado con user:', user);
   const [screen, setScreen] = useState<Screen>(() => {
     if (user.role === "cajero") return "ventas";
     if (user.role === "farmaceutico") return "productos";
@@ -5308,8 +5309,10 @@ export default function App() {
 
   // Manejar login exitoso
   const handleLogin = (userData: User) => {
+    console.log('Login exitoso, userData:', userData);
     setUser(userData);
     setPantalla('app');
+    console.log('Pantalla establecida a app, user:', userData);
   };
 
   // Manejar logout
@@ -5375,6 +5378,7 @@ export default function App() {
 
   // App normal
   if (user) {
+    console.log('Renderizando AppShell con user:', user);
     return (
       <SocketProvider>
         <AppShell user={user} onLogout={handleLogout} />
