@@ -52,9 +52,9 @@ router.get('/activo', authenticate, async (req, res) => {
 // ─── ABRIR TURNO (APERTURA DE CAJA) ───────────────────────────────────────
 router.post('/abrir', authenticate, authorize(['cajero', 'administrador']), async (req, res) => {
   const { denominaciones } = req.body;
-  const userId = req.user.id;
+  const userId = req.user.id || req.user.id_empleado;
   const userName = req.user.nombre || 'Usuario';
-  const userEmail = req.user.email || 'usuario';
+  const userEmail = req.user.correo || 'usuario';
 
   const transaction = await sequelize.transaction();
 
@@ -210,7 +210,7 @@ router.get('/recaudacion/:idTurno', authenticate, async (req, res) => {
 // ─── CERRAR TURNO (CIERRE DE CAJA) ────────────────────────────────────────
 router.post('/cerrar', authenticate, authorize(['cajero', 'administrador']), async (req, res) => {
   const { id_turno, denominaciones, observaciones } = req.body;
-  const userId = req.user.id;
+  const userId = req.user.id || req.user.id_empleado;
 
   const transaction = await sequelize.transaction();
 
