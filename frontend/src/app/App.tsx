@@ -4352,14 +4352,15 @@ function Historial() {
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const LIMIT = 20;
 
-  async function load(p = 0) {
+  // ✅ Función load que acepta los filtros como parámetros
+  async function load(p = 0, filtros = { from, to, cliente, empleado }) {
     setLoading(true);
     try {
       const res = await getHistorial({
-        from: from || undefined,
-        to: to || undefined,
-        cliente: cliente || undefined,
-        empleado: empleado || undefined,
+        from: filtros.from || undefined,
+        to: filtros.to || undefined,
+        cliente: filtros.cliente || undefined,
+        empleado: filtros.empleado || undefined,
         limit: LIMIT,
         offset: p * LIMIT,
       });
@@ -4367,19 +4368,21 @@ function Historial() {
       setPage(p);
     } catch (e) {
       console.error('Error al cargar Historial:', e);
-      // Establecer valores por defecto para que la pantalla cargue
       setData({ ventas: [], total: 0 });
     } finally {
       setLoading(false);
     }
   }
 
+  // ✅ UN SOLO useEffect que maneja todos los casos
   useEffect(() => {
-    const handler = setTimeout(() => load(0), 300);
+    // Debounce para evitar múltiples llamadas rápidas
+    const handler = setTimeout(() => {
+      load(0, { from, to, cliente, empleado });
+    }, 300);
+    
     return () => clearTimeout(handler);
-  }, [from, to, cliente, empleado]);
-
-  useEffect(() => { load(0); }, []);
+  }, [from, to, cliente, empleado]); // Se ejecuta al montar Y cuando cambian los filtros
 
   useEffect(() => {
     if (toast) {
@@ -4388,11 +4391,18 @@ function Historial() {
     }
   }, [toast]);
 
+  // ✅ Función limpiar que resetea y recarga
   function limpiar() {
     setFrom("");
     setTo("");
     setCliente("");
     setEmpleado("");
+    // No necesitas llamar load() aquí, el useEffect lo hará automáticamente
+  }
+
+  // ✅ Función para paginación que usa los filtros actuales
+  function cambiarPagina(nuevaPagina: number) {
+    load(nuevaPagina, { from, to, cliente, empleado });
   }
 
   async function verDetalle(venta: any) {
@@ -4414,7 +4424,6 @@ function Historial() {
     const venta = detalle.venta;
     const detalleProductos = detalle.detalle;
     
-    // Validar que el cliente tenga correo
     if (!venta.cliente_correo) {
       setToast({ 
         message: "Este cliente no tiene correo electrónico registrado.", 
@@ -4426,15 +4435,12 @@ function Historial() {
     setEnviandoFactura(true);
     
     try {
-      // Construir el objeto datosFactura con la estructura correcta según FacturaData
       const datosFactura: FacturaData = {
         numero_control: venta.numero_control || `DTE-01-${String(venta.id_venta).padStart(8, '0')}`,
         codigo_generacion: venta.codigo_generacion || `${venta.id_venta}-${Date.now()}`,
         sello_recepcion: venta.sello_recepcion,
         ambiente_destino: venta.ambiente_destino || "00",
         fecha_emision: `${venta.fecha} ${venta.hora || '00:00:00'}`,
-        
-        // Datos del receptor/cliente
         receptor: {
           nombre: venta.cliente || "Consumidor Final",
           dui: venta.dui,
@@ -4442,8 +4448,6 @@ function Historial() {
           telefono: venta.cliente_telefono,
           direccion: venta.cliente_direccion,
         },
-        
-        // Líneas de productos mapeadas a la estructura correcta
         items: detalleProductos.map((d: any) => ({
           codigo: d.codigo_producto || d.id_producto,
           descripcion: d.nombre_producto,
@@ -4451,18 +4455,12 @@ function Historial() {
           precio_unitario: Number(d.precio_unitario),
           subtotal: Number(d.subtotal),
         })),
-        
-        // Total
         total: Number(venta.total),
-        
-        // Información del empleado
         empleado: venta.empleado,
       };
       
-      // Generar el PDF en base64 (NO es async, es sincrónico)
       const pdfBase64 = generarFacturaPDFBase64(datosFactura);
       
-      // Enviar el correo con la factura adjunta
       await api.post('/facturas/enviar', {
         email: venta.cliente_correo,
         pdfBase64: pdfBase64,
@@ -4496,7 +4494,6 @@ function Historial() {
       title="Historial de Ventas"
       subtitle={`${data.total} ventas registradas`}
     >
-      {/* ── Filtros (sin SectionCard — botón limpiar SIEMPRE visible) ── */}
       <Card className="p-4">
         <div className="flex flex-wrap gap-3 items-end">
           <div className="w-36">
@@ -4527,7 +4524,6 @@ function Historial() {
         </div>
       </Card>
 
-      {/* ── Tabla ── */}
       <SectionCard title="Ventas registradas" className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -4574,19 +4570,17 @@ function Historial() {
           )}
         </div>
 
-        {/* Paginación */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <span className="text-xs text-muted-foreground">Página {page + 1} de {totalPages}</span>
             <div className="flex gap-2">
-              <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => load(page - 1)}>← Anterior</Btn>
-              <Btn variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => load(page + 1)}>Siguiente →</Btn>
+              <Btn variant="secondary" size="sm" disabled={page === 0} onClick={() => cambiarPagina(page - 1)}>← Anterior</Btn>
+              <Btn variant="secondary" size="sm" disabled={page >= totalPages - 1} onClick={() => cambiarPagina(page + 1)}>Siguiente →</Btn>
             </div>
           </div>
         )}
       </SectionCard>
 
-      {/* ── Modal detalle ── */}
       {detalle && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDetalle(null)}>
           <Card className="w-full max-w-xl max-h-[85vh] overflow-y-auto p-0" onClick={e => e.stopPropagation()}>
@@ -4680,7 +4674,6 @@ function Historial() {
         </div>
       )}
 
-      {/* ── Toast ── */}
       {toast && (
         <div className={`fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
           toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
