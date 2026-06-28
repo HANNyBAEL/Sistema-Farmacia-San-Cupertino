@@ -50,6 +50,13 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, autoDownloa
 
   const dateOnly = (value: string) => {
     if (!value) return 'N/A';
+    // Parsear fecha en formato YYYY-MM-DD directamente para evitar problemas de zona horaria
+    const parts = value.split(' ')[0].split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      return `${day}/${month}/${year}`;
+    }
+    // Fallback si el formato es diferente
     return new Date(value).toLocaleDateString('es-SV', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
