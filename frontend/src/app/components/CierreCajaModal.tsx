@@ -262,7 +262,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden p-0">
+        <DialogContent className={`${paso === 'revision' ? 'max-w-2xl' : 'max-w-6xl'} max-h-[92vh] overflow-hidden p-0`}>
           <DialogHeader className="border-b bg-slate-50 px-6 py-5">
             <DialogTitle className="text-xl font-semibold text-slate-950">
               {paso === 'conteo' ? 'Conteo final de caja' : 'Revision de cierre'}
@@ -275,48 +275,48 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="flex max-h-[calc(92vh-96px)] flex-col">
-            <div className={`grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-y-auto ${paso === 'revision' ? 'lg:grid-cols-[minmax(0,1.1fr)_360px]' : ''}`}>
-              <div className="px-6 py-5">
-                <div className="overflow-hidden rounded-md border border-slate-200">
-                  <table className="w-full border-collapse text-sm">
-                    <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-semibold">Denominacion</th>
-                        <th className="px-4 py-3 text-center font-semibold">Cantidad</th>
-                        <th className="px-4 py-3 text-right font-semibold">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {denominaciones.map((denominacion, index) => (
-                        <tr key={denominacion.valor} className="border-t border-slate-200">
-                          <td className="px-4 py-2.5 font-medium text-slate-900">
-                            {denominacion.etiqueta}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <Input
-                              id={`denom-cierre-${index}`}
-                              type="number"
-                              min="0"
-                              step="1"
-                              inputMode="numeric"
-                              value={denominacion.cantidad || ''}
-                              onChange={(e) => handleCantidadChange(index, e.target.value)}
-                              placeholder="0"
-                              className="mx-auto h-9 w-28 text-center"
-                            />
-                          </td>
-                          <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-slate-900">
-                            {formatCurrency(denominacion.monto)}
-                          </td>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {paso === 'conteo' ? (
+                <div className="px-6 py-5">
+                  <div className="overflow-hidden rounded-md border border-slate-200">
+                    <table className="w-full border-collapse text-sm">
+                      <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-semibold">Denominacion</th>
+                          <th className="px-4 py-3 text-center font-semibold">Cantidad</th>
+                          <th className="px-4 py-3 text-right font-semibold">Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {denominaciones.map((denominacion, index) => (
+                          <tr key={denominacion.valor} className="border-t border-slate-200">
+                            <td className="px-4 py-2.5 font-medium text-slate-900">
+                              {denominacion.etiqueta}
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <Input
+                                id={`denom-cierre-${index}`}
+                                type="number"
+                                min="0"
+                                step="1"
+                                inputMode="numeric"
+                                value={denominacion.cantidad || ''}
+                                onChange={(e) => handleCantidadChange(index, e.target.value)}
+                                placeholder="0"
+                                className="mx-auto h-9 w-28 text-center"
+                              />
+                            </td>
+                            <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-slate-900">
+                              {formatCurrency(denominacion.monto)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-
-              {paso === 'revision' && (
-              <aside className="border-t bg-white px-6 py-5 lg:border-l lg:border-t-0">
+              ) : (
+              <div className="bg-white px-6 py-5">
                 <div className="space-y-4">
                   <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3">
                     <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900">
@@ -371,7 +371,7 @@ export const CierreCajaModal: React.FC<CierreCajaModalProps> = ({
                     />
                   </div>
                 </div>
-              </aside>
+              </div>
               )}
             </div>
 
