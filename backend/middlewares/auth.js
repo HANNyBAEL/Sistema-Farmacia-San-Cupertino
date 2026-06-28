@@ -27,6 +27,7 @@ export const authenticate = async (req, res, next) => {
     }
 
     req.user = empleado;
+    req.auth = decoded;
     next();
   } catch (err) {
     console.error('❌ [Auth] Error en autenticación:', err.message);
@@ -41,7 +42,12 @@ export const authorize = (rolesPermitidos = []) => {
     }
 
     const normalizeRole = (role) => String(role || '').trim().toLowerCase();
-    const userRole = normalizeRole(req.user.cargo);
+    const userRole = normalizeRole(
+      req.user.cargo ??
+      req.user.dataValues?.cargo ??
+      req.auth?.cargo ??
+      req.auth?.rol
+    );
     const allowedRoles = rolesPermitidos.map(normalizeRole);
 
     if (rolesPermitidos.length === 0) {

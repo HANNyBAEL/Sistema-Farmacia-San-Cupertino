@@ -645,10 +645,11 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
     setLoading(true); setError("");
     try {
       const data = await login(email, password);
-      const user = { name: data.nombre, role: data.rol, id: data.id };
+      const rol = String(data.rol || '').trim().toLowerCase() as Role;
+      const user = { name: data.nombre, role: rol, id: data.id };
       
       // Verificar turno abierto solo para cajeros.
-      if (data.rol === 'cajero') {
+      if (rol === 'cajero') {
         await checkTurnoActivo(user);
       } else {
         onLogin(user);

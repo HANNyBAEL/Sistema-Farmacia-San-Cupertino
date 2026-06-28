@@ -27,15 +27,17 @@ router.post('/login', async (req, res) => {
     const valid = await bcrypt.compare(contraseña, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Credenciales inválidas' });
 
+    const cargoNormalizado = String(user.cargo || '').trim().toLowerCase();
+
     const token = jwt.sign(
-      { id: user.id_empleado, rol: user.cargo, token_version: user.token_version },
+      { id: user.id_empleado, rol: cargoNormalizado, cargo: cargoNormalizado, token_version: user.token_version },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
 
     res.json({
       token,
-      rol: user.cargo,
+      rol: cargoNormalizado,
       nombre: `${user.nombre} ${user.apellido}`,
       id: user.id_empleado,
     });
