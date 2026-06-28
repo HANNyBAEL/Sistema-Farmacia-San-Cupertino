@@ -130,6 +130,11 @@ router.put('/:id', async (req, res) => {
     const correoNormalizado = validateEmailOrThrow(correo);
     await ensureEmailIsUnique(sequelize, 'empleados', correoNormalizado, 'id_empleado', req.params.id);
 
+    // Impedir que un administrador se desactive a sí mismo
+    if (activo !== undefined && activo === 0 && Number(req.params.id) === Number(id_empleado_sesion)) {
+      return res.status(400).json({ error: 'No puedes desactivarte a ti mismo.' });
+    }
+
     const [anterior] = await sequelize.query(
       'SELECT nombre, apellido, correo, telefono, cargo, fecha_contratacion, activo, dui, nit, cuenta_banco, afp, token_version FROM empleados WHERE id_empleado = :id',
       { replacements: { id: Number(req.params.id) }, type: sequelize.QueryTypes.SELECT }

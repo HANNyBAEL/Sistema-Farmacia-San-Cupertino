@@ -1415,9 +1415,7 @@ function Productos({ user }: { user: User }) {
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor</label>
                 <Select value={filterProveedor} onChange={setFilterProveedor} className="w-full">
                   <option value="">Todos</option>
-                  {suppliers
-                    .filter(s => s.deleted === 0)
-                    .map(s => (
+                  {suppliers.map(s => (
                       <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
                     ))}
                 </Select>
@@ -1635,9 +1633,7 @@ function Productos({ user }: { user: User }) {
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor *</label>
                 <Select value={form.id_proveedor} onChange={v => setForm(p => ({ ...p, id_proveedor: v }))} className="w-full">
                   <option value="">Seleccionar proveedor...</option>
-                  {suppliers
-                    .filter(s => s.deleted === 0)
-                    .map(s => (
+                  {suppliers.map(s => (
                       <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
                     ))}
                 </Select>
@@ -1773,6 +1769,19 @@ function Ventas({ user }: { user: User }) {
     return `${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
   }
 
+  function descargarJson(nombreArchivo: string, data: unknown) {
+    const jsonData = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombreArchivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   useEffect(() => {
     Promise.all([getProductos(), clientesApi.getAll()])
       .then(([prods, clts]) => {
@@ -1891,11 +1900,12 @@ function Ventas({ user }: { user: User }) {
     })
     .slice(0, 6);
 
-  const [facturaModal, setFacturaModal] = useState<{ show: boolean; onConfirm: () => void; onCancel: () => void }>({
+  const [facturaModal, setFacturaModal] = useState<{ show: boolean; onConfirm: (emitirElectronica: boolean) => void; onCancel: () => void }>({
     show: false,
     onConfirm: () => {},
     onCancel: () => {},
   });
+  const [generarFacturaElectronica, setGenerarFacturaElectronica] = useState(true);
 
   function addToCart(p: Product) {
     if (p.papelera || p.deleted === 1) {
@@ -2058,9 +2068,11 @@ function Ventas({ user }: { user: User }) {
         setTimeout(() => setSaleDone(false), 3000);
       };
 
-      const generarFactura = async () => {
+      const generarFactura = async (emitirElectronica = true) => {
         try {
-          const { numero_control } = await getSiguienteCorrelativo();
+          const { numero_control } = emitirElectronica
+            ? await getSiguienteCorrelativo()
+            : { numero_control: `LOCAL-${String(ventaResp.id_venta).padStart(8, '0')}` };
           // Generate UUIDv4 format (36 characters with hyphens)
           const generateUUIDv4 = (): string => {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -2079,16 +2091,18 @@ function Ventas({ user }: { user: User }) {
             return `${year}DTE${tipoDoc}${correlativo}${randomPart}`;
           };
           const sello_recepcion = generateSelloRecepcion(numero_control);
-          await guardarFactura({
-            numero_control,
-            codigo_generacion,
-            id_venta: ventaResp.id_venta,
-            id_cliente: id_cliente,
-            fecha_emision: fechaHoraLocal,
-            total: ventaResp.total,
-            sello_recepcion,
-            ambiente_destino: '00',
-          });
+          if (emitirElectronica) {
+            await guardarFactura({
+              numero_control,
+              codigo_generacion,
+              id_venta: ventaResp.id_venta,
+              id_cliente: id_cliente,
+              fecha_emision: fechaHoraLocal,
+              total: ventaResp.total,
+              sello_recepcion,
+              ambiente_destino: '00',
+            });
+          }
 
           // =====================================================================
           // GENERAR PDF EN BASE64 Y ENVIAR POR CORREO
@@ -2226,7 +2240,7 @@ function Ventas({ user }: { user: User }) {
             firmaElectronica: 'eyJhbGciOiJSUzUxMiJ9.estafirmaelectronicasoloesunaprueba'
           };
 
-          if (!esClienteAnonimo && clienteCorreo && !clienteCorreo.includes('object') && clienteCorreo.includes('@')) {
+          if (emitirElectronica && !esClienteAnonimo && clienteCorreo && !clienteCorreo.includes('object') && clienteCorreo.includes('@')) {
             try {
               console.log('Generando PDF para factura...');
               const pdfBase64 = generarFacturaPDFBase64(datosFactura);
@@ -2254,27 +2268,37 @@ function Ventas({ user }: { user: User }) {
               console.error("Error message:", emailErr?.message);
               setToast({ message: `Error: ${emailErr?.response?.data?.error || emailErr?.message || 'Error al enviar correo'}`, type: 'error' });
             }
+          } else if (!emitirElectronica) {
+            setToast({ message: "Factura electronica omitida. Archivos descargados.", type: 'success' });
           } else if (esClienteAnonimo) {
-            setToast({ message: "Factura generada para cliente anónimo.", type: 'success' });
+            setToast({ message: "Factura generada para cliente anonimo.", type: 'success' });
           } else {
-            setToast({ message: "El cliente no tiene correo electrónico válido.", type: 'error' });
+            setToast({ message: "Factura generada. No se envio correo porque el cliente no tiene correo electronico.", type: 'success' });
           }
           // =====================================================================
 
           // Generar el PDF visual para descarga local
           generarFacturaPDF(datosFactura);
 
-          // Descargar JSON siempre
-          const jsonData = JSON.stringify(datosFactura, null, 2);
-          const blob = new Blob([jsonData], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `Factura_${numero_control.split("-").pop()}_${fechaHoraLocal.split(" ")[0].replace(/-/g, "")}.json`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          const numeroArchivo = numero_control.split("-").pop();
+          const fechaArchivo = fechaHoraLocal.split(" ")[0].replace(/-/g, "");
+
+          // Descargar JSON de factura y JSON de respuesta/validacion
+          descargarJson(`Factura_${numeroArchivo}_${fechaArchivo}.json`, datosFactura);
+          descargarJson(`Respuesta_${numeroArchivo}_${fechaArchivo}.json`, {
+            id_venta: ventaResp.id_venta,
+            numero_control,
+            codigo_generacion,
+            sello_recepcion: emitirElectronica ? sello_recepcion : null,
+            factura_electronica_generada: emitirElectronica,
+            envio_correo_intentado: emitirElectronica && !esClienteAnonimo && !!clienteCorreo && !clienteCorreo.includes('object') && clienteCorreo.includes('@'),
+            correo_cliente: clienteCorreo || null,
+            estado: emitirElectronica ? 'VALIDACION_LOCAL_GENERADA' : 'EMISION_ELECTRONICA_OMITIDA',
+            mensaje: emitirElectronica
+              ? 'Documento fiscal generado y registrado localmente.'
+              : 'No se realizo emision ni envio de factura electronica por decision del usuario.',
+            fecha: fechaHoraLocal,
+          });
 
         } catch (fe) {
           console.error("Error generando factura:", fe);
@@ -2283,14 +2307,15 @@ function Ventas({ user }: { user: User }) {
       };
 
       if (generarFacturaAutomaticamente) {
-        await generarFactura();
+        await generarFactura(true);
         await finalizarVentaExitosa();
       } else {
+        setGenerarFacturaElectronica(true);
         setFacturaModal({
           show: true,
-          onConfirm: async () => {
+          onConfirm: async (emitirElectronica: boolean) => {
             setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
-            await generarFactura();
+            await generarFactura(emitirElectronica);
             await finalizarVentaExitosa();
           },
           onCancel: () => {
@@ -2306,11 +2331,11 @@ function Ventas({ user }: { user: User }) {
   }
 
   async function guardarNuevoCliente() {
-    if (!newClientForm.nombre || !newClientForm.apellido || !newClientForm.telefono) {
-      setNewClientError("Nombre, apellido y teléfono son obligatorios.");
+    if (!newClientForm.nombre.trim() || !newClientForm.dui.trim()) {
+      setNewClientError("Nombre completo y DUI son obligatorios.");
       return;
     }
-    if (!newClientForm.correo || !isValidEmail(newClientForm.correo)) {
+    if (newClientForm.correo && !isValidEmail(newClientForm.correo)) {
       setNewClientError("Ingresa un correo electronico valido.");
       return;
     }
@@ -2329,7 +2354,7 @@ function Ventas({ user }: { user: User }) {
       const creado = clts.find((c: Client) =>
         c.nombre === newClientForm.nombre &&
         c.apellido === newClientForm.apellido &&
-        c.telefono.replace(/\D/g, '') === newClientForm.telefono.replace(/\D/g, '')
+        (c.dui ?? '').replace(/\D/g, '') === newClientForm.dui.replace(/\D/g, '')
       );
       if (creado) setSelectedClient(creado);
       setShowNewClient(false);
@@ -2414,15 +2439,13 @@ function Ventas({ user }: { user: User }) {
               </div>
               <h2 className="text-lg font-bold text-foreground">Cliente no seleccionado</h2>
             </div>
-            <p className="text-foreground mb-4">¿Desea realizar la venta para cliente anónimo?</p>
+            <p className="text-foreground mb-4">Desea realizar la venta para cliente anonimo?</p>
             <div className="flex justify-end gap-3">
               <Btn variant="secondary" onClick={() => setNoClientModal(false)}>Cancelar</Btn>
               <Btn variant="primary" onClick={() => {
                 setNoClientModal(false);
-                procesarVenta(1, true); // ID 1 = cliente anónimo, true = generar factura automáticamente
-              }}>
-                Aceptar
-              </Btn>
+                procesarVenta(1, true);
+              }}>Si, continuar</Btn>
             </div>
           </Card>
         </div>
@@ -2438,7 +2461,7 @@ function Ventas({ user }: { user: User }) {
               </div>
               <h2 className="text-lg font-bold text-foreground">Venta requiere cliente registrado</h2>
             </div>
-            <p className="text-foreground mb-2">Las ventas con un total mayor a $25,000.00 no pueden realizarse con cliente anónimo.</p>
+            <p className="text-foreground mb-2">Las ventas con un total mayor a $25,000.00 no pueden realizarse con cliente anonimo.</p>
             <p className="text-foreground mb-4">El total de esta venta es <span className="font-bold text-primary">${total.toFixed(2)}</span>. Por favor, seleccione un cliente registrado para continuar.</p>
             <div className="flex justify-end gap-3">
               <Btn variant="primary" onClick={() => setHighValueNoClientModal(false)}>Entendido</Btn>
@@ -2457,15 +2480,22 @@ function Ventas({ user }: { user: User }) {
               </div>
               <h2 className="text-lg font-bold text-foreground">Generar Factura</h2>
             </div>
-            <p className="text-foreground mb-4">¿Desea generar factura electrónica para esta venta?</p>
+            <label className="flex items-center gap-3 text-sm text-foreground mb-4 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={generarFacturaElectronica}
+                onChange={e => setGenerarFacturaElectronica(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <span>Generar factura electronica</span>
+            </label>
             <div className="flex justify-end gap-3">
               <Btn variant="secondary" onClick={facturaModal.onCancel}>Cancelar</Btn>
-              <Btn variant="primary" onClick={facturaModal.onConfirm}>Sí, generar</Btn>
+              <Btn variant="primary" onClick={() => facturaModal.onConfirm(generarFacturaElectronica)}>Continuar</Btn>
             </div>
           </Card>
         </div>
       )}
-
       {/* Escáner */}
       {showScanner && (
         <EscanerCodigoBarras
@@ -2494,7 +2524,7 @@ function Ventas({ user }: { user: User }) {
                   <Input value={newClientForm.nombre} onChange={v => setNewClientForm(p => ({ ...p, nombre: v }))} placeholder="Nombre" className="w-full" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido</label>
                   <Input value={newClientForm.apellido} onChange={v => setNewClientForm(p => ({ ...p, apellido: v }))} placeholder="Apellido" className="w-full" />
                 </div>
               </div>
@@ -2509,7 +2539,7 @@ function Ventas({ user }: { user: User }) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Telefono</label>
                 <input
                   value={formatPhone(newClientForm.telefono)}
                   onChange={e => setNewClientForm(prev => ({ ...prev, telefono: e.target.value }))}
@@ -2519,7 +2549,7 @@ function Ventas({ user }: { user: User }) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo *</label>
                 <Input type="email" value={newClientForm.correo} onChange={v => setNewClientForm(p => ({ ...p, correo: v }))} placeholder="correo@ejemplo.com" className="w-full" />
               </div>
               <div>
@@ -2802,22 +2832,22 @@ function Clientes({ user }: { user: User }) {
 
   async function saveForm() {
     if (editClient && !hasChanges()) return;
-    if (!form.nombre || !form.apellido || !form.telefono || !form.correo) {
-      setFormError("Complete los campos obligatorios."); return;
+    if (!form.nombre.trim() || !form.dui.trim()) {
+      setFormError("Nombre completo y DUI son obligatorios."); return;
     }
     // Validar que nombre y apellido no contengan números
     if (/\d/.test(form.nombre) || /\d/.test(form.apellido)) {
       setFormError("Nombre y apellido no deben contener números."); return;
     }
-    if (!isValidEmail(form.correo)) {
+    if (form.correo && !isValidEmail(form.correo)) {
       setFormError("Ingresa un correo electronico valido."); return;
     }
     // Validar formato de teléfono
-    if (!isValidPhoneFormat(form.telefono)) {
+    if (form.telefono && !isValidPhoneFormat(form.telefono)) {
       setFormError("El teléfono debe tener el formato 0000-0000."); return;
     }
     // Validar formato de DUI si se proporcionó
-    if (form.dui && !isValidDUIFormat(form.dui)) {
+    if (!isValidDUIFormat(form.dui)) {
       setFormError("El DUI debe tener el formato 00000000-0."); return;
     }
     try {
@@ -3049,7 +3079,7 @@ function Clientes({ user }: { user: User }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Apellido</label>
                   <Input 
                     value={form.apellido} 
                     onChange={v => setForm(p => ({ ...p, apellido: validateNameSurname(v) }))} 
@@ -3058,7 +3088,7 @@ function Clientes({ user }: { user: User }) {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI <span className="font-normal text-muted-foreground">(00000000-0)</span></label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">DUI * <span className="font-normal text-muted-foreground">(00000000-0)</span></label>
                 <input
                   value={form.dui}
                   onChange={e => setForm(prev => ({ ...prev, dui: formatDUI(e.target.value) }))}
@@ -3068,7 +3098,7 @@ function Clientes({ user }: { user: User }) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Teléfono * <span className="font-normal text-muted-foreground">(0000-0000)</span></label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Telefono <span className="font-normal text-muted-foreground">(0000-0000)</span></label>
                 <input
                   value={form.telefono}
                   onChange={e => setForm(prev => ({ ...prev, telefono: validatePhone(e.target.value) }))}
@@ -3078,7 +3108,7 @@ function Clientes({ user }: { user: User }) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Correo</label>
                 <Input type="email" value={form.correo} onChange={v => setForm(p => ({ ...p, correo: v }))} placeholder="correo@ejemplo.com" />
               </div>
               <div>
@@ -3732,6 +3762,11 @@ function Empleados({ user }: { user: User }) {
 
   async function confirmToggle() {
     if (toggleModal.empleadoId === null) return;
+    if (toggleModal.empleadoId === user.id && toggleModal.activo === 1) {
+      setToggleModal({ isOpen: false, empleadoId: null, activo: 0 });
+      setToast({ message: "No puedes desactivarte a ti mismo.", type: 'error' });
+      return;
+    }
     try {
       const emp = empleados.find(e => e.id_empleado === toggleModal.empleadoId);
       if (!emp) return;
@@ -3756,6 +3791,11 @@ function Empleados({ user }: { user: User }) {
 
   async function confirmDelete() {
     if (confirmModal.empleadoId === null) return;
+    if (confirmModal.empleadoId === user.id) {
+      setConfirmModal({ isOpen: false, empleadoId: null });
+      setToast({ message: "No puedes eliminarte a ti mismo.", type: 'error' });
+      return;
+    }
     try {
       await api.delete(`/empleados/${confirmModal.empleadoId}`, {
         data: { id_empleado_sesion: user.id, nombre_empleado_sesion: user.name }
@@ -4123,7 +4163,7 @@ function Alertas() {
     { id: "agotado", label: "Agotados", count: agotados.length, active: "bg-destructive/10 text-destructive" },
     { id: "critico", label: "Críticos", count: criticos.length, active: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400" },
     { id: "bajo", label: "Bajo (11-20)", count: bajos.length, active: "bg-amber-50/50 text-amber-700 dark:bg-amber-900/10 dark:text-amber-400" },
-    { id: "vencer", label: "Próx. vencer", count: vencer.length, active: "bg-primary/10 text-primary" },
+    { id: "vencer", label: "Próximo a vencer", count: vencer.length, active: "bg-primary/10 text-primary" },
     { id: "vencido", label: "Vencidos", count: vencidos.length, active: "bg-destructive/10 text-destructive" },
   ];
 
@@ -4160,14 +4200,14 @@ function Alertas() {
     { label: "Agotados", value: agotados.length, cls: "bg-destructive/10 text-destructive border-destructive/20" },
     { label: "Críticos", value: criticos.length, cls: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 border-amber-100 dark:border-amber-900/30" },
     { label: "Stock Bajo", value: bajos.length, cls: "bg-primary/10 text-primary border-primary/20" },
-    { label: "Próx. Vencer", value: vencer.length, cls: "bg-primary/5 text-primary/80 border-primary/10" },
+    { label: "Próximo a vencer", value: vencer.length, cls: "bg-primary/5 text-primary/80 border-primary/10" },
     { label: "Vencidos", value: vencidos.length, cls: "bg-destructive/10 text-destructive border-destructive/20" },
   ];
 
   return (
     <PageLayout
       title="Alertas de Stock"
-      subtitle={`${agotados.length} agotados · ${criticos.length} críticos · ${bajos.length} bajos · ${vencer.length} próx. vencer · ${vencidos.length} vencidos`}
+      subtitle={`${agotados.length} agotados · ${criticos.length} críticos · ${bajos.length} bajos · ${vencer.length} próximo a vencer · ${vencidos.length} vencidos`}
       actions={
         <Btn variant="secondary" onClick={load}><RefreshCw size={14} /> Actualizar</Btn>
       }
@@ -4255,7 +4295,7 @@ function Alertas() {
                       ) : p.stock === 0 || p.stock <= 20 ? (
                         <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${stockBadgeCls(p.stock)}`}>{stockLabel(p.stock)}</span>
                       ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-primary/10 text-primary">Próx. vencer</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-primary/10 text-primary">Próximo a vencer</span>
                       )}
                     </td>
                     {(tab === "agotado" || tab === "critico" || tab === "bajo") ? (

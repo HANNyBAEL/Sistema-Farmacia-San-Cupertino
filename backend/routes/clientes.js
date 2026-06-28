@@ -48,13 +48,19 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const { nombre, apellido, telefono, correo, direccion, dui, id_empleado, nombre_empleado } = req.body;
   try {
-    const correoNormalizado = validateEmailOrThrow(correo);
-    await ensureEmailIsUnique(sequelize, 'clientes', correoNormalizado, 'id_cliente');
+    if (!String(nombre || '').trim() || !String(dui || '').trim()) {
+      return res.status(400).json({ error: 'Nombre y DUI son obligatorios.' });
+    }
+
+    const correoNormalizado = validateEmailOrThrow(correo, { required: false });
+    if (correoNormalizado) {
+      await ensureEmailIsUnique(sequelize, 'clientes', correoNormalizado, 'id_cliente');
+    }
 
     const [result] = await sequelize.query(
       `INSERT INTO clientes (nombre, apellido, telefono, correo, direccion, dui, deleted)
        VALUES (:nombre, :apellido, :telefono, :correo, :direccion, :dui, 0)`,
-      { replacements: { nombre, apellido, telefono, correo: correoNormalizado, direccion: direccion || null, dui: dui || null } }
+      { replacements: { nombre, apellido: apellido || '', telefono: telefono || null, correo: correoNormalizado, direccion: direccion || null, dui } }
     );
     await registrarAuditoria({
       tabla: 'clientes', accion: 'CREAR',
@@ -85,6 +91,10 @@ router.put('/:id', async (req, res) => {
       return res.status(403).json({ error: 'No se puede editar el cliente anónimo.' });
     }
 
+    if (!String(nombre || '').trim() || !String(dui || '').trim()) {
+      return res.status(400).json({ error: 'Nombre y DUI son obligatorios.' });
+    }
+
     const correoNormalizado = validateEmailOrThrow(correo, { required: false });
     if (correoNormalizado) {
       await ensureEmailIsUnique(sequelize, 'clientes', correoNormalizado, 'id_cliente', req.params.id);
@@ -98,7 +108,7 @@ router.put('/:id', async (req, res) => {
     await sequelize.query(
       `UPDATE clientes SET nombre=:nombre, apellido=:apellido, telefono=:telefono,
        correo=:correo, direccion=:direccion, dui=:dui WHERE id_cliente=:id`,
-      { replacements: { nombre, apellido, telefono, correo: correoNormalizado, direccion: direccion || null, dui: dui || null, id: clienteId } }
+      { replacements: { nombre, apellido: apellido || '', telefono: telefono || null, correo: correoNormalizado, direccion: direccion || null, dui, id: clienteId } }
     );
 
     const campos = [

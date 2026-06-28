@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
 // Enviar factura con PDF adjunto
 router.post('/enviar', async (req, res) => {
   try {
-    const { email, pdfBase64, numero_control, codigo_generacion, total, cliente } = req.body;
+    const { email, pdfBase64, jsonBase64, numero_control, codigo_generacion, total, cliente } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'No se proporcionó correo del cliente' });
@@ -46,6 +46,7 @@ router.post('/enviar', async (req, res) => {
     const resultado = await enviarFacturaPorCorreo({
       email,
       pdfBase64,
+      jsonBase64,
       numero_control,
       codigo_generacion,
       total,

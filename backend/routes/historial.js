@@ -15,8 +15,8 @@ router.get('/', async (req, res) => {
 
   if (from)      { where += ' AND v.fecha >= ?'; replacements.push(`${from} 00:00:00`); }
   if (to)        { where += ' AND v.fecha <= ?'; replacements.push(`${to} 23:59:59`); }
-  if (cliente)   { where += ' AND CONCAT(c.nombre, " ", c.apellido) LIKE ?'; replacements.push(`${cliente}%`); }
-  if (empleado)  { where += ' AND CONCAT(e.nombre, " ", e.apellido) LIKE ?'; replacements.push(`${empleado}%`); }
+  if (cliente)   { where += ' AND CONCAT(c.nombre, " ", c.apellido) LIKE ?'; replacements.push(`%${cliente}%`); }
+  if (empleado)  { where += ' AND CONCAT(e.nombre, " ", e.apellido) LIKE ?'; replacements.push(`%${empleado}%`); }
   if (total_min) { where += ' AND v.total >= ?'; replacements.push(parseFloat(total_min)); }
   if (total_max) { where += ' AND v.total <= ?'; replacements.push(parseFloat(total_max)); }
 
