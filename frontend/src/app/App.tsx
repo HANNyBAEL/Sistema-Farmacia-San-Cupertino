@@ -1110,6 +1110,7 @@ function Productos({ user }: { user: User }) {
     lote:"", fecha_vencimiento:"", id_proveedor:"", codigo_barras:""
   });
   const [originalSelectedCats, setOriginalSelectedCats] = useState<number[]>([]);
+  const [expandedCategoryProductId, setExpandedCategoryProductId] = useState<number | null>(null);
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -1497,16 +1498,24 @@ function Productos({ user }: { user: User }) {
                           <div className="flex items-center gap-0.5 flex-wrap">
                             <span className="inline-block bg-primary/10 text-primary text-xs px-1.5 py-0.5 rounded truncate max-w-full">{primera}</span>
                             {resto.length > 0 && (
-                              <div className="relative group">
-                                <button className="inline-flex items-center justify-center w-5 h-5 bg-primary/15 text-primary text-[10px] rounded-full font-bold hover:bg-primary/25 transition-colors flex-shrink-0">
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedCategoryProductId(prev => prev === p.id_producto ? null : p.id_producto)}
+                                  className="inline-flex items-center justify-center w-5 h-5 bg-primary/15 text-primary text-[10px] rounded-full font-bold hover:bg-primary/25 transition-colors flex-shrink-0"
+                                  title="Ver todas las categorias"
+                                  aria-label={`Ver todas las categorias de ${p.nombre_producto}`}
+                                >
                                   +{resto.length}
                                 </button>
-                                <div className="absolute left-0 top-6 z-50 hidden group-hover:block bg-card border border-border rounded-lg shadow-lg p-2 min-w-max">
-                                  <p className="text-[10px] font-semibold text-muted-foreground mb-1">Otras categorías:</p>
-                                  {resto.map((cat: string, i: number) => (
-                                    <div key={i} className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded mb-0.5">{cat}</div>
-                                  ))}
-                                </div>
+                                {expandedCategoryProductId === p.id_producto && (
+                                  <div className="absolute left-0 top-6 z-50 bg-card border border-border rounded-lg shadow-lg p-2 min-w-max">
+                                    <p className="text-[10px] font-semibold text-muted-foreground mb-1">Todas las categorías:</p>
+                                    {cats.map((cat: string, i: number) => (
+                                      <div key={i} className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded mb-0.5">{cat}</div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

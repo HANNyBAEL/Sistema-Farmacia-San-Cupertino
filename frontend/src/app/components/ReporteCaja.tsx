@@ -131,6 +131,18 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, autoDownloa
       doc.setTextColor(20);
       y += 5.8;
     };
+    const blueTotalRow = (label: string, value: number | string, showCurrencySymbol = true) => {
+      rect(left, y, 104, 6.5, BLUE);
+      rect(left + 104, y, 56, 6.5, BLUE);
+      doc.setTextColor(255);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(10.5);
+      text(label, left + 102, y + 4.8, { align: 'right' });
+      if (showCurrencySymbol) text('$', left + 108, y + 4.8);
+      text(typeof value === 'number' ? money(value) : value, left + 154, y + 4.8, { align: 'right' });
+      doc.setTextColor(20);
+      y += 6.5;
+    };
 
     doc.setDrawColor(0);
     doc.setLineWidth(0.35);
@@ -218,14 +230,11 @@ export const ReporteCaja: React.FC<ReporteCajaProps> = ({ turnoData, autoDownloa
     summaryRow('TOTAL', Number(turnoData.caja_inicial || 0) + Number(turnoData.recaudacion_total || 0));
     y += 6;
 
-    rect(left, y, 104, 6.5, BLUE);
-    rect(left + 104, y, 56, 6.5, BLUE);
-    doc.setTextColor(255);
-    doc.setFontSize(10.5);
-    text('DIFERENCIA DE CAJA', left + 2, y + 4.8);
-    text(diferenciaTexto(), left + 132, y + 4.8, { align: 'center' });
-    doc.setTextColor(20);
-    y += 18;
+    const totalEsperadoCaja = Number(turnoData.caja_inicial || 0) + Number(turnoData.total_efectivo || 0);
+    blueTotalRow('TOTAL ESPERADO EN CAJA', totalEsperadoCaja);
+    blueTotalRow('TOTAL EN CAJA', turnoData.caja_final);
+    blueTotalRow('DIFERENCIA DE CAJA', diferenciaTexto(), false);
+    y += 11.5;
 
     ensureSpace(58);
     section('OBSERVACIONES/INCIDENTES', 6.5);
