@@ -1776,7 +1776,8 @@ function Ventas({ user }: { user: User }) {
   useEffect(() => {
     Promise.all([getProductos(), clientesApi.getAll()])
       .then(([prods, clts]) => {
-        setProducts(prods.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+        const activeProducts = prods.filter((p: Product) => p.deleted === 0);
+        setProducts(activeProducts.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
         setClients(clts);
       })
       .catch((error) => {
@@ -1794,21 +1795,24 @@ function Ventas({ user }: { user: User }) {
     const handleVentaCreada = () => {
       console.log('🔄 Venta creada por otro usuario, recargando productos...');
       getProductos().then(prods => {
-        setProducts(prods.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+        const activeProducts = prods.filter((p: Product) => p.deleted === 0);
+        setProducts(activeProducts.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
       }).catch(console.error);
     };
 
     const handleProductoActualizado = () => {
       console.log('🔄 Producto actualizado por otro usuario, recargando...');
       getProductos().then(prods => {
-        setProducts(prods.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+        const activeProducts = prods.filter((p: Product) => p.deleted === 0);
+        setProducts(activeProducts.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
       }).catch(console.error);
     };
 
     const handleProductoEstadoCambiado = () => {
       console.log('🔄 Estado de producto cambiado por otro usuario, recargando...');
       getProductos().then(prods => {
-        setProducts(prods.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+        const activeProducts = prods.filter((p: Product) => p.deleted === 0);
+        setProducts(activeProducts.sort((a: { nombre_producto: string; }, b: { nombre_producto: any; }) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
       }).catch(console.error);
     };
 
@@ -2049,7 +2053,8 @@ function Ventas({ user }: { user: User }) {
         setSelectedClient(null);
         setClientSearch("");
         const prods = await getProductos();
-        setProducts([...prods].sort((a, b) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
+        const activeProducts = prods.filter((p: Product) => p.deleted === 0);
+        setProducts([...activeProducts].sort((a, b) => a.nombre_producto.localeCompare(b.nombre_producto, 'es')));
         setTimeout(() => setSaleDone(false), 3000);
       };
 

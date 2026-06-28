@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
        LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
        LEFT JOIN productos_categorias pc ON pc.id_producto = p.id_producto
        LEFT JOIN categorias c ON c.id_categoria = pc.id_categoria
-       WHERE p.papelera = 0 AND p.deleted = 0
+       WHERE p.papelera = 0
        GROUP BY p.id_producto
        ORDER BY p.nombre_producto ASC`,
       { type: sequelize.QueryTypes.SELECT }
