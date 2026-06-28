@@ -132,7 +132,7 @@ router.get('/activo', authenticate, async (req, res) => {
   }
 });
 
-router.post('/abrir', authenticate, authorize(['cajero', 'administrador']), async (req, res) => {
+router.post('/abrir', authenticate, authorize(['cajero']), async (req, res) => {
   const { denominaciones } = req.body;
   const userId = req.user.id || req.user.id_empleado;
   const userName = `${req.user.nombre || ''} ${req.user.apellido || ''}`.trim() || 'Usuario';
@@ -251,7 +251,7 @@ router.get('/recaudacion/:idTurno', authenticate, async (req, res) => {
   }
 });
 
-router.post('/cerrar', authenticate, authorize(['cajero', 'administrador']), async (req, res) => {
+router.post('/cerrar', authenticate, authorize(['cajero']), async (req, res) => {
   const { id_turno, denominaciones, observaciones } = req.body;
   const userId = req.user.id || req.user.id_empleado;
 

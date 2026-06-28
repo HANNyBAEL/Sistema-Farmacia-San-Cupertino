@@ -647,8 +647,8 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
       const data = await login(email, password);
       const user = { name: data.nombre, role: data.rol, id: data.id };
       
-      // Verificar si tiene turno abierto (solo para cajeros y administradores)
-      if (data.rol === 'cajero' || data.rol === 'administrador') {
+      // Verificar turno abierto solo para cajeros.
+      if (data.rol === 'cajero') {
         await checkTurnoActivo(user);
       } else {
         onLogin(user);
@@ -1929,17 +1929,31 @@ function Ventas({ user }: { user: User }) {
 
   function addToCartConfirmed(p: Product) {
     setSaleError("");
+    const exists = cart.find(i => i.product.id_producto === p.id_producto);
+
+    if (exists && exists.qty >= p.stock) {
+      setToast({ message: `Solo quedan ${p.stock} unidades.`, type: 'error' });
+      return;
+    }
+
+    setSearch("");
     setCart(prev => {
-      const exists = prev.find(i => i.product.id_producto === p.id_producto);
-      if (exists) {
-        if (exists.qty >= p.stock) {
-          setToast({ message: `Solo quedan ${p.stock} unidades.`, type: 'error' });
-          return prev;
-        }
+      const current = prev.find(i => i.product.id_producto === p.id_producto);
+      if (current) {
         return prev.map(i => i.product.id_producto === p.id_producto ? { ...i, qty: i.qty + 1 } : i);
       }
       return [...prev, { product: p, qty: 1 }];
     });
+  }
+
+  function resetVentaActual() {
+    setCart([]);
+    setSaleError("");
+    setSearch("");
+    setMetodoPago("efectivo");
+    setEfectivo("");
+    setSelectedClient(null);
+    setClientSearch("");
   }
 
   function handleCodigoDetectado(codigo: string) {
@@ -2031,6 +2045,7 @@ function Ventas({ user }: { user: User }) {
         setMetodoPago("efectivo");
         setEfectivo("");
         setCart([]);
+        setSearch("");
         setSelectedClient(null);
         setClientSearch("");
         const prods = await getProductos();
@@ -2547,7 +2562,7 @@ function Ventas({ user }: { user: User }) {
       <div className="flex-1 flex flex-col border-b md:border-b-0" style={{ minWidth: 0 }}>
         <div className="p-3 md:p-4 border-b border-border bg-card flex items-center justify-between">
           <h2 className="font-semibold text-foreground text-sm">Carrito</h2>
-          {cart.length > 0 && <Btn variant="ghost" size="sm" onClick={() => { setCart([]); setSaleError(""); }}><X size={13} /> Limpiar</Btn>}
+          {cart.length > 0 && <Btn variant="ghost" size="sm" onClick={resetVentaActual}><X size={13} /> Limpiar</Btn>}
         </div>
         {saleDone && <div className="mx-3 md:mx-4 mt-3 md:mt-4 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2"><Check size={16} /> Venta registrada exitosamente.</div>}
         {saleError && <div className="mx-3 md:mx-4 mt-3 md:mt-4 bg-destructive/10 border border-red-200 text-destructive rounded-lg px-4 py-3 text-sm flex items-center gap-2"><AlertTriangle size={14} />{saleError}</div>}
@@ -2658,7 +2673,7 @@ function Ventas({ user }: { user: User }) {
           ) : (
             <>
               <Btn variant="primary" className="w-full justify-center text-sm" onClick={finalizarVenta} disabled={cart.length === 0}><Check size={15} /> Finalizar venta</Btn>
-              <Btn variant="danger" className="w-full justify-center text-sm" onClick={() => { setCart([]); setSaleError(""); }} disabled={cart.length === 0}><X size={15} /> Cancelar</Btn>
+              <Btn variant="danger" className="w-full justify-center text-sm" onClick={resetVentaActual} disabled={cart.length === 0}><X size={15} /> Cancelar</Btn>
             </>
           )}
         </div>
@@ -5126,8 +5141,8 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
   };
 
   const handleLogoutClick = async () => {
-    // Verificar si el usuario tiene un turno abierto
-    if (user.role === 'cajero' || user.role === 'administrador') {
+    // Solo los cajeros cierran caja al salir.
+    if (user.role === 'cajero') {
       try {
         const response = await turnosService.verificarTurnoActivo();
         if (response.tieneTurnoAbierto) {
@@ -5150,6 +5165,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
 
   const handleCierreCajaSuccess = () => {
     setShowCierreCajaModal(false);
+    setTurnoData(null);
     onLogout();
   };
 
