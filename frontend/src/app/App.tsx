@@ -1360,6 +1360,7 @@ function Productos({ user }: { user: User }) {
   }
 
   const hayFiltros = !!(filterStock||filterCat||filterProveedor||filterEstado||filterVenc);
+  const formSuppliers = suppliers.filter(s => !s.deleted || (editProduct && Number(s.id_proveedor) === Number(form.id_proveedor)));
   if (loading) return <LoadingSpinner />;
 
   function limpiarFiltros() {
@@ -1634,7 +1635,7 @@ function Productos({ user }: { user: User }) {
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Proveedor *</label>
                 <Select value={form.id_proveedor} onChange={v => setForm(p => ({ ...p, id_proveedor: v }))} className="w-full">
                   <option value="">Seleccionar proveedor...</option>
-                  {suppliers.map(s => (
+                  {formSuppliers.map(s => (
                       <option key={s.id_proveedor} value={s.id_proveedor}>{s.nombre} {s.apellido}</option>
                     ))}
                 </Select>
