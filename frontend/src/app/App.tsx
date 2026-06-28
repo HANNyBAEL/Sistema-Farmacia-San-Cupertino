@@ -6,7 +6,6 @@ import {
   Eye, EyeOff, Filter, Download, RefreshCw, Shield,
   TrendingUp, TrendingDown, Clock, ChevronRight,
   DollarSign, Menu, ArrowLeft, Moon, Sun,
-  FileSpreadsheet,
   Camera,
   RotateCcw,
   Power, PowerOff,
@@ -1902,13 +1901,6 @@ function Ventas({ user }: { user: User }) {
     })
     .slice(0, 6);
 
-  const [facturaModal, setFacturaModal] = useState<{ show: boolean; onConfirm: (emitirElectronica: boolean) => void; onCancel: () => void }>({
-    show: false,
-    onConfirm: () => {},
-    onCancel: () => {},
-  });
-  const [generarFacturaElectronica, setGenerarFacturaElectronica] = useState(true);
-
   function addToCart(p: Product) {
     if (p.papelera || p.deleted === 1) {
       setToast({ message: `"${p.nombre_producto}" no está disponible.`, type: 'error' });
@@ -2044,7 +2036,7 @@ function Ventas({ user }: { user: User }) {
     await procesarVenta(selectedClient.id_cliente);
   }
 
-  async function procesarVenta(id_cliente: number, generarFacturaAutomaticamente = false) {
+  async function procesarVenta(id_cliente: number) {
     try {
       const ventaResp = await createVenta({
         id_cliente: id_cliente,
@@ -2308,24 +2300,8 @@ function Ventas({ user }: { user: User }) {
         }
       };
 
-      if (generarFacturaAutomaticamente) {
-        await generarFactura(true);
-        await finalizarVentaExitosa();
-      } else {
-        setGenerarFacturaElectronica(true);
-        setFacturaModal({
-          show: true,
-          onConfirm: async (emitirElectronica: boolean) => {
-            setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
-            await generarFactura(emitirElectronica);
-            await finalizarVentaExitosa();
-          },
-          onCancel: () => {
-            setFacturaModal({ show: false, onConfirm: () => {}, onCancel: () => {} });
-            finalizarVentaExitosa();
-          },
-        });
-      }
+      await generarFactura(true);
+      await finalizarVentaExitosa();
 
     } catch (e: any) {
       setToast({ message: e?.response?.data?.error ?? "Error al registrar la venta.", type: 'error' });
@@ -2446,7 +2422,7 @@ function Ventas({ user }: { user: User }) {
               <Btn variant="secondary" onClick={() => setNoClientModal(false)}>Cancelar</Btn>
               <Btn variant="primary" onClick={() => {
                 setNoClientModal(false);
-                procesarVenta(1, true);
+                procesarVenta(1);
               }}>Si, continuar</Btn>
             </div>
           </Card>
@@ -2472,32 +2448,6 @@ function Ventas({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Modal generar factura */}
-      {facturaModal.show && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                <FileSpreadsheet size={20} />
-              </div>
-              <h2 className="text-lg font-bold text-foreground">Generar Factura</h2>
-            </div>
-            <label className="flex items-center gap-3 text-sm text-foreground mb-4 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={generarFacturaElectronica}
-                onChange={e => setGenerarFacturaElectronica(e.target.checked)}
-                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-              />
-              <span>Generar factura electronica</span>
-            </label>
-            <div className="flex justify-end gap-3">
-              <Btn variant="secondary" onClick={facturaModal.onCancel}>Cancelar</Btn>
-              <Btn variant="primary" onClick={() => facturaModal.onConfirm(generarFacturaElectronica)}>Continuar</Btn>
-            </div>
-          </Card>
-        </div>
-      )}
       {/* Escáner */}
       {showScanner && (
         <EscanerCodigoBarras
