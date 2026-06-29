@@ -54,7 +54,7 @@ router.get('/', async (req, res) => {
         NULL as lote, NULL as precio, NULL as stock, NULL as fecha_vencimiento,
         e.cargo AS detalle,
         (SELECT a.nombre_empleado FROM auditoria a 
-         WHERE a.tabla = 'empleados' AND a.accion = 'DESACTIVAR' AND a.id_registro = e.id_empleado 
+         WHERE a.tabla = 'empleados' AND a.accion = 'EDITAR' AND a.campo_modificado = 'activo' AND a.valor_nuevo = 'desactivado' AND a.id_registro = e.id_empleado 
          ORDER BY a.fecha DESC LIMIT 1) AS empleado_desactivo
        FROM empleados e
        WHERE e.activo = 0
