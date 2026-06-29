@@ -2687,6 +2687,7 @@ function Clientes({ user }: { user: User }) {
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; clienteId: number | null }>({ isOpen: false, clienteId: null });
   const [toggleModal, setToggleModal] = useState<{ isOpen: boolean; clienteId: number | null; deleted: number }>({ isOpen: false, clienteId: null, deleted: 0 });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+  const canManageClients = user.role === 'cajero';
 
   const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -2755,6 +2756,10 @@ function Clientes({ user }: { user: User }) {
     form.dui !== originalForm.dui;
 
   function openNew() {
+    if (!canManageClients) {
+      setToast({ message: 'Solo el cajero puede crear clientes.', type: 'error' });
+      return;
+    }
     setEditClient(null);
     const initial = { nombre: "", apellido: "", telefono: "", correo: "", direccion: "", dui: "" };
     setForm(initial);
@@ -2764,6 +2769,10 @@ function Clientes({ user }: { user: User }) {
   }
 
   function openEdit(c: Client) {
+    if (!canManageClients) {
+      setToast({ message: 'Solo el cajero puede editar clientes.', type: 'error' });
+      return;
+    }
     // Proteger cliente anónimo (ID 1) de cualquier edición
     if (c.id_cliente === 1) {
       setToast({ message: 'No se puede editar el cliente anónimo.', type: 'error' });
@@ -2783,6 +2792,10 @@ function Clientes({ user }: { user: User }) {
   }
 
   async function saveForm() {
+    if (!canManageClients) {
+      setFormError("Solo el cajero puede guardar cambios de clientes.");
+      return;
+    }
     if (editClient && !hasChanges()) return;
     if (!form.nombre.trim() || !form.dui.trim()) {
       setFormError("Nombre completo y DUI son obligatorios."); return;
@@ -2833,6 +2846,10 @@ function Clientes({ user }: { user: User }) {
   }
 
   function handleToggle(id: number, deleted: number) {
+    if (!canManageClients) {
+      setToast({ message: 'Solo el cajero puede cambiar el estado de clientes.', type: 'error' });
+      return;
+    }
     setToggleModal({ isOpen: true, clienteId: id, deleted });
   }
 

@@ -2,10 +2,11 @@ import express from 'express';
 import sequelize from '../config/database.js';
 import { registrarAuditoria } from './auditoria.js';
 import { ensureEmailIsUnique, handleEmailValidationError, validateEmailOrThrow } from '../utils/emailValidation.js';
+import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', authenticate, authorize(['administrador', 'cajero']), async (req, res) => {
   try {
     const clientes = await sequelize.query(
       `SELECT c.*,
@@ -26,7 +27,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticate, authorize(['administrador', 'cajero']), async (req, res) => {
   try {
     const id = Number(req.params.id);
     const [cliente] = await sequelize.query(
@@ -45,7 +46,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authenticate, authorize(['cajero']), async (req, res) => {
   const { nombre, apellido, telefono, correo, direccion, dui, id_empleado, nombre_empleado } = req.body;
   try {
     if (!String(nombre || '').trim() || !String(dui || '').trim()) {
@@ -81,7 +82,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticate, authorize(['cajero']), async (req, res) => {
   const { nombre, apellido, telefono, correo, direccion, dui, id_empleado, nombre_empleado } = req.body;
   try {
     const clienteId = Number(req.params.id);
@@ -156,7 +157,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.patch('/:id/toggle', async (req, res) => {
+router.patch('/:id/toggle', authenticate, authorize(['cajero']), async (req, res) => {
   const { id_empleado, nombre_empleado } = req.body;
   try {
     const clienteId = Number(req.params.id);
@@ -192,11 +193,11 @@ router.patch('/:id/toggle', async (req, res) => {
   }
 });
 
-router.patch('/:id/papelera', async (req, res) => {
+router.patch('/:id/papelera', authenticate, authorize(['cajero']), async (req, res) => {
   res.status(405).json({ error: 'Los clientes no se eliminan. Usa la opcion Desactivar.' });
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticate, authorize(['cajero']), async (req, res) => {
   res.status(405).json({ error: 'Los clientes no se eliminan. Usa la opcion Desactivar.' });
 });
 
