@@ -1,3 +1,4 @@
+/** Mantiene el tema seleccionado y lo sincroniza con localStorage y el documento. */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 type Theme = 'light' | 'dark';
@@ -11,6 +12,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>(() => {
+    // La preferencia guardada tiene prioridad sobre la configuración del sistema.
     const saved = localStorage.getItem('theme') as Theme | null;
     if (saved) return saved;
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';

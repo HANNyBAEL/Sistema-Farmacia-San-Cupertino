@@ -1,3 +1,7 @@
+/**
+ * Punto de entrada del backend: registra seguridad, rutas HTTP y Socket.IO
+ * antes de abrir la conexión de base de datos.
+ */
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -114,6 +118,7 @@ io.on('connection', (socket) => {
   });
 });
 
+/** Mantiene compatibles instalaciones de base de datos creadas con esquemas anteriores. */
 async function ensureSchema() {
   const [columns] = await sequelize.query("SHOW COLUMNS FROM empleados LIKE 'papelera'");
   if (columns.length === 0) {

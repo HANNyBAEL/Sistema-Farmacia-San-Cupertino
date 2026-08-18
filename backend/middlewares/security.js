@@ -1,3 +1,4 @@
+/** Cabeceras de seguridad y límite de solicitudes en memoria para rutas sensibles. */
 const FIVE_MINUTES = 5 * 60 * 1000;
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
@@ -60,6 +61,7 @@ export function noStoreApiCache(req, res, next) {
   next();
 }
 
+/** Limita por IP y ruta; las entradas vencidas se eliminan periódicamente. */
 export function createRateLimiter({
   windowMs = FIFTEEN_MINUTES,
   max = 20,

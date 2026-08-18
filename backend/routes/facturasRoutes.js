@@ -1,9 +1,11 @@
+/** Registra facturas, ofrece el correlativo y envía comprobantes por correo. */
 import express from 'express';
 import sequelize from '../config/database.js';
 import { enviarFacturaPorCorreo } from '../services/email.js';
 
 const router = express.Router();
 
+// El correlativo es una vista previa; la base de datos conserva la fuente de verdad al registrar.
 router.get('/siguiente-correlativo', async (req, res) => {
   try {
     const [[{ total }]] = await sequelize.query(

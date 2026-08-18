@@ -1,6 +1,8 @@
+/** Middleware para autenticar JWT y autorizar por cargo del empleado. */
 import jwt from 'jsonwebtoken';
 import Empleado from '../models/Empleado.js';
 
+/** Verifica firma, vigencia y versión de sesión antes de exponer req.user. */
 export const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
@@ -35,6 +37,7 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
+/** Restringe rutas a los cargos solicitados normalizando mayúsculas y espacios. */
 export const authorize = (rolesPermitidos = []) => {
   return (req, res, next) => {
     if (!req.user) {

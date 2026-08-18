@@ -1,3 +1,4 @@
+/** Provee una única conexión Socket.IO para mantener pantallas sincronizadas entre usuarios. */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -18,6 +19,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    // La variable de Vite apunta al backend publicado; el respaldo facilita desarrollo local.
     const socketInstance = io((import.meta as any).env?.VITE_API_URL || 'http://localhost:8000', {
       transports: ['websocket', 'polling'],
       reconnection: true,
