@@ -1,11 +1,11 @@
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
-const FROM_EMAIL = process.env.FROM_EMAIL || process.env.BREVO_SENDER_EMAIL;
+// Debe estar verificado como remitente transaccional en Brevo.
+const FROM_EMAIL = process.env.FROM_EMAIL || process.env.BREVO_SENDER_EMAIL || 'farmaciassanjosecupertino@gmail.com';
 const FROM_NAME = process.env.BREVO_SENDER_NAME || 'Farmacias San Cupertino';
 
 function getBrevoApiKey() {
   const apiKey = process.env.BREVO_API_KEY?.trim();
   if (!apiKey) throw new Error('BREVO_API_KEY no configurada');
-  if (!FROM_EMAIL) throw new Error('FROM_EMAIL o BREVO_SENDER_EMAIL no configurado');
   return apiKey;
 }
 
