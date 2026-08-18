@@ -1888,7 +1888,7 @@ function Ventas({ user }: { user: User }) {
       window.removeEventListener('keydown', handleKeyDown);
       if (barcodeTimeout) clearTimeout(barcodeTimeout);
     };
-  }, [products]);
+  }, []);
 
   const results = products
     .filter(p => {
@@ -1973,14 +1973,30 @@ function Ventas({ user }: { user: User }) {
     // Limpiar el campo de búsqueda
     setSearch("");
     
-    const producto = products.find(p => p.codigo_barras === codigo);
+    // Normalizar el código (eliminar espacios y convertir a string)
+    const codigoNormalizado = String(codigo).trim();
+    console.log('🔍 Código escaneado:', codigoNormalizado);
+    console.log('📦 Productos disponibles:', products.length);
+    console.log('🔎 Buscando producto con código:', codigoNormalizado);
+    
+    // Buscar producto con comparación normalizada
+    const producto = products.find(p => {
+      const codigoProducto = String(p.codigo_barras || '').trim();
+      console.log(`   Comparando: "${codigoProducto}" con "${codigoNormalizado}" -> ${codigoProducto === codigoNormalizado}`);
+      return codigoProducto === codigoNormalizado;
+    });
+    
     if (!producto) {
-      setProductModal({ show: true, message: `Código no encontrado: ${codigo}`, type: 'error' });
+      console.error('❌ Producto no encontrado con código:', codigoNormalizado);
+      setProductModal({ show: true, message: `Código no encontrado: ${codigoNormalizado}`, type: 'error' });
       return;
     }
     
+    console.log('✅ Producto encontrado:', producto.nombre_producto);
+    
     // Verificar si el producto puede ser agregado al carrito
     if (producto.papelera || producto.deleted === 1) {
+      console.warn('⚠️ Producto no disponible (papelera/deleted):', producto.nombre_producto);
       setProductModal({ show: true, message: `"${producto.nombre_producto}" no está disponible.`, type: 'error' });
       return;
     }
@@ -1988,15 +2004,18 @@ function Ventas({ user }: { user: User }) {
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const vencimiento = new Date(producto.fecha_vencimiento + 'T00:00:00');
     if (vencimiento < hoy) {
+      console.warn('⚠️ Producto vencido:', producto.nombre_producto, producto.fecha_vencimiento);
       setProductModal({ show: true, message: `"${producto.nombre_producto}" no agregado por estar vencido.`, type: 'error' });
       return;
     }
     
     if (producto.stock === 0) {
+      console.warn('⚠️ Producto sin stock:', producto.nombre_producto);
       setProductModal({ show: true, message: `"${producto.nombre_producto}" no agregado por no tener stock.`, type: 'error' });
       return;
     }
     
+    console.log('🛒 Agregando al carrito:', producto.nombre_producto);
     addToCart(producto);
     setProductModal({ show: true, message: `${producto.nombre_producto} agregado al carrito`, type: 'success' });
   }
